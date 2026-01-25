@@ -1,4 +1,7 @@
-import type { HomeAssistantEntityState } from "@home-assistant-matter-hub/common";
+import type {
+  EntityMappingConfig,
+  HomeAssistantEntityState,
+} from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
   TransactionDestroyedError,
@@ -18,6 +21,7 @@ export class LegacyEndpoint extends EntityEndpoint {
   public static async create(
     registry: BridgeRegistry,
     entityId: string,
+    mapping?: EntityMappingConfig,
   ): Promise<LegacyEndpoint | undefined> {
     const deviceRegistry = registry.deviceOf(entityId);
     const state = registry.initialState(entityId);
@@ -28,15 +32,20 @@ export class LegacyEndpoint extends EntityEndpoint {
       registry: entity,
       deviceRegistry,
     };
-    const type = createLegacyEndpointType(payload);
+    const type = createLegacyEndpointType(payload, mapping);
     if (!type) {
       return;
     }
-    return new LegacyEndpoint(type, entityId);
+    const customName = mapping?.customName;
+    return new LegacyEndpoint(type, entityId, customName);
   }
 
-  private constructor(type: EndpointType, entityId: string) {
-    super(type, entityId);
+  private constructor(
+    type: EndpointType,
+    entityId: string,
+    customName?: string,
+  ) {
+    super(type, entityId, customName);
     // Debounce state updates to batch rapid changes into a single transaction.
     // Home Assistant often sends multiple attribute updates in quick succession
     // (e.g., media player: volume + source + play state). Without debouncing,

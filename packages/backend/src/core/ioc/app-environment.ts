@@ -8,6 +8,7 @@ import { HomeAssistantConfig } from "../../services/home-assistant/home-assistan
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
 import { AppStorage } from "../../services/storage/app-storage.js";
 import { BridgeStorage } from "../../services/storage/bridge-storage.js";
+import { EntityMappingStorage } from "../../services/storage/entity-mapping-storage.js";
 import { LoggerService } from "../app/logger.js";
 import type { Options } from "../app/options.js";
 import { BridgeEnvironmentFactory } from "./bridge-environment.js";
@@ -42,6 +43,10 @@ export class AppEnvironment extends EnvironmentBase {
     this.set(LoggerService, logger);
     this.set(AppStorage, new AppStorage(await this.load(StorageService)));
     this.set(BridgeStorage, new BridgeStorage(await this.load(AppStorage)));
+    this.set(
+      EntityMappingStorage,
+      new EntityMappingStorage(await this.load(AppStorage)),
+    );
 
     this.set(
       HomeAssistantClient,
@@ -79,6 +84,7 @@ export class AppEnvironment extends EnvironmentBase {
         logger,
         await this.load(BridgeService),
         await this.load(HomeAssistantClient),
+        await this.load(EntityMappingStorage),
         this.options.webApi,
       ),
     );

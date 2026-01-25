@@ -7,6 +7,7 @@ import { BridgeFactory } from "../../services/bridges/bridge-factory.js";
 import { BridgeRegistry } from "../../services/bridges/bridge-registry.js";
 import { HomeAssistantClient } from "../../services/home-assistant/home-assistant-client.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
+import { EntityMappingStorage } from "../../services/storage/entity-mapping-storage.js";
 import { LoggerService } from "../app/logger.js";
 import type { AppEnvironment } from "./app-environment.js";
 import { EnvironmentBase } from "./environment-base.js";
@@ -45,6 +46,8 @@ export class BridgeEnvironment extends EnvironmentBase {
       new BridgeEndpointManager(
         await this.load(HomeAssistantClient),
         this.get(BridgeRegistry),
+        await this.load(EntityMappingStorage),
+        this.get(BridgeDataProvider).id,
         this.endpointManagerLogger,
       ),
     );

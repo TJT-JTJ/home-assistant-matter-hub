@@ -1,4 +1,7 @@
-import type { FailedEntity } from "@home-assistant-matter-hub/common";
+import type {
+  EntityMappingConfig,
+  FailedEntity,
+} from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
@@ -9,6 +12,7 @@ import { InvalidDeviceError } from "../../utils/errors/invalid-device-error.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
+import type { EntityMappingStorage } from "../storage/entity-mapping-storage.js";
 import type { BridgeRegistry } from "./bridge-registry.js";
 
 const MAX_ENTITY_ID_LENGTH = 150;
@@ -26,10 +30,16 @@ export class BridgeEndpointManager extends Service {
   constructor(
     private readonly client: HomeAssistantClient,
     private readonly registry: BridgeRegistry,
+    private readonly mappingStorage: EntityMappingStorage,
+    private readonly bridgeId: string,
     private readonly log: Logger,
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
+  }
+
+  private getEntityMapping(entityId: string): EntityMappingConfig | undefined {
+    return this.mappingStorage.getMapping(this.bridgeId, entityId);
   }
 
   override async dispose(): Promise<void> {
@@ -72,6 +82,13 @@ export class BridgeEndpointManager extends Service {
     }
 
     for (const entityId of this.entityIds) {
+      const mapping = this.getEntityMapping(entityId);
+
+      if (mapping?.disabled) {
+        this.log.debug(`Skipping disabled entity: ${entityId}`);
+        continue;
+      }
+
       if (entityId.length > MAX_ENTITY_ID_LENGTH) {
         const reason = `Entity ID too long (${entityId.length} chars, max ${MAX_ENTITY_ID_LENGTH}). This would cause filesystem errors.`;
         this.log.warn(`Skipping entity: ${entityId}. Reason: ${reason}`);
@@ -82,7 +99,11 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
-          endpoint = await LegacyEndpoint.create(this.registry, entityId);
+          endpoint = await LegacyEndpoint.create(
+            this.registry,
+            entityId,
+            mapping,
+          );
         } catch (e) {
           if (e instanceof InvalidDeviceError) {
             const reason = (e as Error).message;
