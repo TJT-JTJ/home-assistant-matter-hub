@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - beta
 
 permissions:
   contents: read
