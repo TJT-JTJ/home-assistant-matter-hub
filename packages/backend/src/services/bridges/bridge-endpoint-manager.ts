@@ -1,3 +1,4 @@
+import type { FailedEntity } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
@@ -10,10 +11,17 @@ import type { HomeAssistantClient } from "../home-assistant/home-assistant-clien
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
 import type { BridgeRegistry } from "./bridge-registry.js";
 
+const MAX_ENTITY_ID_LENGTH = 150;
+
 export class BridgeEndpointManager extends Service {
   readonly root: Endpoint;
   private entityIds: string[] = [];
   private unsubscribe?: () => void;
+  private _failedEntities: FailedEntity[] = [];
+
+  get failedEntities(): FailedEntity[] {
+    return this._failedEntities;
+  }
 
   constructor(
     private readonly client: HomeAssistantClient,
@@ -49,6 +57,7 @@ export class BridgeEndpointManager extends Service {
 
   async refreshDevices() {
     this.registry.refresh();
+    this._failedEntities = [];
 
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     this.entityIds = this.registry.entityIds;
@@ -63,15 +72,22 @@ export class BridgeEndpointManager extends Service {
     }
 
     for (const entityId of this.entityIds) {
+      if (entityId.length > MAX_ENTITY_ID_LENGTH) {
+        const reason = `Entity ID too long (${entityId.length} chars, max ${MAX_ENTITY_ID_LENGTH}). This would cause filesystem errors.`;
+        this.log.warn(`Skipping entity: ${entityId}. Reason: ${reason}`);
+        this._failedEntities.push({ entityId, reason });
+        continue;
+      }
+
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
           endpoint = await LegacyEndpoint.create(this.registry, entityId);
         } catch (e) {
           if (e instanceof InvalidDeviceError) {
-            this.log.warn(
-              `Invalid device detected. Entity: ${entityId} Reason: ${(e as Error).message}`,
-            );
+            const reason = (e as Error).message;
+            this.log.warn(`Invalid device detected. Entity: ${entityId} Reason: ${reason}`);
+            this._failedEntities.push({ entityId, reason });
             continue;
           } else {
             this.log.error(

@@ -1,8 +1,16 @@
+import type { FailedEntity } from "@home-assistant-matter-hub/common";
+import WarningIcon from "@mui/icons-material/Warning";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Collapse from "@mui/material/Collapse";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Breadcrumbs } from "../../components/breadcrumbs/Breadcrumbs.tsx";
 import { BridgeDetails } from "../../components/bridge/BridgeDetails.tsx";
@@ -20,6 +28,44 @@ import { BridgeMoreMenu } from "./BridgeMoreMenu.tsx";
 
 const MemoizedBridgeDetails = memo(BridgeDetails);
 const MemoizedEndpointList = memo(EndpointList);
+
+const FailedEntitiesAlert = ({ failedEntities }: { failedEntities: FailedEntity[] }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!failedEntities || failedEntities.length === 0) {
+    return null;
+  }
+
+  return (
+    <Alert
+      severity="warning"
+      sx={{ cursor: "pointer" }}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <Typography variant="body2">
+        <strong>{failedEntities.length} entity/entities could not be loaded.</strong>
+        {" "}Click to {expanded ? "hide" : "show"} details.
+      </Typography>
+      <Collapse in={expanded}>
+        <List dense sx={{ mt: 1 }}>
+          {failedEntities.map((entity) => (
+            <ListItem key={entity.entityId} sx={{ py: 0 }}>
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <WarningIcon color="warning" fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary={entity.entityId}
+                secondary={entity.reason}
+                primaryTypographyProps={{ variant: "body2", fontWeight: "bold" }}
+                secondaryTypographyProps={{ variant: "caption" }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Collapse>
+    </Alert>
+  );
+};
 
 export const BridgeDetailsPage = () => {
   const notifications = useNotifications();
@@ -79,6 +125,10 @@ export const BridgeDetailsPage = () => {
       </Box>
 
       <BridgeStatusHint status={bridge.status} reason={bridge.statusReason} />
+
+      {bridge.failedEntities && bridge.failedEntities.length > 0 && (
+        <FailedEntitiesAlert failedEntities={bridge.failedEntities} />
+      )}
 
       <MemoizedBridgeDetails bridge={bridge} />
 

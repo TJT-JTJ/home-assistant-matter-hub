@@ -36,11 +36,17 @@ export interface BridgeData extends BridgeConfig {
   readonly basicInformation: BridgeBasicInformation;
 }
 
+export interface FailedEntity {
+  readonly entityId: string;
+  readonly reason: string;
+}
+
 export interface BridgeDataWithMetadata extends BridgeData {
   readonly status: BridgeStatus;
   readonly statusReason?: string;
   readonly commissioning?: BridgeCommissioning | null;
   readonly deviceCount: number;
+  readonly failedEntities?: FailedEntity[];
 }
 
 export enum BridgeStatus {
