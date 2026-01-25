@@ -25,6 +25,7 @@ project:
 site:
   template: book-theme
   title: Home-Assistant-Matter-Hub
+  base_url: /home-assistant-matter-hub
   options:
     favicon: assets/hamh-logo-small.png
     logo: assets/hamh-logo-large.png
