@@ -93,38 +93,47 @@ export class ThermostatServerBase extends FeaturedBase {
         ?.celsius(true) ?? this.state.occupiedHeatingSetpoint;
     const targetCoolingTemperature =
       config
-        .getTargetHeatingTemperature(entity.state, this.agent)
+        .getTargetCoolingTemperature(entity.state, this.agent)
         ?.celsius(true) ?? this.state.occupiedCoolingSetpoint;
 
     const systemMode = this.getSystemMode(entity);
     const runningMode = config.getRunningMode(entity.state, this.agent);
 
+    // When autoMode is enabled, Matter spec requires:
+    // minHeatSetpointLimit <= minCoolSetpointLimit - minSetpointDeadBand
+    // We use a deadband of 250 (2.5°C) to ensure the constraint is satisfied
+    const deadBand = this.features.autoMode ? 250 : 0;
+    const minCoolLimit =
+      minSetpointLimit != null ? minSetpointLimit + deadBand : undefined;
+    const maxHeatLimit =
+      maxSetpointLimit != null ? maxSetpointLimit - deadBand : undefined;
+
     applyPatchState(this.state, {
       localTemperature: localTemperature,
       systemMode: systemMode,
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
+      ...(this.features.autoMode
+        ? {
+            minSetpointDeadBand: deadBand,
+            thermostatRunningMode: runningMode,
+          }
+        : {}),
       ...(this.features.heating
         ? {
             occupiedHeatingSetpoint: targetHeatingTemperature,
             minHeatSetpointLimit: minSetpointLimit,
-            maxHeatSetpointLimit: maxSetpointLimit,
+            maxHeatSetpointLimit: maxHeatLimit ?? maxSetpointLimit,
             absMinHeatSetpointLimit: minSetpointLimit,
-            absMaxHeatSetpointLimit: maxSetpointLimit,
+            absMaxHeatSetpointLimit: maxHeatLimit ?? maxSetpointLimit,
           }
         : {}),
       ...(this.features.cooling
         ? {
             occupiedCoolingSetpoint: targetCoolingTemperature,
-            minCoolSetpointLimit: minSetpointLimit,
+            minCoolSetpointLimit: minCoolLimit ?? minSetpointLimit,
             maxCoolSetpointLimit: maxSetpointLimit,
-            absMinCoolSetpointLimit: minSetpointLimit,
+            absMinCoolSetpointLimit: minCoolLimit ?? minSetpointLimit,
             absMaxCoolSetpointLimit: maxSetpointLimit,
-          }
-        : {}),
-      ...(this.features.autoMode
-        ? {
-            minSetpointDeadBand: 0,
-            thermostatRunningMode: runningMode,
           }
         : {}),
     });
