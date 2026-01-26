@@ -24,7 +24,11 @@ class HumidityMeasurementServerBase extends Base {
 
   private update(entity: HomeAssistantEntityInformation) {
     const humidity = this.getHumidity(this.state.config, entity.state);
-    applyPatchState(this.state, { measuredValue: humidity });
+    applyPatchState(this.state, {
+      measuredValue: humidity,
+      minMeasuredValue: 0,
+      maxMeasuredValue: 10000,
+    });
   }
 
   private getHumidity(
