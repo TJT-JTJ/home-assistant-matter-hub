@@ -133,8 +133,10 @@ export class BridgeEndpointManager extends Service {
 
   async updateStates(states: HomeAssistantStates) {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
-    for (const endpoint of endpoints) {
-      await endpoint.updateStates(states);
-    }
+    // Process state updates in parallel for faster response times
+    // This significantly reduces latency for Alexa/Google Home
+    await Promise.all(
+      endpoints.map((endpoint) => endpoint.updateStates(states)),
+    );
   }
 }
