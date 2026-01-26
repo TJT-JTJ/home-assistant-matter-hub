@@ -300,3 +300,11 @@ If you encounter issues with Alpha:
 
 > [!NOTE]
 > Configuration data is compatible between versions. Your bridges and settings will be preserved.
+
+---
+
+## Acknowledgments
+
+Special thanks to the community members who help improve this project by reporting issues and providing detailed information:
+
+- **[@codyc1515](https://github.com/codyc1515)** - For reporting the Apple Home "Not Responding" issue with lights ([#5](https://github.com/RiDDiX/home-assistant-matter-hub/issues/5)), which helped identify and fix the `CurrentLevel` null value problem affecting controller compatibility.
