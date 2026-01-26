@@ -13,7 +13,11 @@ const config: LevelControlConfig = {
     if (brightness != null) {
       return brightness / 255;
     }
-    return null;
+    // When brightness is null (e.g., light is off), return minimum level (0)
+    // to ensure Apple Home doesn't show "not responding".
+    // Matter spec allows null for "undefined", but Apple Home doesn't handle it well.
+    // Returning 0 maps to minLevel (1) in Matter, which is valid for the Lighting feature.
+    return 0;
   },
   moveToLevelPercent: (brightnessPercent) => ({
     action: "light.turn_on",
