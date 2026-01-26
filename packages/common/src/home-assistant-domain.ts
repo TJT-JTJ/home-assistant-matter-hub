@@ -1,4 +1,5 @@
 export enum HomeAssistantDomain {
+  alarm_control_panel = "alarm_control_panel",
   automation = "automation",
   button = "button",
   binary_sensor = "binary_sensor",
@@ -16,4 +17,5 @@ export enum HomeAssistantDomain {
   sensor = "sensor",
   switch = "switch",
   vacuum = "vacuum",
+  valve = "valve",
 }

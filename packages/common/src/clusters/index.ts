@@ -23,14 +23,17 @@ export enum ClusterId {
 
   bridgedDeviceBasicInformation = "bridgedDeviceBasicInformation",
 
+  airQuality = "airQuality",
   booleanState = "booleanState",
   colorControl = "colorControl",
   doorLock = "doorLock",
+  flowMeasurement = "flowMeasurement",
   levelControl = "levelControl",
   fanControl = "fanControl",
   illuminanceMeasurement = "illuminanceMeasurement",
   occupancySensing = "occupancySensing",
   onOff = "onOff",
+  pressureMeasurement = "pressureMeasurement",
   relativeHumidityMeasurement = "relativeHumidityMeasurement",
   smokeCoAlarm = "smokeCoAlarm",
   temperatureMeasurement = "temperatureMeasurement",

@@ -26,6 +26,7 @@ import { ScriptDevice } from "./script/index.js";
 import { SensorDevice } from "./sensor/index.js";
 import { SwitchDevice } from "./switch/index.js";
 import { VacuumDevice } from "./vacuum/index.js";
+import { ValveDevice } from "./valve/index.js";
 
 /**
  * @deprecated
@@ -50,9 +51,13 @@ export function createLegacyEndpointType(
   return factory({ entity });
 }
 
-const deviceCtrs: Record<
-  HomeAssistantDomain,
-  (homeAssistant: HomeAssistantEntityBehavior.State) => EndpointType | undefined
+const deviceCtrs: Partial<
+  Record<
+    HomeAssistantDomain,
+    (
+      homeAssistant: HomeAssistantEntityBehavior.State,
+    ) => EndpointType | undefined
+  >
 > = {
   light: LightDevice,
   switch: SwitchDevice,
@@ -71,6 +76,7 @@ const deviceCtrs: Record<
   media_player: MediaPlayerDevice,
   humidifier: HumidifierDevice,
   vacuum: VacuumDevice,
+  valve: ValveDevice,
 };
 
 const matterDeviceTypeFactories: Partial<
