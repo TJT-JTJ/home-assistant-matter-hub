@@ -32,6 +32,7 @@ export enum ClusterId {
   occupancySensing = "occupancySensing",
   onOff = "onOff",
   relativeHumidityMeasurement = "relativeHumidityMeasurement",
+  smokeCoAlarm = "smokeCoAlarm",
   temperatureMeasurement = "temperatureMeasurement",
   thermostat = "thermostat",
   windowCovering = "windowCovering",
