@@ -64,8 +64,15 @@ jobs:
         with:
           name: package.tgz
           path: apps/home-assistant-matter-hub/package.tgz
+
+      - name: Build Documentation
+        if: steps.release.outputs.release-version != '' && steps.release.outputs.release-channel == 'latest'
+        env:
+          BASE_URL: /home-assistant-matter-hub
+        run: pnpm --filter @home-assistant-matter-hub/documentation run build
+
       - name: Upload Documentation
-        if: steps.release.outputs.release-version != ''
+        if: steps.release.outputs.release-version != '' && steps.release.outputs.release-channel == 'latest'
         uses: actions/upload-pages-artifact@v4
         with:
           path: "./docs/_build/html"
