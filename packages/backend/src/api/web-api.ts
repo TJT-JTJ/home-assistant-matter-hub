@@ -6,7 +6,9 @@ import nocache from "nocache";
 import type { BetterLogger, LoggerService } from "../core/app/logger.js";
 import { Service } from "../core/ioc/service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
+import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import { accessLogger } from "./access-log.js";
+import { bridgeExportApi } from "./bridge-export-api.js";
 import { matterApi } from "./matter-api.js";
 import { supportIngress, supportProxyLocation } from "./proxy-support.js";
 import { webUi } from "./web-ui.js";
@@ -31,6 +33,7 @@ export class WebApi extends Service {
   constructor(
     logger: LoggerService,
     private readonly bridgeService: BridgeService,
+    private readonly bridgeStorage: BridgeStorage,
     private readonly props: WebApiProps,
   ) {
     super("WebApi");
@@ -43,7 +46,8 @@ export class WebApi extends Service {
     api
       .use(express.json())
       .use(nocache())
-      .use("/matter", matterApi(this.bridgeService));
+      .use("/matter", matterApi(this.bridgeService))
+      .use("/bridges", bridgeExportApi(this.bridgeStorage));
 
     const middlewares: express.Handler[] = [
       this.accessLogger,

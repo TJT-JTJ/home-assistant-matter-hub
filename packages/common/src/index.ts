@@ -1,4 +1,5 @@
 export * from "./bridge-data.js";
+export * from "./bridge-export.js";
 export * from "./clusters/index.js";
 export * from "./domains/index.js";
 export * from "./endpoint-data.js";
