@@ -14,6 +14,7 @@ import { navigation } from "../../routes.tsx";
 import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
 import type { ValidationError } from "../misc/editors/validation-error.ts";
+import { FilterPreview } from "./FilterPreview.tsx";
 
 enum BridgeEditorMode {
   JSON_EDITOR = "JSON_EDITOR",
@@ -122,6 +123,10 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
             schema={bridgeConfigSchema}
             customValidate={validatePort}
           />
+        )}
+
+        {(config as BridgeConfig)?.filter && (
+          <FilterPreview filter={(config as BridgeConfig).filter} />
         )}
 
         <Grid container>

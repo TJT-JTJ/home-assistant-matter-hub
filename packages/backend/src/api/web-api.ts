@@ -7,6 +7,7 @@ import type { BetterLogger, LoggerService } from "../core/app/logger.js";
 import { Service } from "../core/ioc/service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
 import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
+import type { HomeAssistantRegistry } from "../services/home-assistant/home-assistant-registry.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 import { accessLogger } from "./access-log.js";
@@ -42,6 +43,7 @@ export class WebApi extends Service {
     logger: LoggerService,
     private readonly bridgeService: BridgeService,
     private readonly haClient: HomeAssistantClient,
+    private readonly haRegistry: HomeAssistantRegistry,
     private readonly bridgeStorage: BridgeStorage,
     private readonly mappingStorage: EntityMappingStorage,
     private readonly props: WebApiProps,
@@ -65,7 +67,7 @@ export class WebApi extends Service {
     api
       .use(express.json())
       .use(nocache())
-      .use("/matter", matterApi(this.bridgeService))
+      .use("/matter", matterApi(this.bridgeService, this.haRegistry))
       .use(
         "/health",
         healthApi(
