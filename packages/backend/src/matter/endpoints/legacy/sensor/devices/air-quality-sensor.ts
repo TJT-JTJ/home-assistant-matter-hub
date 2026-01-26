@@ -2,7 +2,7 @@ import type {
   HomeAssistantEntityInformation,
   SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
-import { AirQualityServer as Base } from "@matter/main/behaviors";
+import { AirQualityServer } from "@matter/main/behaviors";
 import { AirQuality } from "@matter/main/clusters";
 import { AirQualitySensorDevice } from "@matter/main/devices";
 import { applyPatchState } from "../../../../../utils/apply-patch-state.js";
@@ -10,7 +10,14 @@ import { BasicInformationServer } from "../../../../behaviors/basic-information-
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
 
-class AirQualitySensorServerImpl extends Base {
+const AirQualityServerWithFeatures = AirQualityServer.with(
+  AirQuality.Feature.Fair,
+  AirQuality.Feature.Moderate,
+  AirQuality.Feature.VeryPoor,
+  AirQuality.Feature.ExtremelyPoor,
+);
+
+class AirQualitySensorServerImpl extends AirQualityServerWithFeatures {
   override async initialize() {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
