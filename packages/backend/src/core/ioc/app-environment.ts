@@ -84,6 +84,7 @@ export class AppEnvironment extends EnvironmentBase {
         logger,
         await this.load(BridgeService),
         await this.load(HomeAssistantClient),
+        await this.load(BridgeStorage),
         await this.load(EntityMappingStorage),
         this.options.webApi,
       ),

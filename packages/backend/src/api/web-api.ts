@@ -7,8 +7,10 @@ import type { BetterLogger, LoggerService } from "../core/app/logger.js";
 import { Service } from "../core/ioc/service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
 import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
+import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 import { accessLogger } from "./access-log.js";
+import { bridgeExportApi } from "./bridge-export-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
 import { healthApi } from "./health-api.js";
 import { matterApi } from "./matter-api.js";
@@ -40,6 +42,7 @@ export class WebApi extends Service {
     logger: LoggerService,
     private readonly bridgeService: BridgeService,
     private readonly haClient: HomeAssistantClient,
+    private readonly bridgeStorage: BridgeStorage,
     private readonly mappingStorage: EntityMappingStorage,
     private readonly props: WebApiProps,
   ) {
@@ -72,6 +75,7 @@ export class WebApi extends Service {
           this.startTime,
         ),
       )
+      .use("/bridges", bridgeExportApi(this.bridgeStorage))
       .use("/entity-mappings", entityMappingApi(this.mappingStorage));
 
     const middlewares: express.Handler[] = [
