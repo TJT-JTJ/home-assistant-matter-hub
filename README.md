@@ -38,38 +38,29 @@ of port forwarding etc.
 | **Stable** | ![GitHub Release](https://img.shields.io/github/v/release/RiDDiX/home-assistant-matter-hub?label=stable) | Production-ready, recommended for most users |
 | **Alpha** | ![GitHub Release](https://img.shields.io/github/v/release/RiDDiX/home-assistant-matter-hub?include_prereleases&label=alpha) | Pre-release with new features, for testing |
 
-### Stable Features (v1.4.0)
+### Stable Features (v1.5.x)
 
 - **Matter Bridge** - Expose Home Assistant entities to Matter controllers
 - **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
 - **Graceful Error Handling** - Skips problematic entities without crashing
 - **Failed Entity Reporting** - Shows which entities couldn't be loaded and why
+- **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
+- **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
+- **Bridge Wizard** - Guided setup for creating multiple bridges with automatic port assignment
+- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
+- **Improved Fan Control** - Better speed control compatibility with Matter controllers
+- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
 - **Node.js 24** - Latest LTS runtime
 - **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
 
-### Alpha Features (v1.5.0-alpha) 🧪
+### Alpha Features (v2.0.0-alpha) 🧪
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs!
 
-**New Device Types:**
-- **Pressure Sensor** - Home Assistant pressure sensors
-- **Flow Sensor** - Flow measurement sensors
-- **Air Quality Sensor** - Air quality monitoring
-- **Water Valve** - Valve control (open/close)
-- **Alarm Control Panel** - Security panel integration
+All stable features plus:
 
-**Backend Improvements:**
-- **Structured Logging** - JSON output support with context-based logging
-- **Retry Utilities** - Exponential backoff for resilient operations
-- **Circuit Breaker** - Protection against cascade failures
-
-**UI Improvements:**
-- **Enhanced Theme** - Custom colors, typography, hover effects
-- **Redesigned Bridge Cards** - Avatar icons, device/fabric chips, Google/Alexa badges
-- **Status Chips** - Visual status indicators with tooltips
-
-**Existing Alpha Features:**
+- **Water Valve Support** - Control water valves via Matter
 - **Health Check API** (`/api/health`) - System status, uptime, Kubernetes probes
 - **WebSocket Live Updates** (`/api/ws`) - Real-time bridge status
 - **Entity Mapping Customization** - Override Matter device types per entity
@@ -89,10 +80,10 @@ of port forwarding etc.
 | `binary_sensor` | Contact Sensor, Occupancy Sensor |
 | `sensor` | Temperature, Humidity, Pressure, Flow, Light, Air Quality Sensor |
 | `button`, `input_button` | Generic Switch |
-| `media_player` | Speaker, On/Off Switch |
+| `media_player` | Speaker with Volume and Playback Controls |
 | `vacuum` | Robot Vacuum Cleaner |
 | `humidifier` | Humidifier/Dehumidifier |
-| `valve` | On/Off Plug-in Unit (Alpha) |
+| `valve` | Water Valve (Alpha) |
 | `alarm_control_panel` | On/Off Plug-in Unit (Alpha) |
 | `automation`, `script`, `scene` | On/Off Switch |
 
