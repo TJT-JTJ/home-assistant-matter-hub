@@ -33,7 +33,10 @@ export function BridgeImportDialog({
   onClose,
   onImported,
 }: BridgeImportDialogProps) {
-  const [preview, setPreview] = useState<BridgeImportPreview | null>(null);
+  const [preview, setPreview] = useState<
+    | (BridgeImportPreview & { migrated?: boolean; sourceVersion?: string })
+    | null
+  >(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [overwriteExisting, setOverwriteExisting] = useState(false);
   const [importData, setImportData] = useState<BridgeExportData | null>(null);
@@ -144,8 +147,18 @@ export function BridgeImportDialog({
 
         {preview && !result && (
           <>
+            {preview.migrated && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This export is from an older version ({preview.sourceVersion}).
+                Bridges will be migrated to the current format during import.
+              </Alert>
+            )}
+
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Exported on {new Date(preview.exportedAt).toLocaleString()}
+              {preview.sourceVersion && !preview.migrated && (
+                <> • Format: {preview.sourceVersion}</>
+              )}
             </Typography>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

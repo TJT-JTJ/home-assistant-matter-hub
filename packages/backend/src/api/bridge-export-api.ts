@@ -5,9 +5,102 @@ import type {
   BridgeImportPreview,
   BridgeImportRequest,
   BridgeImportResult,
+  HomeAssistantFilter,
+  HomeAssistantMatcher,
 } from "@home-assistant-matter-hub/common";
+import { HomeAssistantMatcherType } from "@home-assistant-matter-hub/common";
 import express from "express";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
+
+type LegacyMatcher = string | HomeAssistantMatcher;
+
+interface LegacyFilter {
+  include?: LegacyMatcher[];
+  exclude?: LegacyMatcher[];
+}
+
+interface LegacyBridgeData {
+  id?: string;
+  name: string;
+  port: number;
+  filter?: LegacyFilter;
+  featureFlags?: Record<string, boolean>;
+  basicInformation?: Record<string, unknown>;
+}
+
+interface LegacyExportData {
+  version?: number;
+  exportedAt?: string;
+  bridges?: LegacyBridgeData[];
+}
+
+function migrateFilter(legacyFilter?: LegacyFilter): HomeAssistantFilter {
+  if (!legacyFilter) {
+    return { include: [], exclude: [] };
+  }
+
+  const migrateMatcher = (m: LegacyMatcher): HomeAssistantMatcher => {
+    if (typeof m === "string") {
+      return { type: HomeAssistantMatcherType.Pattern, value: m };
+    }
+    return m;
+  };
+
+  return {
+    include: (legacyFilter.include || []).map(migrateMatcher),
+    exclude: (legacyFilter.exclude || []).map(migrateMatcher),
+  };
+}
+
+function migrateBridge(legacy: LegacyBridgeData): BridgeData {
+  return {
+    id: legacy.id || crypto.randomUUID(),
+    name: legacy.name,
+    port: legacy.port,
+    filter: migrateFilter(legacy.filter),
+    featureFlags: legacy.featureFlags,
+    basicInformation: {
+      vendorId: 0xfff1,
+      vendorName: "Home Assistant Matter Hub",
+      productId: 0x8000,
+      productName: legacy.name,
+      productLabel: legacy.name,
+      hardwareVersion: 1,
+      softwareVersion: 1,
+      ...(legacy.basicInformation as Record<string, unknown>),
+    },
+  } as BridgeData;
+}
+
+function migrateExportData(data: LegacyExportData): {
+  exportData: BridgeExportData;
+  migrated: boolean;
+  sourceVersion: string;
+} {
+  const hasVersion = typeof data.version === "number";
+  const hasBridges = Array.isArray(data.bridges);
+
+  if (!hasBridges) {
+    throw new Error("Invalid export file: no bridges array found");
+  }
+
+  const needsMigration = !hasVersion || data.version === 0;
+  const sourceVersion = hasVersion ? `v${data.version}` : "legacy (pre-v1)";
+
+  const migratedBridges = data.bridges!.map((b: LegacyBridgeData) =>
+    migrateBridge(b),
+  );
+
+  return {
+    exportData: {
+      version: 1,
+      exportedAt: data.exportedAt || new Date().toISOString(),
+      bridges: migratedBridges,
+    },
+    migrated: needsMigration,
+    sourceVersion,
+  };
+}
 
 export function bridgeExportApi(bridgeStorage: BridgeStorage): express.Router {
   const router = express.Router();
@@ -50,16 +143,19 @@ export function bridgeExportApi(bridgeStorage: BridgeStorage): express.Router {
 
   router.post("/import/preview", (req, res) => {
     try {
-      const exportData = req.body as BridgeExportData;
-      if (!exportData.version || !exportData.bridges) {
-        res.status(400).json({ error: "Invalid export file format" });
-        return;
-      }
+      const rawData = req.body as LegacyExportData;
+      const { exportData, migrated, sourceVersion } =
+        migrateExportData(rawData);
 
       const existingIds = new Set(bridgeStorage.bridges.map((b) => b.id));
-      const preview: BridgeImportPreview = {
+      const preview: BridgeImportPreview & {
+        migrated: boolean;
+        sourceVersion: string;
+      } = {
         version: exportData.version,
         exportedAt: exportData.exportedAt,
+        migrated,
+        sourceVersion,
         bridges: exportData.bridges.map((bridge: BridgeData) => ({
           id: bridge.id,
           name: bridge.name,
@@ -71,25 +167,24 @@ export function bridgeExportApi(bridgeStorage: BridgeStorage): express.Router {
         })),
       };
       res.json(preview);
-    } catch {
-      res.status(400).json({ error: "Failed to parse export file" });
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Failed to parse export file";
+      res.status(400).json({ error: message });
     }
   });
 
   router.post("/import", async (req, res) => {
     try {
-      const { data, options } = req.body as {
-        data: BridgeExportData;
+      const { data: rawData, options } = req.body as {
+        data: LegacyExportData;
         options: BridgeImportRequest;
       };
 
-      if (!data.version || !data.bridges) {
-        res.status(400).json({ error: "Invalid export file format" });
-        return;
-      }
+      const { exportData } = migrateExportData(rawData);
 
       const existingIds = new Set(bridgeStorage.bridges.map((b) => b.id));
-      const bridgesToImport = data.bridges.filter((b: BridgeData) =>
+      const bridgesToImport = exportData.bridges.filter((b: BridgeData) =>
         options.bridgeIds.includes(b.id),
       );
 
