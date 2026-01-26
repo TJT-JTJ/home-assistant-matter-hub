@@ -1,8 +1,11 @@
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
+import { useColorScheme } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -12,6 +15,11 @@ import { AppLogo } from "./AppLogo.tsx";
 
 export const AppTopBar = () => {
   const isLargeScreen = useMediaQuery("(min-width:600px)");
+  const { mode, setMode } = useColorScheme();
+
+  const toggleColorMode = () => {
+    setMode(mode === "dark" ? "light" : "dark");
+  };
 
   return (
     <AppBar sx={{ height: "72px" }}>
@@ -29,6 +37,11 @@ export const AppTopBar = () => {
         >
           <AppLogo large={isLargeScreen} />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Tooltip title={mode === "dark" ? "Light Mode" : "Dark Mode"}>
+              <IconButton onClick={toggleColorMode} sx={{ color: "inherit" }}>
+                {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Health Dashboard">
               <IconButton
                 component={Link}

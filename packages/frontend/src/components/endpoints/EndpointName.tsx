@@ -5,10 +5,10 @@ export interface EndpointNameProps {
 }
 
 export const EndpointName = ({ endpoint }: EndpointNameProps) => {
-  return getName(endpoint.state) ?? endpoint.id.local;
+  return getEndpointName(endpoint.state) ?? endpoint.id.local;
 };
 
-function getName(state: object) {
+export function getEndpointName(state: object): string | undefined {
   if ("basicInformation" in state) {
     const basicInformation = state.basicInformation as { nodeLabel: string };
     return basicInformation.nodeLabel;
