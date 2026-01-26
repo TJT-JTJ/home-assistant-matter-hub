@@ -60,25 +60,30 @@ export function StatusIndicator() {
 
   const isHealthy = health?.status === "healthy" && !healthError;
   const allBridgesRunning =
-    health && health.bridges.running === health.bridges.total;
+    health?.bridges && health.bridges.running === health.bridges.total;
 
   const tooltipContent = health ? (
     <Box sx={{ p: 0.5 }}>
       <div>
-        <strong>Version:</strong> {health.version}
+        <strong>Version:</strong> {health.version ?? "Unknown"}
       </div>
       <div>
-        <strong>Uptime:</strong> {formatUptime(health.uptime)}
+        <strong>Uptime:</strong> {formatUptime(health.uptime ?? 0)}
       </div>
-      <div>
-        <strong>Bridges:</strong> {health.bridges.running}/
-        {health.bridges.total} running
-        {health.bridges.failed > 0 && ` (${health.bridges.failed} failed)`}
-      </div>
-      <div>
-        <strong>Home Assistant:</strong>{" "}
-        {health.homeAssistant.connected ? "Connected" : "Disconnected"}
-      </div>
+      {health.bridges && (
+        <div>
+          <strong>Bridges:</strong> {health.bridges.running ?? 0}/
+          {health.bridges.total ?? 0} running
+          {(health.bridges.failed ?? 0) > 0 &&
+            ` (${health.bridges.failed} failed)`}
+        </div>
+      )}
+      {health.homeAssistant && (
+        <div>
+          <strong>Home Assistant:</strong>{" "}
+          {health.homeAssistant.connected ? "Connected" : "Disconnected"}
+        </div>
+      )}
       <div>
         <strong>WebSocket:</strong> {wsConnected ? "Connected" : "Disconnected"}
       </div>
