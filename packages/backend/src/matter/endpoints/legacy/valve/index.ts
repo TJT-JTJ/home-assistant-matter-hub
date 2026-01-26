@@ -8,8 +8,9 @@ import { OnOffServer } from "../../../behaviors/on-off-server.js";
 
 // Use OnOff for valve control since Matter valve devices use on/off
 const ValveOnOffServer = OnOffServer({
-  turnOn: (): HomeAssistantAction => ({ action: "open_valve" }),
-  turnOff: (): HomeAssistantAction => ({ action: "close_valve" }),
+  isOn: (state) => state.state === "open",
+  turnOn: (): HomeAssistantAction => ({ action: "valve.open_valve" }),
+  turnOff: (): HomeAssistantAction => ({ action: "valve.close_valve" }),
 });
 
 const ValveEndpointType = OnOffPlugInUnitDevice.with(
