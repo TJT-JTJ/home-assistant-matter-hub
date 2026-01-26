@@ -8,17 +8,18 @@ import { useEffect, useState } from "react";
 import { useWebSocketStatus } from "../../contexts/WebSocketContext.tsx";
 
 interface HealthStatus {
-  status: "healthy" | "unhealthy";
+  status: "healthy" | "degraded" | "unhealthy";
   version: string;
   uptime: number;
-  bridges: {
-    total: number;
-    running: number;
-    stopped: number;
-    failed: number;
-  };
-  homeAssistant: {
-    connected: boolean;
+  services: {
+    bridges: {
+      total: number;
+      running: number;
+      stopped: number;
+    };
+    homeAssistant: {
+      connected: boolean;
+    };
   };
 }
 
@@ -59,8 +60,10 @@ export function StatusIndicator() {
   };
 
   const isHealthy = health?.status === "healthy" && !healthError;
+  const bridges = health?.services?.bridges;
   const allBridgesRunning =
-    health?.bridges && health.bridges.running === health.bridges.total;
+    bridges && bridges.total > 0 && bridges.running === bridges.total;
+  const noBridgesConfigured = bridges && bridges.total === 0;
 
   const tooltipContent = health ? (
     <Box sx={{ p: 0.5 }}>
@@ -70,18 +73,20 @@ export function StatusIndicator() {
       <div>
         <strong>Uptime:</strong> {formatUptime(health.uptime ?? 0)}
       </div>
-      {health.bridges && (
+      {health.services?.bridges && (
         <div>
-          <strong>Bridges:</strong> {health.bridges.running ?? 0}/
-          {health.bridges.total ?? 0} running
-          {(health.bridges.failed ?? 0) > 0 &&
-            ` (${health.bridges.failed} failed)`}
+          <strong>Bridges:</strong> {health.services.bridges.running ?? 0}/
+          {health.services.bridges.total ?? 0} running
+          {(health.services.bridges.stopped ?? 0) > 0 &&
+            ` (${health.services.bridges.stopped} stopped)`}
         </div>
       )}
-      {health.homeAssistant && (
+      {health.services?.homeAssistant && (
         <div>
           <strong>Home Assistant:</strong>{" "}
-          {health.homeAssistant.connected ? "Connected" : "Disconnected"}
+          {health.services.homeAssistant.connected
+            ? "Connected"
+            : "Disconnected"}
         </div>
       )}
       <div>
@@ -121,6 +126,9 @@ export function StatusIndicator() {
     }
     if (!wsConnected) {
       return "Offline";
+    }
+    if (noBridgesConfigured) {
+      return "No Bridges";
     }
     if (!allBridgesRunning) {
       return "Starting";
