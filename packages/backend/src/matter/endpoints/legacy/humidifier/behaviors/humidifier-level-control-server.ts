@@ -15,7 +15,8 @@ const config: LevelControlConfig = {
     if (humidity != null) {
       return (humidity - min_humidity) / (max_humidity - min_humidity);
     }
-    return null;
+    // Return 0 instead of null to ensure controller compatibility
+    return 0;
   },
   moveToLevelPercent: (humidityPercent, agent) => {
     const { min_humidity, max_humidity } = agent.get(
