@@ -36,7 +36,7 @@ of port forwarding etc.
 | **Stable** | ![GitHub Release](https://img.shields.io/github/v/release/RiDDiX/home-assistant-matter-hub?label=stable) | Production-ready, recommended for most users |
 | **Alpha** | ![GitHub Release](https://img.shields.io/github/v/release/RiDDiX/home-assistant-matter-hub?include_prereleases&label=alpha) | Pre-release with new features, for testing |
 
-### Stable Features (v1.3.x)
+### Stable Features (v1.4.0)
 
 - **Matter Bridge** - Expose Home Assistant entities to Matter controllers
 - **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
@@ -45,21 +45,32 @@ of port forwarding etc.
 - **Node.js 24** - Latest LTS runtime
 - **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
 
-### Alpha Features (v1.4.0-alpha) 🧪
+### Alpha Features (v1.5.0-alpha) 🧪
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs!
 
-- **Health Check API** (`/api/health`)
-  - System status, uptime, and service information
-  - Kubernetes-ready probes (`/live`, `/ready`)
-- **WebSocket Live Updates** (`/api/ws`)
-  - Real-time bridge status updates
-  - No more polling required
-- **Entity Mapping Customization**
-  - Override Matter device types per entity
-  - Custom names for entities in Matter
-  - Disable specific entities from bridge
+**New Device Types:**
+- **Pressure Sensor** - Home Assistant pressure sensors
+- **Flow Sensor** - Flow measurement sensors
+- **Air Quality Sensor** - Air quality monitoring
+- **Water Valve** - Valve control (open/close)
+- **Alarm Control Panel** - Security panel integration
+
+**Backend Improvements:**
+- **Structured Logging** - JSON output support with context-based logging
+- **Retry Utilities** - Exponential backoff for resilient operations
+- **Circuit Breaker** - Protection against cascade failures
+
+**UI Improvements:**
+- **Enhanced Theme** - Custom colors, typography, hover effects
+- **Redesigned Bridge Cards** - Avatar icons, device/fabric chips, Google/Alexa badges
+- **Status Chips** - Visual status indicators with tooltips
+
+**Existing Alpha Features:**
+- **Health Check API** (`/api/health`) - System status, uptime, Kubernetes probes
+- **WebSocket Live Updates** (`/api/ws`) - Real-time bridge status
+- **Entity Mapping Customization** - Override Matter device types per entity
 
 ---
 
@@ -74,11 +85,13 @@ of port forwarding etc.
 | `climate` | Thermostat |
 | `fan` | Fan |
 | `binary_sensor` | Contact Sensor, Occupancy Sensor |
-| `sensor` | Temperature, Humidity, Pressure, Light Sensor |
+| `sensor` | Temperature, Humidity, Pressure, Flow, Light, Air Quality Sensor |
 | `button`, `input_button` | Generic Switch |
 | `media_player` | Speaker, On/Off Switch |
 | `vacuum` | Robot Vacuum Cleaner |
 | `humidifier` | Humidifier/Dehumidifier |
+| `valve` | On/Off Plug-in Unit (Alpha) |
+| `alarm_control_panel` | On/Off Plug-in Unit (Alpha) |
 | `automation`, `script`, `scene` | On/Off Switch |
 
 ---
