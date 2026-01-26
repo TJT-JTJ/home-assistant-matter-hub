@@ -101,12 +101,14 @@ export class ThermostatServerBase extends FeaturedBase {
 
     // When autoMode is enabled, Matter spec requires:
     // minHeatSetpointLimit <= minCoolSetpointLimit - minSetpointDeadBand
-    // minSetpointDeadBand is int8 (max 127), unit is 0.1°C, so 25 = 2.5°C
-    const deadBand = this.features.autoMode ? 25 : 0;
+    // minSetpointDeadBand: int8 (max 127), unit 0.1°C → 25 = 2.5°C
+    // Temperature limits: int16, unit 0.01°C → offset 250 = 2.5°C
+    const deadBandAttr = this.features.autoMode ? 25 : 0; // for minSetpointDeadBand (0.1°C)
+    const deadBandOffset = this.features.autoMode ? 250 : 0; // for limit calculations (0.01°C)
     const minCoolLimit =
-      minSetpointLimit != null ? minSetpointLimit + deadBand : undefined;
+      minSetpointLimit != null ? minSetpointLimit + deadBandOffset : undefined;
     const maxHeatLimit =
-      maxSetpointLimit != null ? maxSetpointLimit - deadBand : undefined;
+      maxSetpointLimit != null ? maxSetpointLimit - deadBandOffset : undefined;
 
     applyPatchState(this.state, {
       localTemperature: localTemperature,
@@ -114,7 +116,7 @@ export class ThermostatServerBase extends FeaturedBase {
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
       ...(this.features.autoMode
         ? {
-            minSetpointDeadBand: deadBand,
+            minSetpointDeadBand: deadBandAttr,
             thermostatRunningMode: runningMode,
           }
         : {}),
