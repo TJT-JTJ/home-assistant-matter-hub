@@ -34,6 +34,8 @@ export function testMatcher(
       return (entity?.area_id ?? device?.area_id) === matcher.value;
     case "device_name":
       return testDeviceName(matcher.value, device);
+    case "product_name":
+      return testProductName(matcher.value, device);
   }
   return false;
 }
@@ -76,4 +78,23 @@ function testDeviceName(
     return patternToRegex(lowerPattern).test(lowerDeviceName);
   }
   return lowerDeviceName.includes(lowerPattern);
+}
+
+function testProductName(
+  pattern: string,
+  device: HomeAssistantDeviceRegistry | undefined,
+): boolean {
+  if (!device) {
+    return false;
+  }
+  const productName = device.model ?? device.default_model;
+  if (!productName) {
+    return false;
+  }
+  const lowerPattern = pattern.toLowerCase();
+  const lowerProductName = productName.toLowerCase();
+  if (lowerPattern.includes("*")) {
+    return patternToRegex(lowerPattern).test(lowerProductName);
+  }
+  return lowerProductName.includes(lowerPattern);
 }
