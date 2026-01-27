@@ -25,7 +25,8 @@ class Pm10AirQualityServer extends Pm10AirQualityServerBase {
 
   private update(entity: HomeAssistantEntityInformation) {
     const state = entity.state.state;
-    let airQuality: AirQuality.AirQualityEnum = AirQuality.AirQualityEnum.Unknown;
+    let airQuality: AirQuality.AirQualityEnum =
+      AirQuality.AirQualityEnum.Unknown;
 
     if (state != null && !Number.isNaN(+state)) {
       const value = +state;

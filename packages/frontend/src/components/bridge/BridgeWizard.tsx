@@ -189,7 +189,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         onChange={(e) =>
           setCurrentBridge((prev) => ({
             ...prev,
-            port: parseInt(e.target.value) || 5540,
+            port: parseInt(e.target.value, 10) || 5540,
           }))
         }
         margin="normal"

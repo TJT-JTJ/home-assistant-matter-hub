@@ -58,7 +58,6 @@ const EndpointTreeItem = (props: EndpointTreeItemProps) => {
           const typeB = b.type?.name ?? "";
           return typeA.localeCompare(typeB);
         });
-      case "endpoint":
       default:
         return sorted.sort((a, b) => a.endpoint - b.endpoint);
     }
