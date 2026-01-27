@@ -1,5 +1,6 @@
 import BackupIcon from "@mui/icons-material/Backup";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RestoreIcon from "@mui/icons-material/Restore";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -38,6 +39,7 @@ interface RestoreResult {
   bridgesSkipped: number;
   mappingsRestored: number;
   errors: Array<{ bridgeId: string; error: string }>;
+  restartRequired?: boolean;
 }
 
 export function BackupRestore() {
@@ -51,6 +53,7 @@ export function BackupRestore() {
   const [overwriteExisting, setOverwriteExisting] = useState(false);
   const [includeMappings, setIncludeMappings] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -163,6 +166,10 @@ export function BackupRestore() {
       setDialogOpen(false);
       setPreview(null);
       setUploadedFile(null);
+
+      if (result.restartRequired) {
+        setRestartDialogOpen(true);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -178,6 +185,20 @@ export function BackupRestore() {
       newSet.add(id);
     }
     setSelectedBridges(newSet);
+  };
+
+  const handleRestart = async () => {
+    setLoading(true);
+    try {
+      await fetch("api/backup/restart", { method: "POST" });
+      // The app will restart, so we just wait
+      setSuccess("Application is restarting...");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to restart");
+    } finally {
+      setLoading(false);
+      setRestartDialogOpen(false);
+    }
   };
 
   return (
@@ -333,6 +354,43 @@ export function BackupRestore() {
             }
           >
             Restore
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={restartDialogOpen}
+        onClose={() => setRestartDialogOpen(false)}
+      >
+        <DialogTitle>
+          <RestartAltIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          Restart Required
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bridges have been restored from backup. A restart is required for
+            the changes to take effect.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            The application will restart and you may need to refresh this page.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRestartDialogOpen(false)}>Later</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={handleRestart}
+            disabled={loading}
+            startIcon={
+              loading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <RestartAltIcon />
+              )
+            }
+          >
+            Restart Now
           </Button>
         </DialogActions>
       </Dialog>

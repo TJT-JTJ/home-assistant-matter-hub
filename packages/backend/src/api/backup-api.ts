@@ -7,6 +7,7 @@ import type { Request } from "express";
 import express from "express";
 import multer from "multer";
 import unzipper from "unzipper";
+import type { BridgeService } from "../services/bridges/bridge-service.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 
@@ -26,6 +27,7 @@ export interface BackupData {
 export function backupApi(
   bridgeStorage: BridgeStorage,
   mappingStorage: EntityMappingStorage,
+  _bridgeService?: BridgeService,
 ): express.Router {
   const router = express.Router();
 
@@ -179,6 +181,7 @@ export function backupApi(
           bridgesSkipped,
           mappingsRestored,
           errors,
+          restartRequired: bridgesRestored > 0,
         });
       } catch (error) {
         const message =
@@ -187,6 +190,14 @@ export function backupApi(
       }
     },
   );
+
+  router.post("/restart", async (_, res) => {
+    res.json({ message: "Restarting application..." });
+    // Give time for response to be sent before exiting
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
+  });
 
   return router;
 }

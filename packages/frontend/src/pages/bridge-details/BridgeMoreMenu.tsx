@@ -43,7 +43,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
       )
       .catch((reason) =>
         notification.show({
-          message: `Failed to reset bridge: ${reason.toString()}`,
+          message: `Failed to reset bridge: ${reason?.message ?? JSON.stringify(reason)}`,
           severity: "error",
         }),
       );
@@ -60,7 +60,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
       .then(() => navigate(navigation.bridges))
       .catch((reason) =>
         notification.show({
-          message: `Failed to delete bridge: ${reason.toString()}`,
+          message: `Failed to delete bridge: ${reason?.message ?? JSON.stringify(reason)}`,
           severity: "error",
         }),
       );
