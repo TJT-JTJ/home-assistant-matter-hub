@@ -23,6 +23,9 @@ class IlluminanceMeasurementServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const illuminance = this.getIlluminance(this.state.config, entity.state);
     applyPatchState(this.state, { measuredValue: illuminance });
   }

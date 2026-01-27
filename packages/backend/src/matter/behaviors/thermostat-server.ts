@@ -77,6 +77,9 @@ export class ThermostatServerBase extends FeaturedBase {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const config = this.state.config;
 

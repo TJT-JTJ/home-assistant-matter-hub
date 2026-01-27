@@ -22,6 +22,9 @@ class FlowMeasurementServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     applyPatchState(this.state, {
       measuredValue: this.getFlow(entity.state) ?? null,
     });

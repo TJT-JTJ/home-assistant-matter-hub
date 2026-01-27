@@ -11,11 +11,6 @@ overrides:
   brace-expansion@>=1.0.0 <=1.1.11: 1.1.12
   brace-expansion@>=2.0.0 <=2.0.1: 2.0.2
 
-patchedDependencies:
-  '@matter/protocol':
-    hash: 0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c
-    path: patches/@matter__protocol.patch
-
 importers:
 
   .:
@@ -4897,7 +4892,7 @@ snapshots:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7
       '@matter/node': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7
       '@matter/types': 0.16.7
     optionalDependencies:
       '@matter/nodejs': 0.16.7
@@ -4910,17 +4905,17 @@ snapshots:
     dependencies:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7
       '@matter/types': 0.16.7
 
   '@matter/nodejs@0.16.7':
     dependencies:
       '@matter/general': 0.16.7
       '@matter/node': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7
       '@matter/types': 0.16.7
 
-  '@matter/protocol@0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)':
+  '@matter/protocol@0.16.7':
     dependencies:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7

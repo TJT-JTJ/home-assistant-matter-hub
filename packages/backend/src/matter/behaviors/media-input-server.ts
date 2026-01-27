@@ -24,6 +24,9 @@ class MediaInputServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const config = this.state.config;
     let source_idx = 0;
     const sourceList = config.getSourceList(entity.state, this.agent)?.sort();

@@ -22,6 +22,9 @@ class PressureMeasurementServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     applyPatchState(this.state, {
       measuredValue: this.getPressure(entity.state) ?? null,
     });

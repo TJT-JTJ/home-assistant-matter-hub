@@ -25,6 +25,9 @@ class LockServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     applyPatchState(this.state, {
       lockState: this.state.config.getLockState(entity.state, this.agent),
       lockType: DoorLock.LockType.DeadBolt,

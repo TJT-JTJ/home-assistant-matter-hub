@@ -33,11 +33,7 @@
     "packages/*",
     "docs"
   ],
-  "pnpm": {
-    "patchedDependencies": {
-      "@matter/protocol": "patches/@matter__protocol.patch"
-    }
-  },
+  "pnpm": {},
   "devDependencies": {
     "@biomejs/biome": "^2.3.12",
     "@dotenvx/dotenvx": "^1.52.0",
