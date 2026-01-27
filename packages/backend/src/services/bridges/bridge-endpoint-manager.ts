@@ -8,7 +8,6 @@ import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
-import { InvalidDeviceError } from "../../utils/errors/invalid-device-error.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
@@ -105,30 +104,11 @@ export class BridgeEndpointManager extends Service {
             mapping,
           );
         } catch (e) {
-          if (e instanceof InvalidDeviceError) {
-            const reason = (e as Error).message;
-            this.log.warn(
-              `Invalid device detected. Entity: ${entityId} Reason: ${reason}`,
-            );
-            this._failedEntities.push({ entityId, reason });
-            continue;
-          }
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          // Handle Matter.js internal errors gracefully
-          if (errorMessage.includes("Endpoint storage inaccessible")) {
-            this.log.warn(
-              `Failed to create endpoint for ${entityId}: ${errorMessage}`,
-            );
-            this._failedEntities.push({
-              entityId,
-              reason: "Endpoint storage error - try restarting the bridge",
-            });
-            continue;
-          }
-          this.log.error(
-            `Failed to create device ${entityId}. Error: ${e?.toString()}`,
-          );
-          throw e;
+          // Handle all endpoint creation errors gracefully to prevent boot crashes
+          const reason = this.extractErrorReason(e);
+          this.log.warn(`Failed to create device ${entityId}: ${reason}`);
+          this._failedEntities.push({ entityId, reason });
+          continue;
         }
 
         if (endpoint) {
@@ -136,18 +116,14 @@ export class BridgeEndpointManager extends Service {
             await this.root.add(endpoint);
           } catch (e) {
             const errorMessage = e instanceof Error ? e.message : String(e);
-            // Handle Matter.js internal errors gracefully
-            if (errorMessage.includes("Endpoint storage inaccessible")) {
-              this.log.warn(
-                `Failed to add endpoint for ${entityId}: ${errorMessage}`,
-              );
-              this._failedEntities.push({
-                entityId,
-                reason: "Endpoint storage error - try restarting the bridge",
-              });
-              continue;
-            }
-            throw e;
+            // Handle all endpoint initialization errors gracefully
+            this.log.warn(
+              `Failed to add endpoint for ${entityId}: ${errorMessage}`,
+            );
+            this._failedEntities.push({
+              entityId,
+              reason: this.extractErrorReason(e),
+            });
           }
         }
       }
@@ -165,5 +141,17 @@ export class BridgeEndpointManager extends Service {
     await Promise.all(
       endpoints.map((endpoint) => endpoint.updateStates(states)),
     );
+  }
+
+  private extractErrorReason(error: unknown): string {
+    if (error instanceof Error) {
+      // Check for nested cause (common in Matter.js errors)
+      const cause = (error as Error & { cause?: Error }).cause;
+      if (cause?.message) {
+        return `${error.message}: ${cause.message}`;
+      }
+      return error.message;
+    }
+    return String(error);
   }
 }

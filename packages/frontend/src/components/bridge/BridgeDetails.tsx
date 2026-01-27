@@ -1,9 +1,11 @@
 import type { BridgeDataWithMetadata } from "@home-assistant-matter-hub/common";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -69,6 +71,7 @@ export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
             />
           ))}
         </Stack>
+        <FailedEntities bridge={bridge} />
       </Stack>
     </Paper>
   );
@@ -286,5 +289,34 @@ const CommissioningInfo = (props: { bridge: BridgeDataWithMetadata }) => {
       </div>
       <div>QR Pairing Code: {props.bridge.commissioning.qrPairingCode}</div>
     </Typography>
+  );
+};
+
+const FailedEntities = (props: { bridge: BridgeDataWithMetadata }) => {
+  const failedEntities = props.bridge.failedEntities;
+  if (!failedEntities || failedEntities.length === 0) {
+    return null;
+  }
+
+  return (
+    <Alert severity="warning" icon={<ErrorOutlineIcon />}>
+      <AlertTitle>Failed Entities ({failedEntities.length})</AlertTitle>
+      <Typography variant="body2" component="div">
+        The following entities could not be added to the bridge:
+      </Typography>
+      <Box sx={{ mt: 1, maxHeight: 200, overflow: "auto" }}>
+        {failedEntities.map((entity) => (
+          <Box key={entity.entityId} sx={{ mb: 0.5 }}>
+            <Typography variant="body2" component="span" fontWeight="bold">
+              {entity.entityId}
+            </Typography>
+            <Typography variant="body2" component="span" color="text.secondary">
+              {" — "}
+              {entity.reason}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Alert>
   );
 };
