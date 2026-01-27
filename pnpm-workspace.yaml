@@ -9,6 +9,3 @@ overrides:
   form-data@>=4.0.0 <4.0.4: 4.0.4
   tmp@<=0.2.3: 0.2.4
   vite@<7.0.0: ^7.0.0
-
-patchedDependencies:
-  '@matter/protocol': patches/@matter__protocol.patch
