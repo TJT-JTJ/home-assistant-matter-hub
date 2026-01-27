@@ -99,7 +99,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           build-args: |
             NODE_VERSION=${{ needs.build.outputs.node-version }}
-            PACKAGE_VERSION=2.0.0-testing.2
+            PACKAGE_VERSION=2.0.0-testing.3
           tags: |
-            ${{ steps.meta.outputs.image }}:2.0.0-testing.2
+            ${{ steps.meta.outputs.image }}:2.0.0-testing.3
             ${{ steps.meta.outputs.image }}:testing

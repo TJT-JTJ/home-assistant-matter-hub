@@ -35,7 +35,7 @@
   ],
   "pnpm": {
     "patchedDependencies": {
-      "@matter/protocol": "patches/@matter__protocol.patch"
+      "@matter/protocol@0.16.7": "patches/@matter__protocol@0.16.7.patch"
     }
   },
   "devDependencies": {

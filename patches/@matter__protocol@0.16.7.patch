@@ -1,0 +1,13 @@
+diff --git a/dist/esm/interaction/FabricAccessControl.js b/dist/esm/interaction/FabricAccessControl.js
+index cb87d8227995459529a78d5b6bbbb6e7da78a1ec..13c95f239c01d10ea1054629929eacce8d74b324 100644
+--- a/dist/esm/interaction/FabricAccessControl.js
++++ b/dist/esm/interaction/FabricAccessControl.js
+@@ -68,7 +68,7 @@ class FabricAccessControl {
+    */
+   accessLevelsFor(context, location, endpoint) {
+     if (location.cluster === void 0) {
+-      logger.warn("Access control check without cluster, returning View access level");
++      logger.warn("Access control check without cluster, returning View access level", JSON.stringify(location), new Error());
+       return [AccessLevel.View];
+     }
+     if (endpoint === void 0) {
