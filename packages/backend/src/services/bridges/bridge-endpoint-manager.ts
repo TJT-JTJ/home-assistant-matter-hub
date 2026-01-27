@@ -112,16 +112,43 @@ export class BridgeEndpointManager extends Service {
             );
             this._failedEntities.push({ entityId, reason });
             continue;
-          } else {
-            this.log.error(
-              `Failed to create device ${entityId}. Error: ${e?.toString()}`,
-            );
-            throw e;
           }
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          // Handle Matter.js internal errors gracefully
+          if (errorMessage.includes("Endpoint storage inaccessible")) {
+            this.log.warn(
+              `Failed to create endpoint for ${entityId}: ${errorMessage}`,
+            );
+            this._failedEntities.push({
+              entityId,
+              reason: "Endpoint storage error - try restarting the bridge",
+            });
+            continue;
+          }
+          this.log.error(
+            `Failed to create device ${entityId}. Error: ${e?.toString()}`,
+          );
+          throw e;
         }
 
         if (endpoint) {
-          await this.root.add(endpoint);
+          try {
+            await this.root.add(endpoint);
+          } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            // Handle Matter.js internal errors gracefully
+            if (errorMessage.includes("Endpoint storage inaccessible")) {
+              this.log.warn(
+                `Failed to add endpoint for ${entityId}: ${errorMessage}`,
+              );
+              this._failedEntities.push({
+                entityId,
+                reason: "Endpoint storage error - try restarting the bridge",
+              });
+              continue;
+            }
+            throw e;
+          }
         }
       }
     }
