@@ -26,6 +26,10 @@ export class LegacyEndpoint extends EntityEndpoint {
     const deviceRegistry = registry.deviceOf(entityId);
     const state = registry.initialState(entityId);
     const entity = registry.entity(entityId);
+    // Skip entities without state (e.g., being enabled from disabled state)
+    if (!state) {
+      return;
+    }
     const payload = {
       entity_id: entityId,
       state,
