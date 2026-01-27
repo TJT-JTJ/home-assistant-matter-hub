@@ -5,8 +5,10 @@ import {
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "./devices/air-quality-sensor.js";
+import { FlowSensorType } from "./devices/flow-sensor.js";
 import { HumiditySensorType } from "./devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./devices/illuminance-sensor.js";
+import { PressureSensorType } from "./devices/pressure-sensor.js";
 import { TemperatureSensorType } from "./devices/temperature-sensor.js";
 
 export function SensorDevice(
@@ -25,7 +27,15 @@ export function SensorDevice(
   if (deviceClass === SensorDeviceClass.illuminance) {
     return IlluminanceSensorType.set({ homeAssistantEntity });
   }
-  // Air quality sensors (AQI, PM2.5, PM10, CO2, VOC)
+  if (
+    deviceClass === SensorDeviceClass.pressure ||
+    deviceClass === SensorDeviceClass.atmospheric_pressure
+  ) {
+    return PressureSensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.volume_flow_rate) {
+    return FlowSensorType.set({ homeAssistantEntity });
+  }
   if (
     deviceClass === SensorDeviceClass.aqi ||
     deviceClass === SensorDeviceClass.pm25 ||

@@ -104,14 +104,23 @@ const testEntities: Record<
   ],
   [HomeAssistantDomain.lock]: [createEntity("lock.l1", "locked")],
   [HomeAssistantDomain.sensor]: [
-    createEntity<SensorDeviceAttributes>("sensor.s1", "on", {
+    createEntity<SensorDeviceAttributes>("sensor.s1", "20", {
       device_class: SensorDeviceClass.temperature,
     }),
-    createEntity<SensorDeviceAttributes>("sensor.s2", "on", {
+    createEntity<SensorDeviceAttributes>("sensor.s2", "50", {
       device_class: SensorDeviceClass.humidity,
     }),
-    createEntity<SensorDeviceAttributes>("sensor.s3", "on", {
+    createEntity<SensorDeviceAttributes>("sensor.s3", "100", {
       device_class: SensorDeviceClass.illuminance,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s4", "1013", {
+      device_class: SensorDeviceClass.pressure,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s5", "1.5", {
+      device_class: SensorDeviceClass.volume_flow_rate,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s6", "50", {
+      device_class: SensorDeviceClass.aqi,
     }),
   ],
   [HomeAssistantDomain.switch]: [createEntity("switch.sw1", "on")],
@@ -138,6 +147,8 @@ const testEntities: Record<
       current_humidity: 45,
     }),
   ],
+  [HomeAssistantDomain.valve]: [createEntity("valve.v1", "open")],
+  [HomeAssistantDomain.alarm_control_panel]: [],
 };
 
 describe("createLegacyEndpointType", () => {
