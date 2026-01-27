@@ -26,8 +26,18 @@ async function buildBackend() {
     format: "esm",
     minify: false,
     sourcemap: "linked",
+    external: ["bun", "bun:sqlite"],
     plugins: [
-      externalizeAllPackagesExcept(["@home-assistant-matter-hub/common"]),
+      externalizeAllPackagesExcept([
+        "@home-assistant-matter-hub/common",
+        "@matter/general",
+        "@matter/main",
+        "@matter/model",
+        "@matter/node",
+        "@matter/nodejs",
+        "@matter/protocol",
+        "@matter/types",
+      ]),
       doNotBundleFile(src, ["bootstrap.js"]),
     ],
   });
