@@ -76,6 +76,7 @@ export class Bridge {
       this.endpointManager.startObserving();
       await this.server.start();
       this.status = { code: BridgeStatus.Running };
+      this.logNodeStructure();
     } catch (e) {
       const reason = "Failed to start bridge due to error:";
       this.log.error(reason, e);
@@ -123,5 +124,30 @@ export class Bridge {
 
   async delete() {
     await this.server.delete();
+  }
+
+  private logNodeStructure() {
+    this.log.info("=== NODE STRUCTURE DEBUG ===");
+    this.log.info(`Server ID: ${this.server.id}`);
+    this.log.info(`Server lifecycle: ${this.server.lifecycle.isOnline ? "online" : "offline"}`);
+
+    const logEndpoint = (endpoint: { id: string; type: { name: string; deviceType?: number }; behaviors: { supported: Iterable<{ id: string; cluster?: { id: number; name: string } }> }; parts: Iterable<unknown> }, indent = 0) => {
+      const prefix = "  ".repeat(indent);
+      const deviceType = endpoint.type.deviceType ?? "N/A";
+      this.log.info(`${prefix}Endpoint: ${endpoint.id} (type: ${endpoint.type.name}, deviceType: 0x${typeof deviceType === "number" ? deviceType.toString(16) : deviceType})`);
+
+      for (const behavior of endpoint.behaviors.supported) {
+        const clusterId = behavior.cluster?.id;
+        const clusterName = behavior.cluster?.name ?? "no-cluster";
+        this.log.info(`${prefix}  Behavior: ${behavior.id} (cluster: ${clusterName}, id: 0x${clusterId?.toString(16) ?? "N/A"})`);
+      }
+
+      for (const part of endpoint.parts) {
+        logEndpoint(part as typeof endpoint, indent + 1);
+      }
+    };
+
+    logEndpoint(this.server as unknown as Parameters<typeof logEndpoint>[0]);
+    this.log.info("=== END NODE STRUCTURE ===");
   }
 }

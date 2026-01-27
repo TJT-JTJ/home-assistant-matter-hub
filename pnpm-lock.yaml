@@ -5,15 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  form-data@>=4.0.0 <4.0.4: 4.0.4
-  vite@<7.0.0: ^7.0.0
-  tmp@<=0.2.3: 0.2.4
   brace-expansion@>=1.0.0 <=1.1.11: 1.1.12
   brace-expansion@>=2.0.0 <=2.0.1: 2.0.2
+  form-data@>=4.0.0 <4.0.4: 4.0.4
+  tmp@<=0.2.3: 0.2.4
+  vite@<7.0.0: ^7.0.0
 
 patchedDependencies:
   '@matter/protocol':
-    hash: 0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c
+    hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     path: patches/@matter__protocol.patch
 
 importers:
@@ -5153,7 +5153,7 @@ snapshots:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7
       '@matter/node': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7(patch_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
       '@matter/types': 0.16.7
     optionalDependencies:
       '@matter/nodejs': 0.16.7
@@ -5166,17 +5166,17 @@ snapshots:
     dependencies:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7(patch_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
       '@matter/types': 0.16.7
 
   '@matter/nodejs@0.16.7':
     dependencies:
       '@matter/general': 0.16.7
       '@matter/node': 0.16.7
-      '@matter/protocol': 0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)
+      '@matter/protocol': 0.16.7(patch_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
       '@matter/types': 0.16.7
 
-  '@matter/protocol@0.16.7(patch_hash=0bf575884e7c8fafbdff54ad34aee2cd6ea6bf3564cebf5a329835bd407ab57c)':
+  '@matter/protocol@0.16.7(patch_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)':
     dependencies:
       '@matter/general': 0.16.7
       '@matter/model': 0.16.7
