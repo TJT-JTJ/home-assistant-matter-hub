@@ -19,6 +19,16 @@ class RvcOperationalStateServerBase extends Base {
   declare state: RvcOperationalStateServerBase.State;
 
   override async initialize() {
+    // Set initial operationalStateList with required error entry BEFORE super.initialize()
+    // Matter.js validates that the list contains at least one error entry
+    this.state.operationalStateList = Object.values(OperationalState)
+      .filter((id): id is number => !Number.isNaN(+id))
+      .map((id) => ({
+        operationalStateId: id,
+      }));
+    this.state.operationalState = OperationalState.Stopped;
+    this.state.operationalError = { errorStateId: ErrorState.NoError };
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
