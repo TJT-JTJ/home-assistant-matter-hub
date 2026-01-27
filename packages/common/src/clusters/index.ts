@@ -35,6 +35,7 @@ export enum ClusterId {
   onOff = "onOff",
   pressureMeasurement = "pressureMeasurement",
   relativeHumidityMeasurement = "relativeHumidityMeasurement",
+  smokeCoAlarm = "smokeCoAlarm",
   temperatureMeasurement = "temperatureMeasurement",
   thermostat = "thermostat",
   windowCovering = "windowCovering",
