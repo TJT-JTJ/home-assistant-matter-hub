@@ -212,11 +212,14 @@ export class ThermostatServerBase extends FeaturedBase {
     if (!next) {
       return;
     }
-    this.setTemperature(
-      next,
-      Temperature.celsius(this.state.occupiedCoolingSetpoint / 100)!,
-      Thermostat.SetpointRaiseLowerMode.Heat,
-    );
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      this.setTemperature(
+        next,
+        Temperature.celsius(this.state.occupiedCoolingSetpoint / 100)!,
+        Thermostat.SetpointRaiseLowerMode.Heat,
+      );
+    });
   }
 
   private coolingSetpointChanged(
@@ -231,11 +234,14 @@ export class ThermostatServerBase extends FeaturedBase {
     if (!next) {
       return;
     }
-    this.setTemperature(
-      Temperature.celsius(this.state.occupiedHeatingSetpoint / 100)!,
-      next,
-      Thermostat.SetpointRaiseLowerMode.Cool,
-    );
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      this.setTemperature(
+        Temperature.celsius(this.state.occupiedHeatingSetpoint / 100)!,
+        next,
+        Thermostat.SetpointRaiseLowerMode.Cool,
+      );
+    });
   }
 
   private setTemperature(
@@ -269,10 +275,13 @@ export class ThermostatServerBase extends FeaturedBase {
     if (transactionIsOffline(context)) {
       return;
     }
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      this.state.config.setSystemMode(systemMode, this.agent),
-    );
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      homeAssistant.callAction(
+        this.state.config.setSystemMode(systemMode, this.agent),
+      );
+    });
   }
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {

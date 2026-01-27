@@ -148,12 +148,15 @@ export class FanControlServerBase extends FeaturedBase {
     if (speed == null) {
       return;
     }
-    const percentSetting = Math.floor((speed / this.state.speedMax) * 100);
-    this.targetPercentSettingChanged(
-      percentSetting,
-      this.state.percentSetting,
-      context,
-    );
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      const percentSetting = Math.floor((speed / this.state.speedMax) * 100);
+      this.targetPercentSettingChanged(
+        percentSetting,
+        this.state.percentSetting,
+        context,
+      );
+    });
   }
 
   private targetFanModeChanged(
@@ -164,22 +167,25 @@ export class FanControlServerBase extends FeaturedBase {
     if (transactionIsOffline(context)) {
       return;
     }
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    if (!homeAssistant.isAvailable) {
-      return;
-    }
-    const targetFanMode = FanMode.create(fanMode, this.state.fanModeSequence);
-    const config = this.state.config;
-    if (targetFanMode.mode === FanControl.FanMode.Auto) {
-      homeAssistant.callAction(config.setAutoMode(void 0, this.agent));
-    } else {
-      const percentage = targetFanMode.speedPercent();
-      this.targetPercentSettingChanged(
-        percentage,
-        this.state.percentSetting,
-        context,
-      );
-    }
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (!homeAssistant.isAvailable) {
+        return;
+      }
+      const targetFanMode = FanMode.create(fanMode, this.state.fanModeSequence);
+      const config = this.state.config;
+      if (targetFanMode.mode === FanControl.FanMode.Auto) {
+        homeAssistant.callAction(config.setAutoMode(void 0, this.agent));
+      } else {
+        const percentage = targetFanMode.speedPercent();
+        this.targetPercentSettingChanged(
+          percentage,
+          this.state.percentSetting,
+          context,
+        );
+      }
+    });
   }
 
   private targetPercentSettingChanged(
@@ -193,33 +199,36 @@ export class FanControlServerBase extends FeaturedBase {
     if (percentage == null) {
       return;
     }
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    if (!homeAssistant.isAvailable) {
-      return;
-    }
-    if (percentage === 0) {
-      homeAssistant.callAction(this.state.config.turnOff(void 0, this.agent));
-    } else {
-      // Round percentage to nearest valid step if percentage_step is defined.
-      // Note: Many controllers (including Apple Home) ignore step constraints
-      // and allow arbitrary percentage values in their UI, so we handle it here.
-      const stepSize = this.state.config.getStepSize(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-      const roundedPercentage =
-        stepSize && stepSize > 0
-          ? Math.round(percentage / stepSize) * stepSize
-          : percentage;
-      const clampedPercentage = Math.max(
-        stepSize ?? 1,
-        Math.min(100, roundedPercentage),
-      );
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (!homeAssistant.isAvailable) {
+        return;
+      }
+      if (percentage === 0) {
+        homeAssistant.callAction(this.state.config.turnOff(void 0, this.agent));
+      } else {
+        // Round percentage to nearest valid step if percentage_step is defined.
+        // Note: Many controllers (including Apple Home) ignore step constraints
+        // and allow arbitrary percentage values in their UI, so we handle it here.
+        const stepSize = this.state.config.getStepSize(
+          homeAssistant.entity.state,
+          this.agent,
+        );
+        const roundedPercentage =
+          stepSize && stepSize > 0
+            ? Math.round(percentage / stepSize) * stepSize
+            : percentage;
+        const clampedPercentage = Math.max(
+          stepSize ?? 1,
+          Math.min(100, roundedPercentage),
+        );
 
-      homeAssistant.callAction(
-        this.state.config.turnOn(clampedPercentage, this.agent),
-      );
-    }
+        homeAssistant.callAction(
+          this.state.config.turnOn(clampedPercentage, this.agent),
+        );
+      }
+    });
   }
 
   private targetAirflowDirectionChanged(
@@ -230,15 +239,18 @@ export class FanControlServerBase extends FeaturedBase {
     if (transactionIsOffline(context)) {
       return;
     }
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    if (!homeAssistant.isAvailable) {
-      return;
-    }
+    // Use asLocalActor to avoid access control issues when accessing state
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (!homeAssistant.isAvailable) {
+        return;
+      }
 
-    const config = this.state.config;
-    homeAssistant.callAction(
-      config.setAirflowDirection(airflowDirection, this.agent),
-    );
+      const config = this.state.config;
+      homeAssistant.callAction(
+        config.setAirflowDirection(airflowDirection, this.agent),
+      );
+    });
   }
 
   private getFanModeSequence() {
