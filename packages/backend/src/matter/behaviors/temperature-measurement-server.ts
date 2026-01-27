@@ -24,6 +24,9 @@ class TemperatureMeasurementServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     applyPatchState(this.state, {
       measuredValue: this.getTemperature(entity.state) ?? null,
     });

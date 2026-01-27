@@ -48,6 +48,9 @@ class RvcRunModeServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     applyPatchState(this.state, {
       currentMode: this.state.config.getCurrentMode(entity.state, this.agent),
       supportedModes: this.state.config.getSupportedModes(

@@ -62,6 +62,9 @@ export class FanControlServerBase extends FeaturedBase {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const config = this.state.config;
     const percentage = config.getPercentage(entity.state, this.agent) ?? 0;
     const stepSize = config.getStepSize(entity.state, this.agent);

@@ -37,6 +37,9 @@ export class ColorControlServerBase extends FeaturedBase {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const config = this.state.config;
     const currentKelvin = config.getCurrentKelvin(entity.state, this.agent);
     let minKelvin =

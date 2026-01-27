@@ -17,6 +17,9 @@ export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasure
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const state = entity.state.state;
     let measuredValue: number | null = null;
 

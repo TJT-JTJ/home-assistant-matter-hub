@@ -22,6 +22,9 @@ class BooleanStateServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const newState = this.getStateValue(entity.state);
     applyPatchState(this.state, { stateValue: newState });
   }

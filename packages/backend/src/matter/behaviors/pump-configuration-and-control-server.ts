@@ -15,6 +15,9 @@ class PumpConfigurationAndControlServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const isOn =
       this.agent.get(HomeAssistantEntityBehavior).isAvailable &&
       entity.state.state === "on";

@@ -16,6 +16,9 @@ export class BasicInformationServer extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const { basicInformation } = this.env.get(BridgeDataProvider);
     const device = entity.deviceRegistry;
     applyPatchState(this.state, {

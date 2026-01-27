@@ -62,6 +62,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
     const config = this.state.config;
     const state = entity.state as HomeAssistantEntityState;
     const movementStatus = config.getMovementStatus(state, this.agent);
