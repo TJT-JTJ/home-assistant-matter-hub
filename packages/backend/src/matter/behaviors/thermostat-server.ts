@@ -123,6 +123,27 @@ export class ThermostatServerBase extends FeaturedBase {
     const maxHeatLimit =
       maxSetpointLimit != null ? maxSetpointLimit - deadBandOffset : undefined;
 
+    // Calculate actual limits for clamping setpoints
+    const effectiveMinHeatLimit = minSetpointLimit;
+    const effectiveMaxHeatLimit = maxHeatLimit ?? maxSetpointLimit;
+    const effectiveMinCoolLimit = minCoolLimit ?? minSetpointLimit;
+    const effectiveMaxCoolLimit = maxSetpointLimit;
+
+    // Clamp setpoints to be within the calculated limits to prevent Matter.js validation errors
+    // This handles cases where HA reports setpoints outside the valid range
+    const clampedHeatingSetpoint = this.clampSetpoint(
+      targetHeatingTemperature,
+      effectiveMinHeatLimit,
+      effectiveMaxHeatLimit,
+      "heat",
+    );
+    const clampedCoolingSetpoint = this.clampSetpoint(
+      targetCoolingTemperature,
+      effectiveMinCoolLimit,
+      effectiveMaxCoolLimit,
+      "cool",
+    );
+
     applyPatchState(this.state, {
       localTemperature: localTemperature,
       systemMode: systemMode,
@@ -135,7 +156,7 @@ export class ThermostatServerBase extends FeaturedBase {
         : {}),
       ...(this.features.heating
         ? {
-            occupiedHeatingSetpoint: targetHeatingTemperature,
+            occupiedHeatingSetpoint: clampedHeatingSetpoint,
             minHeatSetpointLimit: minSetpointLimit,
             maxHeatSetpointLimit: maxHeatLimit ?? maxSetpointLimit,
             absMinHeatSetpointLimit: minSetpointLimit,
@@ -144,7 +165,7 @@ export class ThermostatServerBase extends FeaturedBase {
         : {}),
       ...(this.features.cooling
         ? {
-            occupiedCoolingSetpoint: targetCoolingTemperature,
+            occupiedCoolingSetpoint: clampedCoolingSetpoint,
             minCoolSetpointLimit: minCoolLimit ?? minSetpointLimit,
             maxCoolSetpointLimit: maxSetpointLimit,
             absMinCoolSetpointLimit: minCoolLimit ?? minSetpointLimit,
@@ -309,6 +330,35 @@ export class ThermostatServerBase extends FeaturedBase {
             return allOff;
         }
     }
+  }
+
+  private clampSetpoint(
+    value: number | undefined,
+    min: number | undefined,
+    max: number | undefined,
+    _type: "heat" | "cool",
+  ): number | undefined {
+    // If no limits defined, return value as-is
+    if (min == null && max == null) {
+      return value;
+    }
+
+    // If value is undefined, use the minimum limit as default
+    // This prevents NaN issues when HA doesn't provide a setpoint
+    if (value == null) {
+      return min;
+    }
+
+    // Clamp value to be within limits
+    let clamped = value;
+    if (min != null && clamped < min) {
+      clamped = min;
+    }
+    if (max != null && clamped > max) {
+      clamped = max;
+    }
+
+    return clamped;
   }
 }
 
