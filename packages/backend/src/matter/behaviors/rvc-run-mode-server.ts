@@ -1,7 +1,7 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import { RvcRunModeServer as Base } from "@matter/main/behaviors";
 import { ModeBase } from "@matter/main/clusters/mode-base";
-import type { RvcRunMode } from "@matter/main/clusters/rvc-run-mode";
+import { RvcRunMode } from "@matter/main/clusters/rvc-run-mode";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -25,6 +25,22 @@ class RvcRunModeServerBase extends Base {
   declare state: RvcRunModeServerBase.State;
 
   override async initialize() {
+    // Set initial supportedModes with required Idle tag BEFORE super.initialize()
+    // Matter.js validates that at least one mode has the Idle tag
+    this.state.supportedModes = [
+      {
+        label: "Idle",
+        mode: RvcSupportedRunMode.Idle,
+        modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
+      },
+      {
+        label: "Cleaning",
+        mode: RvcSupportedRunMode.Cleaning,
+        modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+      },
+    ];
+    this.state.currentMode = RvcSupportedRunMode.Idle;
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
