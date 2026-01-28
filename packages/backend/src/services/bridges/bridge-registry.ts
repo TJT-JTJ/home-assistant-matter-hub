@@ -1,5 +1,4 @@
 import type {
-  BridgeFeatureFlags,
   HomeAssistantDeviceRegistry,
   HomeAssistantEntityRegistry,
   HomeAssistantFilter,
@@ -49,16 +48,33 @@ export class BridgeRegistry {
   refresh() {
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.entity_id];
-      const isHidden = this.isHiddenOrDisabled(
-        this.dataProvider.featureFlags ?? {},
-        entity,
-      );
-      const matchesFilter = this.matchesFilter(
-        this.dataProvider.filter,
-        entity,
-        device,
-      );
-      return !isHidden && matchesFilter;
+      const filter = this.dataProvider.filter;
+      const featureFlags = this.dataProvider.featureFlags ?? {};
+
+      // Always exclude disabled entities
+      if (entity.disabled_by != null) {
+        return false;
+      }
+
+      // Check if entity is explicitly included by a filter
+      const isExplicitlyIncluded =
+        filter.include.length > 0 &&
+        testMatchers(filter.include, device, entity);
+
+      // Hidden entities are included if:
+      // 1. includeHiddenEntities feature flag is enabled, OR
+      // 2. Entity is explicitly included by a filter (user wants it despite being hidden)
+      const isHidden = entity.hidden_by != null;
+      if (
+        isHidden &&
+        !featureFlags.includeHiddenEntities &&
+        !isExplicitlyIncluded
+      ) {
+        return false;
+      }
+
+      // Check filter matching
+      return this.matchesFilter(filter, entity, device);
     });
     this._states = pickBy(
       this.registry.states,
@@ -69,16 +85,6 @@ export class BridgeRegistry {
         .map((e) => e.device_id)
         .some((id) => d.id === id),
     );
-  }
-
-  private isHiddenOrDisabled(
-    featureFlags: BridgeFeatureFlags,
-    entity: HomeAssistantEntityRegistry,
-  ): boolean {
-    const isDisabled = entity.disabled_by != null;
-    const isHidden =
-      !featureFlags?.includeHiddenEntities && entity.hidden_by != null;
-    return isDisabled || isHidden;
   }
 
   private matchesFilter(
