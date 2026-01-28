@@ -48,6 +48,9 @@ export class ThermostatServerBase extends FeaturedBase {
   declare state: ThermostatServerBase.State;
 
   override async initialize() {
+    if (this.features.autoMode) {
+      this.state.minSetpointDeadBand = 0;
+    }
     this.state.controlSequenceOfOperation =
       this.features.cooling && this.features.heating
         ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
