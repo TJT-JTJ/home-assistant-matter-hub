@@ -1,5 +1,9 @@
 {
-  "branches": ["main", { "name": "alpha", "prerelease": true }],
+  "branches": [
+    "main",
+    { "name": "alpha", "prerelease": true },
+    { "name": "testing", "prerelease": "testing" }
+  ],
   "plugins": [
     ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
     ["@semantic-release/release-notes-generator"],

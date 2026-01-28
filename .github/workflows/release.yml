@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - alpha
+      - testing
 
 permissions:
   contents: read
