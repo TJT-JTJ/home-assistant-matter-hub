@@ -1,16 +1,25 @@
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import BackupIcon from "@mui/icons-material/Backup";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DevicesIcon from "@mui/icons-material/Devices";
+import DownloadIcon from "@mui/icons-material/Download";
 import ErrorIcon from "@mui/icons-material/Error";
 import MemoryIcon from "@mui/icons-material/Memory";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SecurityIcon from "@mui/icons-material/Security";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
@@ -41,6 +50,7 @@ interface DetailedHealthStatus {
   uptime: number;
   timestamp: string;
   services: {
+    homeAssistant: { connected: boolean };
     bridges: {
       total: number;
       running: number;
@@ -79,6 +89,7 @@ export function HealthDashboard() {
   const [health, setHealth] = useState<DetailedHealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fullBackupDialogOpen, setFullBackupDialogOpen] = useState(false);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -111,6 +122,36 @@ export function HealthDashboard() {
       fetchHealth();
     } catch {
       setError("Failed to restart bridge");
+    }
+  };
+
+  const handleBackup = async (includeIdentity: boolean) => {
+    try {
+      const url = includeIdentity
+        ? "api/backup/download?includeIdentity=true"
+        : "api/backup/download";
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Backup download failed");
+      }
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filename =
+        contentDisposition?.match(/filename="(.+)"/)?.[1] ||
+        (includeIdentity
+          ? `hamh-full-backup-${new Date().toISOString().split("T")[0]}.zip`
+          : `hamh-backup-${new Date().toISOString().split("T")[0]}.zip`);
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+    } catch {
+      setError("Failed to download backup");
     }
   };
 
@@ -189,16 +230,16 @@ export function HealthDashboard() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle2" color="text.secondary">
-              Bridges
+              Home Assistant
             </Typography>
             <Chip
-              label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
+              label={
+                health.services.homeAssistant.connected
+                  ? "Connected"
+                  : "Disconnected"
+              }
               color={
-                health.services.bridges.failed > 0
-                  ? "error"
-                  : health.services.bridges.stopped > 0
-                    ? "warning"
-                    : "success"
+                health.services.homeAssistant.connected ? "success" : "error"
               }
               size="small"
             />
@@ -211,6 +252,11 @@ export function HealthDashboard() {
       <Box display="flex" alignItems="center" gap={1} mb={2}>
         <MemoryIcon />
         <Typography variant="h6">Bridge Status</Typography>
+        <Chip
+          label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
+          size="small"
+          variant="outlined"
+        />
       </Box>
 
       <Grid container spacing={2}>
@@ -325,6 +371,98 @@ export function HealthDashboard() {
           </Typography>
         </>
       )}
+
+      <Divider sx={{ my: 3 }} />
+      <Box display="flex" alignItems="center" gap={1} mb={2}>
+        <BackupIcon />
+        <Typography variant="h6">Backup & Restore</Typography>
+      </Box>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <DownloadIcon color="primary" />
+              <Typography variant="subtitle1" fontWeight="bold">
+                Config Backup
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Export bridge configurations and entity mappings. Bridges will
+              need to be re-commissioned after restore.
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={() => handleBackup(false)}
+            >
+              Download Backup
+            </Button>
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <SecurityIcon color="warning" />
+              <Typography variant="subtitle1" fontWeight="bold">
+                Full Backup (with Identity)
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Includes Matter identity files (keypairs, fabric credentials).
+              Preserves commissioning state across restores.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<SecurityIcon />}
+              onClick={() => setFullBackupDialogOpen(true)}
+            >
+              Download Full Backup
+            </Button>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Dialog
+        open={fullBackupDialogOpen}
+        onClose={() => setFullBackupDialogOpen(false)}
+      >
+        <DialogTitle>⚠️ Security Warning</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            A <strong>Full Backup</strong> includes sensitive Matter identity
+            data such as:
+            <ul>
+              <li>Operational keypairs</li>
+              <li>Fabric credentials</li>
+              <li>Commissioning data</li>
+            </ul>
+            <strong>Keep this backup secure!</strong> Anyone with access to this
+            file could potentially impersonate your bridges.
+            <br />
+            <br />
+            This is useful for:
+            <ul>
+              <li>Migration to a new machine</li>
+              <li>Clean reinstall without re-commissioning</li>
+              <li>Disaster recovery</li>
+            </ul>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFullBackupDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              handleBackup(true);
+              setFullBackupDialogOpen(false);
+            }}
+            color="warning"
+            variant="contained"
+          >
+            I Understand, Download
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

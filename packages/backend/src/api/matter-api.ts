@@ -1,17 +1,23 @@
 import {
   type CreateBridgeRequest,
   createBridgeRequestSchema,
+  type HomeAssistantFilter,
   type UpdateBridgeRequest,
   updateBridgeRequestSchema,
 } from "@home-assistant-matter-hub/common";
 import { Ajv } from "ajv";
 import express from "express";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
+import { testMatchers } from "../services/bridges/matcher/matches-entity-filter.js";
+import type { HomeAssistantRegistry } from "../services/home-assistant/home-assistant-registry.js";
 import { endpointToJson } from "../utils/json/endpoint-to-json.js";
 
 const ajv = new Ajv();
 
-export function matterApi(bridgeService: BridgeService): express.Router {
+export function matterApi(
+  bridgeService: BridgeService,
+  haRegistry?: HomeAssistantRegistry,
+): express.Router {
   const router = express.Router();
   router.get("/", (_, res) => {
     res.status(200).json({});
@@ -66,7 +72,7 @@ export function matterApi(bridgeService: BridgeService): express.Router {
     res.status(204).send();
   });
 
-  router.get("/bridges/:bridgeId/actions/factory-reset", async (req, res) => {
+  router.post("/bridges/:bridgeId/actions/factory-reset", async (req, res) => {
     const bridgeId = req.params.bridgeId;
     const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
     if (bridge) {
@@ -99,9 +105,92 @@ export function matterApi(bridgeService: BridgeService): express.Router {
     }
   });
 
+  router.post("/bridges/:bridgeId/actions/start", async (req, res) => {
+    const bridgeId = req.params.bridgeId;
+    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+    if (bridge) {
+      await bridge.start();
+      res.status(200).json(bridge.data);
+    } else {
+      res.status(404).send("Not Found");
+    }
+  });
+
+  router.post("/bridges/:bridgeId/actions/stop", async (req, res) => {
+    const bridgeId = req.params.bridgeId;
+    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+    if (bridge) {
+      await bridge.stop();
+      res.status(200).json(bridge.data);
+    } else {
+      res.status(404).send("Not Found");
+    }
+  });
+
+  router.post("/bridges/:bridgeId/actions/refresh", async (req, res) => {
+    const bridgeId = req.params.bridgeId;
+    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+    if (bridge) {
+      await bridge.refreshDevices();
+      res.status(200).json(bridge.data);
+    } else {
+      res.status(404).send("Not Found");
+    }
+  });
+
   router.get("/next-port", (_, res) => {
     const port = bridgeService.getNextAvailablePort();
     res.status(200).json({ port });
+  });
+
+  router.post("/filter-preview", async (req, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+    const filter = req.body as HomeAssistantFilter;
+    if (!filter?.include || !filter?.exclude) {
+      res.status(400).json({ error: "Invalid filter configuration" });
+      return;
+    }
+
+    const entities = Object.values(haRegistry.entities);
+    const devices = haRegistry.devices;
+    const states = haRegistry.states;
+
+    const matchingEntities: Array<{
+      entity_id: string;
+      friendly_name?: string;
+      domain: string;
+    }> = [];
+
+    for (const entity of entities) {
+      const device = entity.device_id ? devices[entity.device_id] : undefined;
+
+      const included =
+        filter.include.length === 0 ||
+        testMatchers(filter.include, device, entity);
+      const excluded =
+        filter.exclude.length > 0 &&
+        testMatchers(filter.exclude, device, entity);
+
+      if (included && !excluded) {
+        const state = states[entity.entity_id];
+        matchingEntities.push({
+          entity_id: entity.entity_id,
+          friendly_name: state?.attributes?.friendly_name as string | undefined,
+          domain: entity.entity_id.split(".")[0],
+        });
+      }
+    }
+
+    matchingEntities.sort((a, b) => a.entity_id.localeCompare(b.entity_id));
+
+    res.status(200).json({
+      total: matchingEntities.length,
+      entities: matchingEntities.slice(0, 100),
+      truncated: matchingEntities.length > 100,
+    });
   });
 
   return router;

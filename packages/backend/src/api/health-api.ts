@@ -1,5 +1,6 @@
 import express from "express";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
+import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
 
 export interface BridgeHealthInfo {
   id: string;
@@ -23,6 +24,9 @@ export interface HealthStatus {
   uptime: number;
   timestamp: string;
   services: {
+    homeAssistant: {
+      connected: boolean;
+    };
     bridges: {
       total: number;
       running: number;
@@ -43,6 +47,7 @@ export interface DetailedHealthStatus extends HealthStatus {
 
 export function healthApi(
   bridgeService: BridgeService,
+  haClient: HomeAssistantClient,
   version: string,
   startTime: number,
 ): express.Router {
@@ -60,8 +65,9 @@ export function healthApi(
 
   const buildHealthStatus = (): HealthStatus => {
     const { bridges, running, stopped, failed } = getBridgeStats();
-    const isHealthy = stopped === 0 && failed === 0;
-    const isDegraded = stopped > 0 || failed > 0;
+    const haConnected = haClient.connection?.connected ?? false;
+    const isHealthy = haConnected && stopped === 0 && failed === 0;
+    const isDegraded = haConnected && (stopped > 0 || failed > 0);
 
     return {
       status: isHealthy ? "healthy" : isDegraded ? "degraded" : "unhealthy",
@@ -69,6 +75,7 @@ export function healthApi(
       uptime: Math.floor((Date.now() - startTime) / 1000),
       timestamp: new Date().toISOString(),
       services: {
+        homeAssistant: { connected: haConnected },
         bridges: {
           total: bridges.length,
           running,
@@ -126,8 +133,8 @@ export function healthApi(
   });
 
   router.get("/ready", (_, res) => {
-    const { running, stopped } = getBridgeStats();
-    if (running > 0 || stopped === 0) {
+    const haConnected = haClient.connection?.connected ?? false;
+    if (haConnected) {
       res.status(200).send("OK");
     } else {
       res.status(503).send("Not Ready");

@@ -137,7 +137,7 @@ export class ThermostatServerBase extends FeaturedBase {
     const isCurrentlyInAutoMode =
       this.features.autoMode && systemMode === SystemMode.Auto;
     const deadBandAttr = isCurrentlyInAutoMode ? 25 : 0;
-    const deadBandOffset = isCurrentlyInAutoMode ? 250 : 0; // for limit calculations (0.01°C)
+    const deadBandOffset = isCurrentlyInAutoMode ? 250 : 0;
     const minCoolLimit =
       minSetpointLimit != null ? minSetpointLimit + deadBandOffset : undefined;
     const maxHeatLimit =
@@ -164,16 +164,17 @@ export class ThermostatServerBase extends FeaturedBase {
       "cool",
     );
 
+    if (this.features.autoMode) {
+      applyPatchState(this.state, {
+        minSetpointDeadBand: deadBandAttr,
+        thermostatRunningMode: runningMode,
+      });
+    }
+
     applyPatchState(this.state, {
       localTemperature: localTemperature,
       systemMode: systemMode,
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
-      ...(this.features.autoMode
-        ? {
-            minSetpointDeadBand: deadBandAttr,
-            thermostatRunningMode: runningMode,
-          }
-        : {}),
       ...(this.features.heating
         ? {
             occupiedHeatingSetpoint: clampedHeatingSetpoint,

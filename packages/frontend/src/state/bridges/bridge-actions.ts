@@ -1,3 +1,5 @@
+import type { BridgeDataWithMetadata } from "@home-assistant-matter-hub/common";
+import { createAction } from "@reduxjs/toolkit";
 import {
   createBridge as createBridgeApi,
   deleteBridge as deleteBridgeApi,
@@ -16,3 +18,11 @@ export const deleteBridge = createAppThunk("bridges/delete", deleteBridgeApi);
 export const updateBridge = createAppThunk("bridges/update", updateBridgeApi);
 
 export const resetBridge = createAppThunk("bridges/reset", resetBridgeApi);
+
+export const setBridgesFromWebSocket = createAction<BridgeDataWithMetadata[]>(
+  "bridges/setFromWebSocket",
+);
+
+export const updateBridgeFromWebSocket = createAction<BridgeDataWithMetadata>(
+  "bridges/updateFromWebSocket",
+);

@@ -1,4 +1,7 @@
-import type { HomeAssistantEntityState } from "@home-assistant-matter-hub/common";
+import type {
+  EntityMappingConfig,
+  HomeAssistantEntityState,
+} from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
   TransactionDestroyedError,
@@ -18,25 +21,35 @@ export class LegacyEndpoint extends EntityEndpoint {
   public static async create(
     registry: BridgeRegistry,
     entityId: string,
+    mapping?: EntityMappingConfig,
   ): Promise<LegacyEndpoint | undefined> {
     const deviceRegistry = registry.deviceOf(entityId);
     const state = registry.initialState(entityId);
     const entity = registry.entity(entityId);
+    // Skip entities without state (e.g., being enabled from disabled state)
+    if (!state) {
+      return;
+    }
     const payload = {
       entity_id: entityId,
       state,
       registry: entity,
       deviceRegistry,
     };
-    const type = createLegacyEndpointType(payload);
+    const type = createLegacyEndpointType(payload, mapping);
     if (!type) {
       return;
     }
-    return new LegacyEndpoint(type, entityId);
+    const customName = mapping?.customName;
+    return new LegacyEndpoint(type, entityId, customName);
   }
 
-  private constructor(type: EndpointType, entityId: string) {
-    super(type, entityId);
+  private constructor(
+    type: EndpointType,
+    entityId: string,
+    customName?: string,
+  ) {
+    super(type, entityId, customName);
     // Debounce state updates to batch rapid changes into a single transaction.
     // Home Assistant often sends multiple attribute updates in quick succession
     // (e.g., media player: volume + source + play state). Without debouncing,
@@ -83,6 +96,8 @@ export class LegacyEndpoint extends EntityEndpoint {
         entity: { ...current, state },
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       // Suppress errors that are expected during normal shutdown:
       // - TransactionDestroyedError: Transaction context destroyed after shutdown
       // - DestroyedDependencyError: Endpoint was destroyed/deleted
@@ -90,6 +105,15 @@ export class LegacyEndpoint extends EntityEndpoint {
       if (
         error instanceof TransactionDestroyedError ||
         error instanceof DestroyedDependencyError
+      ) {
+        return;
+      }
+      // Suppress transient Matter.js errors that can happen while an endpoint is
+      // still being constructed/attached to a node (or during bridge refresh).
+      if (
+        errorMessage.includes(
+          "Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint",
+        )
       ) {
         return;
       }

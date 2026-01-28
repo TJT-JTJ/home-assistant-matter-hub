@@ -39,6 +39,19 @@ const deviceRegistryWithUserName: HomeAssistantDeviceRegistry = {
   name_by_user: "My Custom Light Name",
 };
 
+const deviceRegistryWithModel: HomeAssistantDeviceRegistry = {
+  id: "device4711",
+  area_id: "area_id",
+  name: "Living Room Light",
+  model: "Hue Color Bulb",
+};
+
+const deviceRegistryWithDefaultModel: HomeAssistantDeviceRegistry = {
+  id: "device4711",
+  area_id: "area_id",
+  default_model: "Generic LED Bulb",
+};
+
 describe("matchEntityFilter.testMatcher", () => {
   it("should match the domain", () => {
     expect(
@@ -364,6 +377,79 @@ describe("matchEntityFilter.testMatcher", () => {
         {
           type: HomeAssistantMatcherType.DeviceName,
           value: "Living Room",
+        },
+        deviceRegistry,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+
+  it("should match the product name", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "Hue Color",
+        },
+        deviceRegistryWithModel,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match the product name case-insensitively", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "hue color bulb",
+        },
+        deviceRegistryWithModel,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match the default_model if model is not set", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "Generic LED",
+        },
+        deviceRegistryWithDefaultModel,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match the product name with wildcard pattern", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "Hue*Bulb",
+        },
+        deviceRegistryWithModel,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should not match if device is undefined for product name", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "Hue",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+  it("should not match if device has no model", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.ProductName,
+          value: "Hue",
         },
         deviceRegistry,
         registry,

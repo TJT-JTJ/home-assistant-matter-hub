@@ -73,7 +73,6 @@ export class BridgeService extends Service {
     await bridge.start();
     return true;
   }
-
   override async dispose(): Promise<void> {
     if (this.recoveryInterval) {
       clearInterval(this.recoveryInterval);

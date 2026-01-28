@@ -27,11 +27,17 @@ export interface FanControlServerConfig {
   getStepSize: ValueGetter<number | undefined>;
   getAirflowDirection: ValueGetter<AirflowDirection | undefined>;
   isInAutoMode: ValueGetter<boolean>;
+  // Preset mode support for fans without percentage control
+  getPresetModes: ValueGetter<string[] | undefined>;
+  getCurrentPresetMode: ValueGetter<string | undefined>;
+  supportsPercentage: ValueGetter<boolean>;
 
   turnOff: ValueSetter<void>;
   turnOn: ValueSetter<number>;
   setAutoMode: ValueSetter<void>;
   setAirflowDirection: ValueSetter<AirflowDirection>;
+  // Set preset mode for fans without percentage control
+  setPresetMode: ValueSetter<string>;
 }
 
 export class FanControlServerBase extends FeaturedBase {
@@ -66,48 +72,97 @@ export class FanControlServerBase extends FeaturedBase {
       return;
     }
     const config = this.state.config;
-    const percentage = config.getPercentage(entity.state, this.agent) ?? 0;
-    const stepSize = config.getStepSize(entity.state, this.agent);
-    const effectiveStepSize =
-      stepSize != null && stepSize > 0 ? stepSize : defaultStepSize;
-    const calculatedSpeedMax = Math.round(100 / effectiveStepSize);
-    const speedMax = Math.max(
-      minSpeedMax,
-      Math.min(maxSpeedMax, calculatedSpeedMax),
+    const supportsPercentage = config.supportsPercentage(
+      entity.state,
+      this.agent,
     );
-    const speed =
-      percentage === 0
-        ? 0
-        : Math.max(1, Math.ceil(speedMax * (percentage / 100)));
+    const presetModes = config.getPresetModes(entity.state, this.agent) ?? [];
+    const currentPresetMode = config.getCurrentPresetMode(
+      entity.state,
+      this.agent,
+    );
+
+    let percentage: number;
+    let speedMax: number;
+    let speed: number;
+
+    if (supportsPercentage) {
+      // Fan supports percentage control - use percentage-based logic
+      percentage = config.getPercentage(entity.state, this.agent) ?? 0;
+      const stepSize = config.getStepSize(entity.state, this.agent);
+      const effectiveStepSize =
+        stepSize != null && stepSize > 0 ? stepSize : defaultStepSize;
+      const calculatedSpeedMax = Math.round(100 / effectiveStepSize);
+      speedMax = Math.max(
+        minSpeedMax,
+        Math.min(maxSpeedMax, calculatedSpeedMax),
+      );
+      speed =
+        percentage === 0
+          ? 0
+          : Math.max(1, Math.ceil(speedMax * (percentage / 100)));
+    } else {
+      // Fan only supports preset modes - map presets to speeds
+      // Filter out "Auto" as it's handled separately
+      const speedPresets = presetModes.filter(
+        (m) => m.toLowerCase() !== "auto",
+      );
+      speedMax = Math.max(
+        minSpeedMax,
+        Math.min(maxSpeedMax, speedPresets.length),
+      );
+
+      // Map current preset to speed level
+      if (entity.state.state === "off" || !currentPresetMode) {
+        speed = 0;
+        percentage = 0;
+      } else if (currentPresetMode.toLowerCase() === "auto") {
+        // Auto mode - keep current speed or default to middle
+        speed = Math.ceil(speedMax / 2);
+        percentage = Math.floor((speed / speedMax) * 100);
+      } else {
+        const presetIndex = speedPresets.findIndex(
+          (m) => m.toLowerCase() === currentPresetMode.toLowerCase(),
+        );
+        // Map preset index to speed (1-based, 0 = off)
+        speed = presetIndex >= 0 ? presetIndex + 1 : 1;
+        percentage = Math.floor((speed / speedMax) * 100);
+      }
+    }
 
     const fanModeSequence = this.getFanModeSequence();
     const fanMode = config.isInAutoMode(entity.state, this.agent)
       ? FanMode.create(FanControl.FanMode.Auto, fanModeSequence)
       : FanMode.fromSpeedPercent(percentage, fanModeSequence);
 
-    applyPatchState(this.state, {
-      percentSetting: percentage,
-      percentCurrent: percentage,
-      fanMode: fanMode.mode,
-      fanModeSequence: fanModeSequence,
+    try {
+      applyPatchState(this.state, {
+        percentSetting: percentage,
+        percentCurrent: percentage,
+        fanMode: fanMode.mode,
+        fanModeSequence: fanModeSequence,
 
-      ...(this.features.multiSpeed
-        ? {
-            speedMax: speedMax,
-            speedSetting: speed,
-            speedCurrent: speed,
-          }
-        : {}),
+        ...(this.features.multiSpeed
+          ? {
+              speedMax: speedMax,
+              speedSetting: speed,
+              speedCurrent: speed,
+            }
+          : {}),
 
-      ...(this.features.airflowDirection
-        ? {
-            airflowDirection: config.getAirflowDirection(
-              entity.state,
-              this.agent,
-            ),
-          }
-        : {}),
-    });
+        ...(this.features.airflowDirection
+          ? {
+              airflowDirection: config.getAirflowDirection(
+                entity.state,
+                this.agent,
+              ),
+            }
+          : {}),
+      });
+    } catch {
+      // Ignore transaction conflicts during post-commit phase
+      // The state will be updated on the next entity update
+    }
   }
 
   override step(request: FanControl.StepRequest) {
@@ -208,13 +263,17 @@ export class FanControlServerBase extends FeaturedBase {
       if (!homeAssistant.isAvailable) {
         return;
       }
+      const config = this.state.config;
+      const supportsPercentage = config.supportsPercentage(
+        homeAssistant.entity.state,
+        this.agent,
+      );
+
       if (percentage === 0) {
-        homeAssistant.callAction(this.state.config.turnOff(void 0, this.agent));
-      } else {
-        // Round percentage to nearest valid step if percentage_step is defined.
-        // Note: Many controllers (including Apple Home) ignore step constraints
-        // and allow arbitrary percentage values in their UI, so we handle it here.
-        const stepSize = this.state.config.getStepSize(
+        homeAssistant.callAction(config.turnOff(void 0, this.agent));
+      } else if (supportsPercentage) {
+        // Fan supports percentage - use percentage control
+        const stepSize = config.getStepSize(
           homeAssistant.entity.state,
           this.agent,
         );
@@ -227,9 +286,26 @@ export class FanControlServerBase extends FeaturedBase {
           Math.min(100, roundedPercentage),
         );
 
-        homeAssistant.callAction(
-          this.state.config.turnOn(clampedPercentage, this.agent),
+        homeAssistant.callAction(config.turnOn(clampedPercentage, this.agent));
+      } else {
+        // Fan only supports preset modes - map percentage to preset
+        const presetModes =
+          config.getPresetModes(homeAssistant.entity.state, this.agent) ?? [];
+        const speedPresets = presetModes.filter(
+          (m) => m.toLowerCase() !== "auto",
         );
+
+        if (speedPresets.length > 0) {
+          // Map percentage to preset index
+          const presetIndex = Math.min(
+            Math.floor((percentage / 100) * speedPresets.length),
+            speedPresets.length - 1,
+          );
+          const targetPreset = speedPresets[presetIndex];
+          homeAssistant.callAction(
+            config.setPresetMode(targetPreset, this.agent),
+          );
+        }
       }
     });
   }

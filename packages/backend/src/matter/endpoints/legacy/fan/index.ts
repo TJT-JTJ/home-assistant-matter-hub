@@ -20,14 +20,26 @@ export function FanDevice(
     .attributes as FanDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
 
+  const hasSetSpeed = testBit(supportedFeatures, FanDeviceFeature.SET_SPEED);
+  const hasPresetMode = testBit(
+    supportedFeatures,
+    FanDeviceFeature.PRESET_MODE,
+  );
+  const presetModes = attributes.preset_modes ?? [];
+  // Filter out "Auto" from presets for speed calculation
+  const speedPresets = presetModes.filter((m) => m.toLowerCase() !== "auto");
+
   const features: FeatureSelection<FanControl.Cluster> = new Set();
-  if (testBit(supportedFeatures, FanDeviceFeature.SET_SPEED)) {
+
+  // Enable MultiSpeed and Step for fans with percentage control OR preset modes
+  // For preset-only fans, speeds are mapped to preset modes (Low/Medium/High etc.)
+  if (hasSetSpeed || speedPresets.length > 0) {
     features.add("MultiSpeed");
-  }
-  if (testBit(supportedFeatures, FanDeviceFeature.SET_SPEED)) {
     features.add("Step");
   }
-  if (testBit(supportedFeatures, FanDeviceFeature.PRESET_MODE)) {
+
+  // Enable Auto if fan supports preset modes (including "Auto" preset)
+  if (hasPresetMode) {
     features.add("Auto");
   }
   if (testBit(supportedFeatures, FanDeviceFeature.DIRECTION)) {
