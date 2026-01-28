@@ -1,4 +1,5 @@
 import { VendorId } from "@matter/main";
+import { createRequire } from "node:module";
 import type { ArgumentsCamelCase } from "yargs";
 import type { WebApiProps } from "../../api/web-api.js";
 import type { StartOptions } from "../../commands/start/start-options.js";
@@ -7,6 +8,26 @@ import type { HomeAssistantClientProps } from "../../services/home-assistant/hom
 import type { LoggerServiceProps } from "./logger.js";
 import type { MdnsOptions } from "./mdns.js";
 import type { StorageOptions } from "./storage.js";
+
+function resolveAppVersion(): string {
+  if (process.env.APP_VERSION) {
+    return process.env.APP_VERSION;
+  }
+  try {
+    const require = createRequire(import.meta.url);
+    // When installed globally via npm, this resolves to the published package.json
+    // and provides the real semantic version.
+    const pkg = require("home-assistant-matter-hub/package.json") as {
+      version?: string;
+    };
+    if (pkg.version) {
+      return pkg.version;
+    }
+  } catch {
+    // ignore
+  }
+  return "0.0.0-dev";
+}
 
 export type OptionsProps = ArgumentsCamelCase<StartOptions> & {
   webUiDist: string | undefined;
@@ -57,6 +78,7 @@ export class Options {
         item.toString(),
       ),
       webUiDist: this.startOptions.webUiDist,
+      version: resolveAppVersion(),
       auth,
     };
   }

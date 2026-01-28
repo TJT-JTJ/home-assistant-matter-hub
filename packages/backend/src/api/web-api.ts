@@ -18,6 +18,7 @@ export interface WebApiProps {
   readonly port: number;
   readonly whitelist: string[] | undefined;
   readonly webUiDist?: string;
+  readonly version: string;
   readonly auth?: {
     username: string;
     password: string;
@@ -45,7 +46,7 @@ export class WebApi extends Service {
   protected override async initialize() {
     const api = express.Router();
     const startTime = Date.now();
-    const version = process.env.npm_package_version ?? "unknown";
+    const version = this.props.version;
     api
       .use(express.json())
       .use(nocache())
