@@ -288,31 +288,39 @@ export class ThermostatServerBase extends FeaturedBase {
     }
     // Use asLocalActor to avoid access control issues when accessing state
     this.agent.asLocalActor(() => {
-      // Update thermostatRunningMode first to prevent Matter.js internal reactor
-      // from failing with "Permission denied: Value is read-only" error.
-      // The internal #handleSystemModeChange reactor tries to write this during
-      // external writes but lacks proper context. By setting it here with
-      // asLocalActor, we satisfy the constraint and prevent the error.
-      if (this.features.autoMode) {
-        const runningMode =
-          systemMode === Thermostat.SystemMode.Auto
-            ? (this.state.thermostatRunningMode ??
-              Thermostat.ThermostatRunningMode.Off)
-            : systemMode === Thermostat.SystemMode.Heat ||
-                systemMode === Thermostat.SystemMode.EmergencyHeat
-              ? Thermostat.ThermostatRunningMode.Heat
-              : systemMode === Thermostat.SystemMode.Cool ||
-                  systemMode === Thermostat.SystemMode.Precooling
-                ? Thermostat.ThermostatRunningMode.Cool
-                : Thermostat.ThermostatRunningMode.Off;
-
-        this.state.thermostatRunningMode = runningMode;
-      }
-
+      // IMPORTANT: Call HA action FIRST before any state updates.
+      // State updates may fail during post-commit phase with "Permission denied"
+      // errors (especially thermostatRunningMode with AutoMode feature).
+      // The Matter.js internal #handleSystemModeChange reactor will log an error
+      // but the HA action must still be called for the mode change to work.
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       homeAssistant.callAction(
         this.state.config.setSystemMode(systemMode, this.agent),
       );
+
+      // Try to update thermostatRunningMode to prevent Matter.js internal reactor
+      // error, but don't let failures block the HA action (which already ran above).
+      // The correct value will be set when HA sends the updated state back.
+      if (this.features.autoMode) {
+        try {
+          const runningMode =
+            systemMode === Thermostat.SystemMode.Auto
+              ? (this.state.thermostatRunningMode ??
+                Thermostat.ThermostatRunningMode.Off)
+              : systemMode === Thermostat.SystemMode.Heat ||
+                  systemMode === Thermostat.SystemMode.EmergencyHeat
+                ? Thermostat.ThermostatRunningMode.Heat
+                : systemMode === Thermostat.SystemMode.Cool ||
+                    systemMode === Thermostat.SystemMode.Precooling
+                  ? Thermostat.ThermostatRunningMode.Cool
+                  : Thermostat.ThermostatRunningMode.Off;
+
+          this.state.thermostatRunningMode = runningMode;
+        } catch {
+          // Ignore - state is read-only during post-commit, will be updated
+          // when HA sends the new state back via the update() method
+        }
+      }
     });
   }
 
