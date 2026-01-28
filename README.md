@@ -176,13 +176,17 @@ Migrating from the original `t0bst4r/home-assistant-matter-hub` is straightforwa
    https://github.com/RiDDiX/home-assistant-addons
    ```
 
-4. **Install new add-on** and restore backup before starting:
+4. **Install and start the new add-on**, then check the new _hamh folder:
    ```bash
-   ls /addon_configs/  # Find new _hamh folder
+   ls /addon_configs/
+   ```
+
+5. **Restore the backup:**
+   ```bash
    cp -r /config/hamh-backup/* /addon_configs/*_hamh/
    ```
 
-5. **Start the add-on** - your devices should reconnect automatically
+6. **Start the add-on** - your devices should reconnect automatically
 
 ### Docker / Docker Compose
 
