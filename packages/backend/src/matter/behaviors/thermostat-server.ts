@@ -288,6 +288,27 @@ export class ThermostatServerBase extends FeaturedBase {
     }
     // Use asLocalActor to avoid access control issues when accessing state
     this.agent.asLocalActor(() => {
+      // Update thermostatRunningMode first to prevent Matter.js internal reactor
+      // from failing with "Permission denied: Value is read-only" error.
+      // The internal #handleSystemModeChange reactor tries to write this during
+      // external writes but lacks proper context. By setting it here with
+      // asLocalActor, we satisfy the constraint and prevent the error.
+      if (this.features.autoMode) {
+        const runningMode =
+          systemMode === Thermostat.SystemMode.Auto
+            ? (this.state.thermostatRunningMode ??
+              Thermostat.ThermostatRunningMode.Off)
+            : systemMode === Thermostat.SystemMode.Heat ||
+                systemMode === Thermostat.SystemMode.EmergencyHeat
+              ? Thermostat.ThermostatRunningMode.Heat
+              : systemMode === Thermostat.SystemMode.Cool ||
+                  systemMode === Thermostat.SystemMode.Precooling
+                ? Thermostat.ThermostatRunningMode.Cool
+                : Thermostat.ThermostatRunningMode.Off;
+
+        this.state.thermostatRunningMode = runningMode;
+      }
+
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       homeAssistant.callAction(
         this.state.config.setSystemMode(systemMode, this.agent),
