@@ -93,7 +93,9 @@ export class HomeAssistantRegistry extends Service {
       fromPairs(missingDeviceIds.map((d) => [d, { id: d }]));
 
     this._devices = { ...missingDevices, ...realDevices };
-    this._entities = entities;
+    // Use allEntities to include state-only entities (e.g., YAML scripts)
+    // that don't have entity registry entries but still need to be filterable
+    this._entities = allEntities;
     this._states = states;
   }
 }

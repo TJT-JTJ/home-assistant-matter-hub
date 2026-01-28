@@ -1,9 +1,11 @@
 import {
   type FanDeviceAttributes,
   FanDeviceDirection,
+  FanDeviceFeature,
   type HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
 import { FanControl } from "@matter/main/clusters";
+import { testBit } from "../../../../../utils/test-bit.js";
 import {
   FanControlServer,
   type FanControlServerConfig,
@@ -23,6 +25,14 @@ const fanControlConfig: FanControlServerConfig = {
         ? FanControl.AirflowDirection.Reverse
         : FanControl.AirflowDirection.Forward,
   isInAutoMode: (state) => attributes(state).preset_mode === "Auto",
+  // Preset mode support
+  getPresetModes: (state) => attributes(state).preset_modes,
+  getCurrentPresetMode: (state) => attributes(state).preset_mode,
+  supportsPercentage: (state) =>
+    testBit(
+      attributes(state).supported_features ?? 0,
+      FanDeviceFeature.SET_SPEED,
+    ),
 
   turnOff: () => ({ action: "fan.turn_off" }),
   turnOn: (percentage) => ({ action: "fan.turn_on", data: { percentage } }),
@@ -35,6 +45,10 @@ const fanControlConfig: FanControlServerConfig = {
           ? FanDeviceDirection.FORWARD
           : FanDeviceDirection.REVERSE,
     },
+  }),
+  setPresetMode: (presetMode) => ({
+    action: "fan.set_preset_mode",
+    data: { preset_mode: presetMode },
   }),
 };
 
