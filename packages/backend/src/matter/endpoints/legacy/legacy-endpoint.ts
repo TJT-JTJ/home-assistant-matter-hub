@@ -96,6 +96,8 @@ export class LegacyEndpoint extends EntityEndpoint {
         entity: { ...current, state },
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       // Suppress errors that are expected during normal shutdown:
       // - TransactionDestroyedError: Transaction context destroyed after shutdown
       // - DestroyedDependencyError: Endpoint was destroyed/deleted
@@ -103,6 +105,15 @@ export class LegacyEndpoint extends EntityEndpoint {
       if (
         error instanceof TransactionDestroyedError ||
         error instanceof DestroyedDependencyError
+      ) {
+        return;
+      }
+      // Suppress transient Matter.js errors that can happen while an endpoint is
+      // still being constructed/attached to a node (or during bridge refresh).
+      if (
+        errorMessage.includes(
+          "Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint",
+        )
       ) {
         return;
       }
