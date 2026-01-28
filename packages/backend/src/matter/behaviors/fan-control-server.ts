@@ -135,29 +135,34 @@ export class FanControlServerBase extends FeaturedBase {
       ? FanMode.create(FanControl.FanMode.Auto, fanModeSequence)
       : FanMode.fromSpeedPercent(percentage, fanModeSequence);
 
-    applyPatchState(this.state, {
-      percentSetting: percentage,
-      percentCurrent: percentage,
-      fanMode: fanMode.mode,
-      fanModeSequence: fanModeSequence,
+    try {
+      applyPatchState(this.state, {
+        percentSetting: percentage,
+        percentCurrent: percentage,
+        fanMode: fanMode.mode,
+        fanModeSequence: fanModeSequence,
 
-      ...(this.features.multiSpeed
-        ? {
-            speedMax: speedMax,
-            speedSetting: speed,
-            speedCurrent: speed,
-          }
-        : {}),
+        ...(this.features.multiSpeed
+          ? {
+              speedMax: speedMax,
+              speedSetting: speed,
+              speedCurrent: speed,
+            }
+          : {}),
 
-      ...(this.features.airflowDirection
-        ? {
-            airflowDirection: config.getAirflowDirection(
-              entity.state,
-              this.agent,
-            ),
-          }
-        : {}),
-    });
+        ...(this.features.airflowDirection
+          ? {
+              airflowDirection: config.getAirflowDirection(
+                entity.state,
+                this.agent,
+              ),
+            }
+          : {}),
+      });
+    } catch {
+      // Ignore transaction conflicts during post-commit phase
+      // The state will be updated on the next entity update
+    }
   }
 
   override step(request: FanControl.StepRequest) {
