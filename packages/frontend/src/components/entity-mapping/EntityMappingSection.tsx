@@ -101,7 +101,8 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
     setEditingEntity(null);
   }, []);
 
-  const mappingEntries = mappings ? Object.entries(mappings.mappings) : [];
+  // mappings.mappings is an array of EntityMappingConfig, not an object
+  const mappingsList = mappings?.mappings ?? [];
 
   return (
     <Card>
@@ -123,14 +124,14 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
 
         {loading && <Typography color="text.secondary">Loading...</Typography>}
 
-        {!loading && mappingEntries.length === 0 && (
+        {!loading && mappingsList.length === 0 && (
           <Typography color="text.secondary">
             No custom entity mappings configured. Use mappings to override
             Matter device types, set custom names, or disable specific entities.
           </Typography>
         )}
 
-        {!loading && mappingEntries.length > 0 && (
+        {!loading && mappingsList.length > 0 && (
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -143,11 +144,11 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mappingEntries.map(([entityId, config]) => (
-                  <TableRow key={entityId}>
+                {mappingsList.map((config) => (
+                  <TableRow key={config.entityId}>
                     <TableCell>
                       <Typography variant="body2" fontFamily="monospace">
-                        {entityId}
+                        {config.entityId}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -174,13 +175,15 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                     <TableCell align="right">
                       <IconButton
                         size="small"
-                        onClick={() => handleEditMapping(entityId, config)}
+                        onClick={() =>
+                          handleEditMapping(config.entityId, config)
+                        }
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
-                        onClick={() => handleDeleteMapping(entityId)}
+                        onClick={() => handleDeleteMapping(config.entityId)}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
