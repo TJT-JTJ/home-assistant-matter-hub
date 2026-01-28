@@ -50,15 +50,15 @@ export class ThermostatServerBase extends FeaturedBase {
   override async initialize() {
     await super.initialize();
 
-    if (this.features.autoMode) {
-      this.state.minSetpointDeadBand = 0;
-    }
-    this.state.controlSequenceOfOperation =
-      this.features.cooling && this.features.heating
-        ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
-        : this.features.cooling
-          ? Thermostat.ControlSequenceOfOperation.CoolingOnly
-          : Thermostat.ControlSequenceOfOperation.HeatingOnly;
+    applyPatchState(this.state, {
+      controlSequenceOfOperation:
+        this.features.cooling && this.features.heating
+          ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
+          : this.features.cooling
+            ? Thermostat.ControlSequenceOfOperation.CoolingOnly
+            : Thermostat.ControlSequenceOfOperation.HeatingOnly,
+      ...(this.features.autoMode ? { minSetpointDeadBand: 0 } : {}),
+    });
 
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
