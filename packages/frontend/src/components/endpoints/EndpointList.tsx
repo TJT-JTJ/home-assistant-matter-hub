@@ -1,4 +1,5 @@
 import type { EndpointData } from "@home-assistant-matter-hub/common";
+import DevicesIcon from "@mui/icons-material/Devices";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ListIcon from "@mui/icons-material/List";
 import SortIcon from "@mui/icons-material/Sort";
@@ -8,6 +9,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -17,6 +19,8 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
+import { navigation } from "../../routes.tsx";
 import { EndpointCard } from "./EndpointCard.tsx";
 import { getEndpointName } from "./EndpointName.tsx";
 import { EndpointState } from "./EndpointState.tsx";
@@ -80,9 +84,21 @@ export const EndpointList = (props: EndpointListProps) => {
         gap={2}
         flexWrap="wrap"
       >
-        <Typography variant="h6" component="span">
-          Endpoints ({endpoints.length})
-        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h6" component="span">
+            Endpoints ({endpoints.length})
+          </Typography>
+          <Tooltip title="View All Devices">
+            <IconButton
+              component={Link}
+              to={navigation.devices}
+              size="small"
+              color="primary"
+            >
+              <DevicesIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
         <Box display="flex" alignItems="center" gap={1} flexGrow={1}>
           <TextField
