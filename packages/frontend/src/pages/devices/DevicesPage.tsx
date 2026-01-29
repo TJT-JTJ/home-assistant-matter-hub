@@ -1,10 +1,14 @@
+import type {
+  EndpointData,
+  EntityMappingConfig,
+} from "@home-assistant-matter-hub/common";
 import DevicesIcon from "@mui/icons-material/Devices";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
@@ -12,173 +16,132 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
 import Select from "@mui/material/Select";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  fetchEntityMappings,
+  updateEntityMapping,
+} from "../../api/entity-mappings";
+import { EndpointCard } from "../../components/endpoints/EndpointCard";
+import { getEndpointName } from "../../components/endpoints/EndpointName";
+import { EntityMappingDialog } from "../../components/entity-mapping/EntityMappingDialog";
 import { useBridges } from "../../hooks/data/bridges";
 import { loadBridges } from "../../state/bridges/bridge-actions";
-import { useAppDispatch } from "../../state/hooks";
+import { loadDevices } from "../../state/devices/device-actions";
+import { useAppDispatch, useAppSelector } from "../../state/hooks";
 
 interface DeviceInfo {
   bridgeId: string;
   bridgeName: string;
-  deviceId: string;
-  deviceName: string;
-  deviceType: string;
-  entityCount: number;
-  entities: Array<{
-    entityId: string;
-    entityName: string;
-    entityType: string;
-    domain: string;
-  }>;
+  endpoint: EndpointData;
 }
-
-const getDeviceIcon = (deviceType: string) => {
-  switch (deviceType.toLowerCase()) {
-    case "light":
-    case "lights":
-      return "💡";
-    case "switch":
-    case "switches":
-      return "🔌";
-    case "lock":
-    case "locks":
-      return "🔒";
-    case "thermostat":
-    case "climate":
-      return "🌡️";
-    case "sensor":
-    case "sensors":
-      return "📊";
-    case "fan":
-    case "fans":
-      return "🌀";
-    case "cover":
-    case "covers":
-      return "🪟";
-    case "media_player":
-    case "media":
-      return "🎵";
-    case "button":
-    case "buttons":
-      return "🔘";
-    case "scene":
-    case "scenes":
-      return "🎬";
-    case "script":
-    case "scripts":
-      return "📜";
-    case "vacuum":
-    case "vacuums":
-      return "🤖";
-    case "water_heater":
-    case "water":
-      return "💧";
-    case "camera":
-    case "cameras":
-      return "📷";
-    default:
-      return "📱";
-  }
-};
-
-const getDeviceTypeColor = (deviceType: string) => {
-  switch (deviceType.toLowerCase()) {
-    case "light":
-    case "lights":
-      return "#FFD700";
-    case "switch":
-    case "switches":
-      return "#4CAF50";
-    case "lock":
-    case "locks":
-      return "#2196F3";
-    case "thermostat":
-    case "climate":
-      return "#FF5722";
-    case "sensor":
-    case "sensors":
-      return "#9C27B0";
-    case "fan":
-    case "fans":
-      return "#00BCD4";
-    case "cover":
-    case "covers":
-      return "#795548";
-    case "media_player":
-    case "media":
-      return "#E91E63";
-    case "button":
-    case "buttons":
-      return "#607D8B";
-    case "scene":
-    case "scenes":
-      return "#FF9800";
-    case "script":
-    case "scripts":
-      return "#3F51B5";
-    case "vacuum":
-    case "vacuums":
-      return "#009688";
-    case "water_heater":
-    case "water":
-      return "#03A9F4";
-    case "camera":
-    case "cameras":
-      return "#F44336";
-    default:
-      return "#757575";
-  }
-};
 
 export const DevicesPage = () => {
   const dispatch = useAppDispatch();
-  const { content: bridges, isLoading } = useBridges();
+  const { content: bridges, isLoading: bridgesLoading } = useBridges();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBridge, setSelectedBridge] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [page, setPage] = useState(1);
   const itemsPerPage = 12;
 
+  // Entity Mapping Dialog state
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [selectedMappingBridgeId, setSelectedMappingBridgeId] =
+    useState<string>("");
+  const [currentMapping, setCurrentMapping] = useState<
+    EntityMappingConfig | undefined
+  >();
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
+
+  // Load bridges on mount
   useEffect(() => {
     dispatch(loadBridges());
   }, [dispatch]);
 
-  // Extract devices from bridges
+  // Load devices for each bridge
+  useEffect(() => {
+    if (bridges) {
+      bridges.forEach((bridge) => {
+        dispatch(loadDevices(bridge.id));
+      });
+    }
+  }, [dispatch, bridges]);
+
+  // Get all device states from Redux
+  const allDeviceStates = useAppSelector((state) => state.devices.byBridge);
+
+  // Recursively collect all leaf endpoints (actual devices, not aggregators)
+  const collectDeviceEndpoints = useCallback(
+    (
+      endpoint: EndpointData,
+      bridgeId: string,
+      bridgeName: string,
+    ): DeviceInfo[] => {
+      const results: DeviceInfo[] = [];
+
+      // If this endpoint has no children, it's a leaf device
+      if (!endpoint.parts || endpoint.parts.length === 0) {
+        // Skip the root node itself (usually has endpoint number 0)
+        if (endpoint.endpoint !== 0) {
+          results.push({ bridgeId, bridgeName, endpoint });
+        }
+      } else {
+        // Recursively collect from children
+        for (const child of endpoint.parts) {
+          results.push(...collectDeviceEndpoints(child, bridgeId, bridgeName));
+        }
+      }
+
+      return results;
+    },
+    [],
+  );
+
+  // Extract all endpoints from all bridges
   const devices = useMemo(() => {
     const allDevices: DeviceInfo[] = [];
 
     (bridges || []).forEach((bridge) => {
-      // Create a mock device for each bridge since endpoints structure is not available
-      const mockDevice: DeviceInfo = {
-        bridgeId: bridge.id,
-        bridgeName: bridge.name,
-        deviceId: bridge.id,
-        deviceName: bridge.name,
-        deviceType: "bridge",
-        entityCount: bridge.deviceCount,
-        entities: [], // Would need to be populated from actual bridge data
-      };
+      const deviceState = allDeviceStates[bridge.id];
+      const rootEndpoint = deviceState?.content;
 
-      allDevices.push(mockDevice);
+      if (rootEndpoint) {
+        allDevices.push(
+          ...collectDeviceEndpoints(rootEndpoint, bridge.id, bridge.name),
+        );
+      }
     });
 
     return allDevices;
-  }, [bridges]);
+  }, [bridges, allDeviceStates, collectDeviceEndpoints]);
+
+  const isLoading =
+    bridgesLoading || (bridges && bridges.length > 0 && devices.length === 0);
 
   // Filter devices
   const filteredDevices = useMemo(() => {
     return devices.filter((device) => {
+      const deviceName =
+        getEndpointName(device.endpoint.state) ?? device.endpoint.id.local;
+      const deviceType = device.endpoint.type.name;
+
       const matchesSearch =
-        device.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         device.bridgeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.deviceType.toLowerCase().includes(searchTerm.toLowerCase());
+        deviceType.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesBridge =
         !selectedBridge || device.bridgeId === selectedBridge;
-      const matchesType = !selectedType || device.deviceType === selectedType;
+      const matchesType = !selectedType || deviceType === selectedType;
 
       return matchesSearch && matchesBridge && matchesType;
     });
@@ -193,13 +156,57 @@ export const DevicesPage = () => {
 
   // Get unique device types
   const deviceTypes = useMemo(() => {
-    const types = new Set(devices.map((d) => d.deviceType));
+    const types = new Set(devices.map((d) => d.endpoint.type.name));
     return Array.from(types).sort();
   }, [devices]);
 
   const handleRefresh = useCallback(() => {
     dispatch(loadBridges());
   }, [dispatch]);
+
+  const handleEditMapping = useCallback(
+    async (entityId: string, bridgeId: string) => {
+      setSelectedEntityId(entityId);
+      setSelectedMappingBridgeId(bridgeId);
+      try {
+        const mappings = await fetchEntityMappings(bridgeId);
+        const existingMapping = mappings.mappings.find(
+          (m) => m.entityId === entityId,
+        );
+        setCurrentMapping(existingMapping);
+      } catch {
+        setCurrentMapping(undefined);
+      }
+      setMappingDialogOpen(true);
+    },
+    [],
+  );
+
+  const handleSaveMapping = useCallback(
+    async (config: Partial<EntityMappingConfig>) => {
+      if (!selectedMappingBridgeId || !selectedEntityId) return;
+      try {
+        await updateEntityMapping(
+          selectedMappingBridgeId,
+          selectedEntityId,
+          config,
+        );
+        setSnackbar({
+          open: true,
+          message: `Mapping saved for ${selectedEntityId}. Restart the bridge to apply changes.`,
+          severity: "success",
+        });
+        setMappingDialogOpen(false);
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: `Failed to save mapping: ${error}`,
+          severity: "error",
+        });
+      }
+    },
+    [selectedMappingBridgeId, selectedEntityId],
+  );
 
   if (isLoading) {
     return (
@@ -269,10 +276,7 @@ export const DevicesPage = () => {
                 <MenuItem value="">All Types</MenuItem>
                 {deviceTypes.map((type) => (
                   <MenuItem key={type} value={type}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <span>{getDeviceIcon(type)}</span>
-                      {type}
-                    </Box>
+                    {type}
                   </MenuItem>
                 ))}
               </Select>
@@ -285,110 +289,15 @@ export const DevicesPage = () => {
       <Grid container spacing={2}>
         {paginatedDevices.map((device) => (
           <Grid
-            key={`${device.bridgeId}-${device.deviceId}`}
+            key={`${device.bridgeId}-${device.endpoint.id.global}`}
             size={{ xs: 12, sm: 6, lg: 4 }}
           >
-            <Card
-              sx={{
-                height: "100%",
-                transition:
-                  "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                "&:hover": {
-                  transform: "translateY(-4px)",
-                  boxShadow: 4,
-                },
-              }}
-            >
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 2,
-                    mb: 2,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      fontSize: 40,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 60,
-                      height: 60,
-                      borderRadius: 2,
-                      backgroundColor: `${getDeviceTypeColor(device.deviceType)}20`,
-                    }}
-                  >
-                    {getDeviceIcon(device.deviceType)}
-                  </Box>
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography variant="h6" noWrap>
-                      {device.deviceName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" noWrap>
-                      {device.bridgeName}
-                    </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                      <Chip
-                        label={device.deviceType}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${getDeviceTypeColor(device.deviceType)}20`,
-                          color: getDeviceTypeColor(device.deviceType),
-                        }}
-                      />
-                      <Chip
-                        label={`${device.entityCount} entities`}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Stack>
-                  </Box>
-                </Box>
-
-                {/* Entities */}
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Entities ({device.entityCount})
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {device.entities.slice(0, 3).map((entity) => (
-                      <Box
-                        key={entity.entityId}
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          p: 0.5,
-                          borderRadius: 1,
-                          backgroundColor: "action.hover",
-                        }}
-                      >
-                        <Typography variant="body2" noWrap sx={{ flexGrow: 1 }}>
-                          {entity.entityName}
-                        </Typography>
-                        <Chip
-                          label={entity.domain}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: "0.7rem", height: 20 }}
-                        />
-                      </Box>
-                    ))}
-                    {device.entityCount > 3 && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ textAlign: "center", mt: 1 }}
-                      >
-                        ... and {device.entityCount - 3} more
-                      </Typography>
-                    )}
-                  </Stack>
-                </Box>
-              </CardContent>
-            </Card>
+            <EndpointCard
+              endpoint={device.endpoint}
+              bridgeName={device.bridgeName}
+              bridgeId={device.bridgeId}
+              onEditMapping={handleEditMapping}
+            />
           </Grid>
         ))}
       </Grid>
@@ -415,6 +324,31 @@ export const DevicesPage = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Entity Mapping Dialog */}
+      <EntityMappingDialog
+        open={mappingDialogOpen}
+        entityId={selectedEntityId}
+        domain={selectedEntityId.split(".")[0] || ""}
+        currentMapping={currentMapping}
+        onSave={handleSaveMapping}
+        onClose={() => setMappingDialogOpen(false)}
+      />
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
