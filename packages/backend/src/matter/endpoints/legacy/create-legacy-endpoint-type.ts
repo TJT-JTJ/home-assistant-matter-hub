@@ -12,6 +12,7 @@ import { BinarySensorDevice } from "./binary-sensor/index.js";
 import { ButtonDevice } from "./button/index.js";
 import { ClimateDevice } from "./climate/index.js";
 import { CoverDevice } from "./cover/index.js";
+import { AirPurifierEndpoint } from "./air-purifier/index.js";
 import { FanDevice } from "./fan/index.js";
 import { HumidifierDevice } from "./humidifier/index.js";
 import { InputButtonDevice } from "./input-button/index.js";
@@ -101,6 +102,7 @@ const matterDeviceTypeFactories: Partial<
   window_covering: CoverDevice,
   thermostat: ClimateDevice,
   fan: FanDevice,
+  air_purifier: AirPurifierEndpoint,
   robot_vacuum_cleaner: VacuumDevice,
   humidifier_dehumidifier: HumidifierDevice,
 };

@@ -21,6 +21,7 @@ export type MatterDeviceType =
   | "window_covering"
   | "thermostat"
   | "fan"
+  | "air_purifier"
   | "air_quality_sensor"
   | "generic_switch"
   | "speaker"
@@ -70,6 +71,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   window_covering: "Window Covering",
   thermostat: "Thermostat",
   fan: "Fan",
+  air_purifier: "Air Purifier",
   air_quality_sensor: "Air Quality Sensor",
   generic_switch: "Generic Switch (Button)",
   speaker: "Speaker",
@@ -93,7 +95,7 @@ export const domainToDefaultMatterTypes: Partial<
   lock: ["door_lock"],
   cover: ["window_covering"],
   climate: ["thermostat"],
-  fan: ["fan"],
+  fan: ["fan", "air_purifier"],
   binary_sensor: ["contact_sensor", "occupancy_sensor"],
   sensor: [
     "temperature_sensor",
