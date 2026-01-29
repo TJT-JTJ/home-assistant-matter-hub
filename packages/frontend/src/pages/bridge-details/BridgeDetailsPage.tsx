@@ -156,7 +156,7 @@ export const BridgeDetailsPage = () => {
             )}
           </Box>
 
-          <MemoizedEndpointList endpoint={devices} />
+          <MemoizedEndpointList endpoint={devices} bridgeId={bridgeId} />
         </Stack>
       )}
     </Stack>

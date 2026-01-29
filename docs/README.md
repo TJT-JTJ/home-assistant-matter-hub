@@ -46,7 +46,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 
 ## What's New
 
-### Stable (v1.7.x - v1.8.x)
+### Stable (v1.5.x)
 
 - **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
 - **Automatic Recovery** - Auto-restart failed bridges
@@ -54,43 +54,29 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 - **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
 - **Improved Fan Control** - Better speed control compatibility with Matter controllers
 - **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
+
+### Stable (v1.8.x) - NEW! 🎉
+
 - **Graceful Crash Handler** - Failed entities no longer crash the bridge
-- **Dark Mode Toggle** - Switch between light and dark theme
-- **Device List Sorting** - Sort endpoints by name, type, or ID
+  - Problematic entities are automatically skipped during boot
+  - Failed entities are displayed in the UI with detailed error messages
+  - Bridge continues to run with remaining healthy entities
+- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
+- **Access Control Fix** - Fixed attribute write issues ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
 - **Water Valve Support** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms
-- **Pressure & Flow Sensors** - Atmospheric pressure and flow rate measurements
-- **Air Purifier & Pump** - New device type mappings via entity mapping
+- **Smoke/CO Detector** - Binary sensors for smoke and CO alarms
+- **Pressure/Flow Sensors** - Atmospheric pressure and flow measurements
 
 ### Alpha (v2.0.0-alpha)
 
 All stable features plus:
 
-#### APIs & Backend
-- **Health Check API** (`/api/health`, `/api/health/detailed`) - System status and Kubernetes-ready probes
-- **System Info API** (`/api/system/info`) - CPU, memory, storage, network info
-- **Logs API** (`/api/logs`) - Retrieve, filter, search, and clear application logs
-- **Metrics API** (`/api/metrics`) - Prometheus-compatible metrics endpoint
-- **WebSocket Live Updates** (`/api/ws`) - Real-time bridge status updates
+- **Health Check API** - REST endpoints for monitoring (`/api/health`)
+- **WebSocket Live Updates** - Real-time status updates (`/api/ws`)
+- **Entity Mapping** - Override Matter device types per entity
+- **Full Backup/Restore** - Download complete backups as ZIP
 
-#### UI Enhancements
-- **System Information Panel** - Real-time system stats in Health page
-- **Log Viewer Dialog** - View, filter, and search logs from the UI
-- **Entity Mapping Customization** - Override Matter device types per entity
-- **Filter Preview** - Preview which entities match your filter before saving
-- **Alphabetical Bridge Sorting** - Bridges sorted by name in UI
-
-#### Backup & Restore
-- **Full Backup/Restore** - Download complete backups as ZIP including entity mappings
-- **Full Backup with Identity** - Preserve Matter commissioning across reinstalls (no re-pairing needed!)
-
-### Testing (v4.0.0-testing) ⚠️
-
-> **Warning:** Testing versions may contain BREAKING CHANGES and are intended for developers only!
-
-All alpha features plus experimental Matter.js updates and cutting-edge features.
-
-See the [API Documentation](./Guides/API%20Reference.md) for detailed API endpoints.
+See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for detailed documentation.
 
 ## Getting started
 
@@ -109,3 +95,15 @@ If you need more assistance on the topic, please have a look at the following ex
 #### YouTube-Video on "Alexa et Google Home dans Home Assistant GRATUITEMENT grâce à Matter" (🇫🇷)
 
 [![Alexa et Google Home dans Home Assistant GRATUITEMENT grâce à Matter](https://img.youtube.com/vi/-TMzuHFo_-g/mqdefault.jpg)](https://www.youtube.com/watch?v=-TMzuHFo_-g)
+
+## Support the Project
+
+> **This is completely optional!** The project will continue regardless of donations.
+> I maintain this in my free time because I believe in open source and helping the community.
+
+If you find this project useful and want to support its development, consider buying me a coffee! ☕
+
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://www.paypal.me/RiDDiX93)
+
+Maintaining this project takes time and effort - from fixing bugs, adding new features, to helping users in issues.
+Your support is appreciated but never expected. Thank you for using Home-Assistant-Matter-Hub! ❤️

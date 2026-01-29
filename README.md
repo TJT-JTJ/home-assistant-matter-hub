@@ -37,9 +37,9 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.7.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
-| **Testing** | `testing` | v4.0.0-testing.x | ⚠️ **Highly unstable!** Breaking changes, experimental features |
+| **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
+| **Testing** | `testing` | v2.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
 
@@ -55,90 +55,84 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Current Stable Features (v1.7.x) 🎉
+### Stable Features (v1.5.x)
 
-#### Core Features
 - **Matter Bridge** - Expose Home Assistant entities to Matter controllers
 - **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
+- **Graceful Error Handling** - Skips problematic entities without crashing
+- **Failed Entity Reporting** - Shows which entities couldn't be loaded and why
+- **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
+- **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
+- **Bridge Wizard** - Guided setup for creating multiple bridges with automatic port assignment
+- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
+- **Improved Fan Control** - Better speed control compatibility with Matter controllers
+- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
 - **Node.js 24** - Latest LTS runtime
 - **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
 
-#### Stability & Error Handling
+### Stable Features (v1.7.x)
+
+- **Dark Mode Toggle** - Switch between light and dark theme
+- **Device List Sorting** - Sort endpoints by name, type, or ID
+
+### Stable Features (v1.8.x) - NEW! 🎉
+
 - **Graceful Crash Handler** - Failed entities no longer crash the bridge
   - Problematic entities are automatically skipped during boot
   - Failed entities are displayed in the UI with detailed error messages
   - Bridge continues to run with remaining healthy entities
-- **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
-- **Access Control Fix** - Fixed attribute write issues using `asLocalActor`
-- **Thermostat Setpoint Limits** - Expanded limits to allow full temperature range
-- **HVAC Mode Detection** - Correctly sends single temperature in heat/cool mode
-- **Google Home Compatibility** - Fixed brightness control with null transitionTime
-
-#### APIs & Backend
-- **Health Check API** (`/api/health`, `/api/health/detailed`) - System status and Kubernetes-ready probes
-- **System Info API** (`/api/system/info`) - CPU, memory, storage, network info
-- **Logs API** (`/api/logs`) - Retrieve, filter, search, and clear application logs
-- **Metrics API** (`/api/metrics`) - Prometheus-compatible metrics endpoint
-- **WebSocket Live Updates** (`/api/ws`) - Real-time bridge status updates
-
-#### UI Features
-- **Health Monitoring Dashboard** - Real-time bridge and fabric status
-- **System Information Panel** - CPU, memory, storage stats
-- **Log Viewer Dialog** - View, filter, and search logs from UI
-- **Bridge Wizard** - Guided setup for multiple bridges
-- **Dark Mode Toggle** - Switch between light and dark theme
-- **Device List Sorting** - Sort endpoints by name, type, or ID
-- **Alphabetical Bridge Sorting** - Bridges sorted by name
-- **Alphabetical Device Types** - Matter device types sorted alphabetically in dropdowns
-- **Filter Preview** - Preview which entities match your filter
-- **All Devices Button** - Quick access to all devices from bridge details
-- **Card View Improvements** - Shows all leaf devices, not just aggregators
-
-#### Backup & Restore
-- **Full Backup/Restore** - Download complete backups as ZIP
-- **Full Backup with Identity** - Preserve Matter commissioning across reinstalls
-  - Includes Matter keypairs and fabric credentials
-  - No re-commissioning needed after restore
-
-#### Entity Mapping
-- **Entity Mapping Customization** - Override Matter device types per entity
-- **Custom Names** - Custom names for entities in Matter
-- **Disable Entities** - Disable specific entities from bridge
-
-#### Device Types
-- **Water Valve** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors (separate device types)
+- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³ (not just quality levels)
+- **Access Control Fix** - Fixed attribute write issues using `asLocalActor` ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
+- **Water Valve Support** - Control water valves via Matter
+- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms (separate device types)
 - **Pressure Sensor** - Atmospheric pressure measurements
 - **Flow Sensor** - Volume flow rate measurements
-- **PM2.5/PM10 Sensors** - Real concentration values in µg/m³
-- **Air Purifier** - Map fans via entity mapping
-- **Pump Device** - Map switches/valves via entity mapping
-- **AirQuality Sensors** - AQI, PM2.5, PM10, CO2, VOC
-- **Media Player** - Volume and playback controls
-- **Improved Fan Control** - Better speed control compatibility
+- **Air Purifier** - Map fans to Air Purifier device type via entity mapping
+- **Pump Device** - Map switches/valves to Pump device type via entity mapping
 
-### Alpha (v2.0.0-alpha) 🧪
+### Stable Features (v2.0.0) - MAJOR RELEASE! 🚀
+
+All previous features plus:
+
+**🎨 Bridge Icons & UI**
+- **Custom Bridge Icons** - Upload your own PNG, JPG, GIF, WebP, or SVG icons (max 5MB)
+- **Domain-based Icons** - Automatic icon assignment based on bridge domain (light, climate, etc.)
+- **Name-based Icon Fallback** - Icons derived from bridge names ("Lamps" → 💡)
+- **20 Preset Icons** - Quick selection dropdown in bridge editor
+- **Entity Mapping Button** - Quick access to entity mapping from bridge card view
+- **Improved Status Labels** - Cleaner spacing and layout
+
+**📺 Media & Devices**
+- **Basic Video Player** - TV and media player support for Apple Home ([#45](https://github.com/RiDDiX/home-assistant-matter-hub/issues/45))
+- **Alexa Deduplication** - UniqueId in BridgedDeviceBasicInformation prevents duplicate devices ([#53](https://github.com/RiDDiX/home-assistant-matter-hub/issues/53))
+
+**🌡️ Thermostat Improvements**
+- **Auto-only Thermostat Support** - Thermostats with only "auto" mode now work correctly ([#54](https://github.com/RiDDiX/home-assistant-matter-hub/issues/54))
+- **Heating+Cooling Constraint Fixes** - Proper handling of Matter.js deadband requirements
+- **Google Home Fix** - Handle null transitionTime from Google Home ([#41](https://github.com/RiDDiX/home-assistant-matter-hub/issues/41))
+- **Temperature Range Detection** - Check HVAC mode for range support ([#9](https://github.com/RiDDiX/home-assistant-matter-hub/issues/9))
+
+**🔧 Infrastructure**
+- **Health Check API** (`api/health`) - System status and Kubernetes-ready probes
+- **WebSocket Live Updates** (`api/ws`) - Real-time bridge status, no polling
+- **Ingress Compatibility** - Fixed WebSocket and API routing for Home Assistant Ingress
+- **Full Backup/Restore** - Complete backups including entity mappings and Matter identity
+- **Filter Preview** - Preview entity matches before saving
+
+### Alpha Features (v2.1.0-alpha) 🧪
 
 > [!WARNING]
-> Alpha versions are for early adopters testing new features before stable release.
+> Alpha versions are for early adopters and may contain bugs!
 
-**Currently identical to Stable** - All features have been merged to main!
+All stable features plus experimental changes being actively developed.
 
-Alpha is used for:
-- Testing new features before stable release
-- Early access to bug fixes
-- Community feedback on upcoming changes
-
-### Testing (v4.0.0-testing) ⚠️
+### Testing Features (v2.1.0-testing) ⚠️
 
 > [!CAUTION]
-> Testing versions are **highly unstable** and may contain BREAKING CHANGES!
-> Intended for developers and testers only. Features may be incomplete, broken, or removed without notice.
+> Testing versions are **highly unstable** and intended for developers only!
+> Features may be incomplete, broken, or removed without notice.
 
-All alpha features plus:
-- Experimental Matter.js updates
-- Cutting-edge features being actively developed
-- Breaking changes may occur between versions
+Experimental features being actively developed before promotion to alpha.
 
 ---
 
@@ -155,7 +149,7 @@ All alpha features plus:
 | `binary_sensor` | Contact, Occupancy, Smoke/CO Alarm, Water Leak Sensor |
 | `sensor` | Temperature, Humidity, Pressure, Flow, Light, AirQuality Sensor |
 | `button`, `input_button` | Generic Switch |
-| `media_player` | Speaker with Volume and Playback Controls |
+| `media_player` | Speaker, Basic Video Player (TV) |
 | `valve` | Water Valve |
 | `vacuum` | Robot Vacuum Cleaner |
 | `humidifier` | Humidifier/Dehumidifier |
@@ -259,7 +253,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 
 | Contributor | Contributions |
 |-------------|---------------|
-| [@codyc1515](https://github.com/codyc1515) | 🥇 **Top Contributor** - Climate/thermostat bugs (#24, #21, #20, #9), alphabetical sorting PR ([#48](https://github.com/RiDDiX/home-assistant-matter-hub/pull/48)), extensive testing |
+| [@codyc1515](https://github.com/codyc1515) | 🥇 **Top Reporter** - Climate/thermostat bugs (#24, #21, #20), extensive testing feedback |
 | [@depahk](https://github.com/depahk) | 📝 Migration documentation fix ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
 | [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
 | [@razzietheman](https://github.com/razzietheman) | 💡 Feature requests: Preserve commissioned state (#31), alphabetical sorting (#30) |
@@ -270,10 +264,8 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 | User | Issues | Type |
 |------|--------|------|
-| [@Chrulf](https://github.com/Chrulf) | [#41](https://github.com/RiDDiX/home-assistant-matter-hub/issues/41) | 🐛 Google Home brightness |
-| [@nexusis7](https://github.com/nexusis7) | [#9](https://github.com/RiDDiX/home-assistant-matter-hub/issues/9) | 🐛 Climate/Thermostat control |
 | [@chromaxx7](https://github.com/chromaxx7) | [#29](https://github.com/RiDDiX/home-assistant-matter-hub/issues/29) | 🐛 Climate crash |
-| [@Tomyk9991](https://github.com/Tomyk9991) | [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28) | 🐛 Heat/Cool startup |
+| [@Tomyk9991](https://github.com/Tomyk9991) | [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28) | � Heat/Cool startup |
 | [@datvista](https://github.com/datvista) | [#27](https://github.com/RiDDiX/home-assistant-matter-hub/issues/27) | 🐛 Add-on start |
 | [@bwynants](https://github.com/bwynants) | [#23](https://github.com/RiDDiX/home-assistant-matter-hub/issues/23) | 🐛 OccupancySensor |
 | [@Pozzi831](https://github.com/Pozzi831) | [#22](https://github.com/RiDDiX/home-assistant-matter-hub/issues/22) | 🐛 AC problems |
@@ -285,7 +277,6 @@ A huge thank you to our sponsors who help keep this project alive!
 | Sponsor | |
 |---------|---|
 | [@thorsten-gehrig](https://github.com/thorsten-gehrig) | 🥇 **First Sponsor!** Thank you for believing in this project! |
-| [@SH1FT-W](https://github.com/SH1FT-W) | 💎 Thank you for your generous support! |
 
 ### 🌟 Original Author
 
