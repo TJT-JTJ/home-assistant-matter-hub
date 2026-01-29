@@ -8,6 +8,29 @@ import { BridgeService } from "../../services/bridges/bridge-service.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
 import type { StartOptions } from "./start-options.js";
 
+// Suppress Matter.js internal errors that occur asynchronously during bridge deletion
+// These errors happen when endpoints are already detached but Matter.js tries to persist data
+function shouldSuppressError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes("Endpoint storage inaccessible");
+}
+
+process.on("uncaughtException", (error) => {
+  if (shouldSuppressError(error)) {
+    return; // Suppress this specific error
+  }
+  console.error("Uncaught exception:", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  if (shouldSuppressError(reason)) {
+    return; // Suppress this specific error
+  }
+  console.error("Unhandled rejection:", reason);
+  process.exit(1);
+});
+
 export async function startHandler(
   startOptions: ArgumentsCamelCase<StartOptions>,
   webUiDist?: string,
