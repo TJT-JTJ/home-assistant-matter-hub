@@ -1,6 +1,10 @@
-import type { EndpointData } from "@home-assistant-matter-hub/common";
+import type {
+  EndpointData,
+  EntityMappingConfig,
+} from "@home-assistant-matter-hub/common";
 import DevicesIcon from "@mui/icons-material/Devices";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -12,12 +16,18 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
 import Select from "@mui/material/Select";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  fetchEntityMappings,
+  updateEntityMapping,
+} from "../../api/entity-mappings";
 import { EndpointCard } from "../../components/endpoints/EndpointCard";
 import { getEndpointName } from "../../components/endpoints/EndpointName";
+import { EntityMappingDialog } from "../../components/entity-mapping/EntityMappingDialog";
 import { useBridges } from "../../hooks/data/bridges";
 import { loadBridges } from "../../state/bridges/bridge-actions";
 import { loadDevices } from "../../state/devices/device-actions";
@@ -37,6 +47,20 @@ export const DevicesPage = () => {
   const [selectedType, setSelectedType] = useState<string>("");
   const [page, setPage] = useState(1);
   const itemsPerPage = 12;
+
+  // Entity Mapping Dialog state
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [selectedMappingBridgeId, setSelectedMappingBridgeId] =
+    useState<string>("");
+  const [currentMapping, setCurrentMapping] = useState<
+    EntityMappingConfig | undefined
+  >();
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
 
   // Load bridges on mount
   useEffect(() => {
@@ -140,6 +164,50 @@ export const DevicesPage = () => {
     dispatch(loadBridges());
   }, [dispatch]);
 
+  const handleEditMapping = useCallback(
+    async (entityId: string, bridgeId: string) => {
+      setSelectedEntityId(entityId);
+      setSelectedMappingBridgeId(bridgeId);
+      try {
+        const mappings = await fetchEntityMappings(bridgeId);
+        const existingMapping = mappings.mappings.find(
+          (m) => m.entityId === entityId,
+        );
+        setCurrentMapping(existingMapping);
+      } catch {
+        setCurrentMapping(undefined);
+      }
+      setMappingDialogOpen(true);
+    },
+    [],
+  );
+
+  const handleSaveMapping = useCallback(
+    async (config: Partial<EntityMappingConfig>) => {
+      if (!selectedMappingBridgeId || !selectedEntityId) return;
+      try {
+        await updateEntityMapping(
+          selectedMappingBridgeId,
+          selectedEntityId,
+          config,
+        );
+        setSnackbar({
+          open: true,
+          message: `Mapping saved for ${selectedEntityId}. Restart the bridge to apply changes.`,
+          severity: "success",
+        });
+        setMappingDialogOpen(false);
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: `Failed to save mapping: ${error}`,
+          severity: "error",
+        });
+      }
+    },
+    [selectedMappingBridgeId, selectedEntityId],
+  );
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -227,6 +295,8 @@ export const DevicesPage = () => {
             <EndpointCard
               endpoint={device.endpoint}
               bridgeName={device.bridgeName}
+              bridgeId={device.bridgeId}
+              onEditMapping={handleEditMapping}
             />
           </Grid>
         ))}
@@ -254,6 +324,31 @@ export const DevicesPage = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Entity Mapping Dialog */}
+      <EntityMappingDialog
+        open={mappingDialogOpen}
+        entityId={selectedEntityId}
+        domain={selectedEntityId.split(".")[0] || ""}
+        currentMapping={currentMapping}
+        onSave={handleSaveMapping}
+        onClose={() => setMappingDialogOpen(false)}
+      />
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

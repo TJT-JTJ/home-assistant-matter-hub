@@ -1,10 +1,12 @@
 import type { EndpointData } from "@home-assistant-matter-hub/common";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EditIcon from "@mui/icons-material/Edit";
 import ErrorIcon from "@mui/icons-material/Error";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -69,16 +71,26 @@ const getDeviceColor = (deviceType: string): string => {
   return "#757575";
 };
 
+interface HomeAssistantEntityState {
+  entity?: {
+    entity_id?: string;
+  };
+}
+
 export interface EndpointCardProps {
   endpoint: EndpointData;
   bridgeName?: string;
+  bridgeId?: string;
   onClick?: () => void;
+  onEditMapping?: (entityId: string, bridgeId: string) => void;
 }
 
 export const EndpointCard = ({
   endpoint,
   bridgeName,
+  bridgeId,
   onClick,
+  onEditMapping,
 }: EndpointCardProps) => {
   const name = getEndpointName(endpoint.state) ?? endpoint.id.local;
   const deviceType = endpoint.type.name;
@@ -91,6 +103,13 @@ export const EndpointCard = ({
   }, [endpoint.state]);
 
   const isReachable = basicInfo?.reachable ?? true;
+
+  const entityId = useMemo(() => {
+    const state = endpoint.state as {
+      homeAssistantEntity?: HomeAssistantEntityState;
+    };
+    return state.homeAssistantEntity?.entity?.entity_id;
+  }, [endpoint.state]);
 
   const clusters = useMemo(() => {
     return Object.keys(endpoint.state).filter(
@@ -170,6 +189,20 @@ export const EndpointCard = ({
               <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
                 {name}
               </Typography>
+              {onEditMapping && entityId && bridgeId && (
+                <Tooltip title="Edit Entity Mapping">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditMapping(entityId, bridgeId);
+                    }}
+                    sx={{ ml: 0.5 }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title={isReachable ? "Online" : "Offline"}>
                 {isReachable ? (
                   <CheckCircleIcon color="success" fontSize="small" />
