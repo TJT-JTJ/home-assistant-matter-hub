@@ -57,13 +57,17 @@ pnpm run build
 
 Testing contains all Alpha features plus experimental changes being actively developed.
 
-### Features Currently in Testing
+### Features Currently in Testing (v4.0.0-testing.x)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
 | All Alpha Features | ✅ Included | Everything from the Alpha branch |
+| Thermostat Setpoint Limits | ✅ Fixed | Expanded limits to allow full temperature range |
+| HVAC Mode Detection | ✅ Fixed | Correctly sends single temperature in heat/cool mode |
+| Google Home Brightness | ✅ Fixed | Handle null transitionTime from Google Home |
+| Alphabetical Device Types | ✅ Added | Device types sorted alphabetically in dropdowns |
+| UI Card View | ✅ Improved | Shows all leaf devices, not just aggregators |
 | Experimental Fixes | 🧪 Testing | Bug fixes being validated before Alpha |
-| New Device Types | 🧪 Testing | Device types being evaluated |
 
 ---
 
@@ -163,18 +167,19 @@ When testing a new feature, please verify:
 
 ## Changelog
 
-### v2.0.0-testing.7 (Latest)
+### v4.0.0-testing.x (Current)
+- **Thermostat Setpoint Limits Fix** - Expanded heat/cool limits to allow full HA temperature range
+- **HVAC Mode Detection** - Correctly sends `temperature` instead of `target_temp_low/high` in heat/cool mode
+- **Google Home Brightness Fix** - Handle `transitionTime: null` from Google Home
+- **Alphabetical Device Types** - MatterDeviceType and mappings sorted alphabetically (PR #48)
+- **UI Improvements** - All Devices button, Card View shows all leaf endpoints
+
+### v4.0.0-testing.1-10
+- Major testing branch refactor
 - Thermostat mode change fix using pre-commit reactor
 - Hidden entity filter fix for scripts
-- README documentation updates
-
-### v2.0.0-testing.6
 - Full backup with Matter identity files
 - Alphabetical bridge sorting in UI
-
-### v2.0.0-testing.1-5
-- Initial testing branch setup
-- Migration from Alpha features
 
 ---
 
@@ -183,4 +188,6 @@ When testing a new feature, please verify:
 Thank you to everyone who tests unstable versions and provides feedback! Your contributions help make the stable releases better for everyone.
 
 Special thanks to our dedicated testers:
-- [@codyc1515](https://github.com/codyc1515) - Extensive thermostat testing and feedback
+- [@codyc1515](https://github.com/codyc1515) - Extensive thermostat testing and feedback, alphabetical sorting PR
+- [@nexusis7](https://github.com/nexusis7) - Climate/Thermostat testing with Nest devices
+- [@Chrulf](https://github.com/Chrulf) - Google Home brightness testing
