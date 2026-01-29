@@ -55,6 +55,33 @@ export const DevicesPage = () => {
   // Get all device states from Redux
   const allDeviceStates = useAppSelector((state) => state.devices.byBridge);
 
+  // Recursively collect all leaf endpoints (actual devices, not aggregators)
+  const collectDeviceEndpoints = useCallback(
+    (
+      endpoint: EndpointData,
+      bridgeId: string,
+      bridgeName: string,
+    ): DeviceInfo[] => {
+      const results: DeviceInfo[] = [];
+
+      // If this endpoint has no children, it's a leaf device
+      if (!endpoint.parts || endpoint.parts.length === 0) {
+        // Skip the root node itself (usually has endpoint number 0)
+        if (endpoint.endpoint !== 0) {
+          results.push({ bridgeId, bridgeName, endpoint });
+        }
+      } else {
+        // Recursively collect from children
+        for (const child of endpoint.parts) {
+          results.push(...collectDeviceEndpoints(child, bridgeId, bridgeName));
+        }
+      }
+
+      return results;
+    },
+    [],
+  );
+
   // Extract all endpoints from all bridges
   const devices = useMemo(() => {
     const allDevices: DeviceInfo[] = [];
@@ -63,19 +90,15 @@ export const DevicesPage = () => {
       const deviceState = allDeviceStates[bridge.id];
       const rootEndpoint = deviceState?.content;
 
-      if (rootEndpoint?.parts) {
-        rootEndpoint.parts.forEach((endpoint: EndpointData) => {
-          allDevices.push({
-            bridgeId: bridge.id,
-            bridgeName: bridge.name,
-            endpoint,
-          });
-        });
+      if (rootEndpoint) {
+        allDevices.push(
+          ...collectDeviceEndpoints(rootEndpoint, bridge.id, bridge.name),
+        );
       }
     });
 
     return allDevices;
-  }, [bridges, allDeviceStates]);
+  }, [bridges, allDeviceStates, collectDeviceEndpoints]);
 
   const isLoading =
     bridgesLoading || (bridges && bridges.length > 0 && devices.length === 0);
