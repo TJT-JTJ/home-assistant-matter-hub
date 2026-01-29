@@ -1,30 +1,53 @@
-import type {
-  EntityMappingConfig,
-  HomeAssistantEntityInformation,
+import {
+  type EntityMappingConfig,
+  type HomeAssistantEntityInformation,
+  type LightDeviceAttributes,
+  LightDeviceColorMode,
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
-import { DimmableLightDevice, OnOffLightDevice } from "@matter/main/devices";
+import type { ColorControl } from "@matter/main/clusters";
+import {
+  ColorTemperatureLightDevice,
+  DimmableLightDevice,
+  ExtendedColorLightDevice,
+  OnOffLightDevice,
+} from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
+import type { FeatureSelection } from "../../../utils/feature-selection.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
+import { LightColorControlServer } from "../legacy/light/behaviors/light-color-control-server.js";
+import { LightLevelControlServer } from "../legacy/light/behaviors/light-level-control-server.js";
+import { LightOnOffServer } from "../legacy/light/behaviors/light-on-off-server.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
 
-interface LightAttributes {
-  brightness?: number;
-  supported_color_modes?: string[];
-  color_temp?: number;
-  rgb_color?: [number, number, number];
-  friendly_name?: string;
-}
+const brightnessModes: LightDeviceColorMode[] = Object.values(
+  LightDeviceColorMode,
+)
+  .filter((mode) => mode !== LightDeviceColorMode.UNKNOWN)
+  .filter((mode) => mode !== LightDeviceColorMode.ONOFF);
+
+const colorModes: LightDeviceColorMode[] = [
+  LightDeviceColorMode.HS,
+  LightDeviceColorMode.RGB,
+  LightDeviceColorMode.XY,
+  LightDeviceColorMode.RGBW,
+  LightDeviceColorMode.RGBWW,
+];
 
 /**
  * LightEndpoint - Vision 1 implementation for light entities.
  *
- * This endpoint handles all light-related logic:
- * - Parses HA entity attributes (brightness, color_temp, rgb_color, etc.)
- * - Updates Matter behaviors based on entity state
- * - Handles Matter commands and calls HA services
+ * This endpoint uses the proven legacy behaviors but provides:
+ * - Domain-specific coordination
+ * - Access to neighbor entities (for future multi-entity scenarios)
+ * - Clean separation between endpoint logic and behavior logic
+ *
+ * The behaviors handle:
+ * - Self-updating via HomeAssistantEntityBehavior.onChange
+ * - Matter commands (on/off, level control, color control)
+ * - HA service calls
  */
 export class LightEndpoint extends DomainEndpoint {
   public static async create(
@@ -40,64 +63,90 @@ export class LightEndpoint extends DomainEndpoint {
       return undefined;
     }
 
-    const attrs = state.attributes as LightAttributes | undefined;
+    const attributes = state.attributes as LightDeviceAttributes;
+    const supportedColorModes: LightDeviceColorMode[] =
+      attributes.supported_color_modes ?? [];
 
-    // Determine light capabilities from attributes
-    const supportsBrightness =
-      attrs?.brightness !== undefined ||
-      attrs?.supported_color_modes?.includes("brightness");
+    const supportsBrightness = supportedColorModes.some((mode) =>
+      brightnessModes.includes(mode),
+    );
+    const supportsColorControl = supportedColorModes.some((mode) =>
+      colorModes.includes(mode),
+    );
+    const supportsColorTemperature = supportedColorModes.includes(
+      LightDeviceColorMode.COLOR_TEMP,
+    );
+
+    const homeAssistantEntity: HomeAssistantEntityBehavior.State = {
+      entity: {
+        entity_id: entityId,
+        state,
+        registry: entity,
+        deviceRegistry,
+      } as HomeAssistantEntityInformation,
+    };
 
     // Create appropriate device type based on capabilities
-    const deviceType = supportsBrightness
-      ? LightEndpoint.createDimmableType(
-          entityId,
-          state,
-          entity,
-          deviceRegistry,
-        )
-      : LightEndpoint.createOnOffType(entityId, state, entity, deviceRegistry);
+    const deviceType = supportsColorControl
+      ? LightEndpoint.createExtendedColorType(supportsColorTemperature)
+      : supportsColorTemperature
+        ? LightEndpoint.createColorTemperatureType()
+        : supportsBrightness
+          ? LightEndpoint.createDimmableType()
+          : LightEndpoint.createOnOffType();
 
     const customName = mapping?.customName;
-    return new LightEndpoint(deviceType, entityId, customName);
-  }
-
-  private static createOnOffType(
-    entityId: string,
-    state: HomeAssistantEntityInformation["state"],
-    entity: HomeAssistantEntityInformation["registry"],
-    deviceRegistry: HomeAssistantEntityInformation["deviceRegistry"],
-  ): EndpointType {
-    return OnOffLightDevice.with(
-      BasicInformationServer,
-      IdentifyServer,
-      HomeAssistantEntityBehavior.set({
-        entity: {
-          entity_id: entityId,
-          state,
-          registry: entity,
-          deviceRegistry,
-        } as HomeAssistantEntityInformation,
-      }),
+    return new LightEndpoint(
+      deviceType.set({ homeAssistantEntity }),
+      entityId,
+      customName,
     );
   }
 
-  private static createDimmableType(
-    entityId: string,
-    state: HomeAssistantEntityInformation["state"],
-    entity: HomeAssistantEntityInformation["registry"],
-    deviceRegistry: HomeAssistantEntityInformation["deviceRegistry"],
-  ): EndpointType {
-    return DimmableLightDevice.with(
-      BasicInformationServer,
+  private static createOnOffType() {
+    return OnOffLightDevice.with(
       IdentifyServer,
-      HomeAssistantEntityBehavior.set({
-        entity: {
-          entity_id: entityId,
-          state,
-          registry: entity,
-          deviceRegistry,
-        } as HomeAssistantEntityInformation,
-      }),
+      BasicInformationServer,
+      HomeAssistantEntityBehavior,
+      LightOnOffServer,
+    );
+  }
+
+  private static createDimmableType() {
+    return DimmableLightDevice.with(
+      IdentifyServer,
+      BasicInformationServer,
+      HomeAssistantEntityBehavior,
+      LightOnOffServer,
+      LightLevelControlServer,
+    );
+  }
+
+  private static createColorTemperatureType() {
+    return ColorTemperatureLightDevice.with(
+      IdentifyServer,
+      BasicInformationServer,
+      HomeAssistantEntityBehavior,
+      LightOnOffServer,
+      LightLevelControlServer,
+      LightColorControlServer.with("ColorTemperature"),
+    );
+  }
+
+  private static createExtendedColorType(supportsTemperature: boolean) {
+    const features: FeatureSelection<ColorControl.Cluster> = new Set([
+      "HueSaturation",
+    ]);
+    if (supportsTemperature) {
+      features.add("ColorTemperature");
+    }
+    return ExtendedColorLightDevice.with(
+      IdentifyServer,
+      BasicInformationServer,
+      HomeAssistantEntityBehavior,
+      LightOnOffServer,
+      LightLevelControlServer,
+      LightColorControlServer.with(...features),
     );
   }
 
@@ -110,86 +159,24 @@ export class LightEndpoint extends DomainEndpoint {
   }
 
   /**
-   * Handle HA entity state changes and update Matter behaviors.
+   * Handle HA entity state changes.
+   * Note: The behaviors already handle state updates via HomeAssistantEntityBehavior.onChange.
+   * This method is for future domain-specific coordination (e.g., multi-entity scenarios).
    */
-  protected onEntityStateChanged(entity: HomeAssistantEntityInformation): void {
-    const { state } = entity;
-    const attrs = state.attributes as LightAttributes | undefined;
-    const isOn = state.state === "on";
-
-    // Update OnOff cluster
-    this.updateOnOffState(isOn);
-
-    // Update LevelControl cluster if brightness is supported
-    if (attrs?.brightness !== undefined) {
-      // HA brightness is 0-255, Matter is 0-254
-      const level = Math.min(254, Math.round(attrs.brightness));
-      this.updateLevelState(level);
-    }
+  protected onEntityStateChanged(
+    _entity: HomeAssistantEntityInformation,
+  ): void {
+    // Behaviors handle their own state updates via HomeAssistantEntityBehavior.onChange.
+    // This hook is available for domain-specific coordination if needed.
   }
 
   /**
    * Handle Matter commands from controllers.
+   * Note: The behaviors already handle commands via their override methods.
+   * This method is for future domain-specific coordination.
    */
-  protected onBehaviorCommand(command: BehaviorCommand): void {
-    switch (command.behavior) {
-      case "OnOff":
-        this.handleOnOffCommand(command);
-        break;
-      case "LevelControl":
-        this.handleLevelControlCommand(command);
-        break;
-      default:
-        // Unknown behavior, ignore
-        break;
-    }
-  }
-
-  private handleOnOffCommand(command: BehaviorCommand): void {
-    switch (command.command) {
-      case "on":
-        this.callAction("light", "turn_on");
-        break;
-      case "off":
-        this.callAction("light", "turn_off");
-        break;
-      case "toggle":
-        this.callAction("light", "toggle");
-        break;
-    }
-  }
-
-  private handleLevelControlCommand(command: BehaviorCommand): void {
-    const args = command.args as { level?: number } | undefined;
-
-    switch (command.command) {
-      case "moveToLevel":
-      case "moveToLevelWithOnOff":
-        if (args?.level !== undefined) {
-          // Matter level is 0-254, HA brightness is 0-255
-          const brightness = Math.min(255, args.level);
-          this.callAction("light", "turn_on", { brightness });
-        }
-        break;
-    }
-  }
-
-  private updateOnOffState(isOn: boolean): void {
-    try {
-      // This will be called by the endpoint, not by behaviors self-updating
-      // For now, we log the intended update - full implementation requires
-      // behavior modifications to accept endpoint-driven updates
-      console.debug(`[LightEndpoint] OnOff state: ${isOn}`);
-    } catch {
-      // Endpoint may not be ready yet
-    }
-  }
-
-  private updateLevelState(level: number): void {
-    try {
-      console.debug(`[LightEndpoint] Level state: ${level}`);
-    } catch {
-      // Endpoint may not be ready yet
-    }
+  protected onBehaviorCommand(_command: BehaviorCommand): void {
+    // Behaviors handle their own commands.
+    // This hook is available for domain-specific coordination if needed.
   }
 }
