@@ -13,7 +13,13 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode");
+// NOTE: AutoMode feature intentionally NOT included.
+// Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
+// in post-commit without asLocalActor, causing "Permission denied: Value is read-only" errors.
+// By not including AutoMode, thermostatRunningMode is undefined and the internal reactor skips
+// the problematic write. We still support Auto systemMode - just without the runningMode attribute.
+// See: https://github.com/matter-js/matter.js/issues/3105
+const FeaturedBase = Base.with("Heating", "Cooling");
 
 export interface ThermostatRunningState {
   heat: boolean;
@@ -64,13 +70,6 @@ export class ThermostatServerBase extends FeaturedBase {
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
 
-    // Use $Changing (pre-commit) to update thermostatRunningMode BEFORE the internal
-    // Matter.js reactor #handleSystemModeChange fires. This prevents the "Permission denied"
-    // error because we set the value while we still have write permissions.
-    // The internal reactor will then see the value is already correct and won't need to change it.
-    if (this.features.autoMode) {
-      this.reactTo(this.events.systemMode$Changing, this.preUpdateRunningMode);
-    }
     this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
     // Use $Changing (pre-commit) for setpoint changes to avoid access control issues
     // The $Changed event fires in post-commit where we lose write permissions
@@ -127,21 +126,10 @@ export class ThermostatServerBase extends FeaturedBase {
       ? config.getRunningMode(entity.state, this.agent)
       : Thermostat.ThermostatRunningMode.Off;
 
-    // When autoMode is enabled AND currently in Auto mode, Matter spec requires:
-    // - minHeatSetpointLimit <= minCoolSetpointLimit - minSetpointDeadBand
-    // - maxHeatSetpointLimit <= maxCoolSetpointLimit - minSetpointDeadBand
-    // minSetpointDeadBand: int8 (max 127), unit 0.1°C → 25 = 2.5°C
-    // Temperature limits: int16, unit 0.01°C → offset 250 = 2.5°C
-    // Only apply deadband when CURRENTLY in Auto mode, not just when feature is supported
-    // This fixes the 2.5°C offset issue when user is in Heat/Cool only mode (#21)
-    const isCurrentlyInAutoMode =
-      this.features.autoMode && systemMode === SystemMode.Auto;
-    const deadBandAttr = isCurrentlyInAutoMode ? 25 : 0;
-    const deadBandOffset = isCurrentlyInAutoMode ? 250 : 0;
-    const minCoolLimit =
-      minSetpointLimit != null ? minSetpointLimit + deadBandOffset : undefined;
-    const maxHeatLimit =
-      maxSetpointLimit != null ? maxSetpointLimit - deadBandOffset : undefined;
+    // Without AutoMode feature, we don't need deadband calculations
+    // AutoMode was removed due to Matter.js permission issues with thermostatRunningMode
+    const minCoolLimit = minSetpointLimit;
+    const maxHeatLimit = maxSetpointLimit;
 
     // Calculate actual limits for clamping setpoints
     const effectiveMinHeatLimit = minSetpointLimit;
@@ -163,13 +151,6 @@ export class ThermostatServerBase extends FeaturedBase {
       effectiveMaxCoolLimit,
       "cool",
     );
-
-    if (this.features.autoMode) {
-      applyPatchState(this.state, {
-        minSetpointDeadBand: deadBandAttr,
-        thermostatRunningMode: runningMode,
-      });
-    }
 
     applyPatchState(this.state, {
       localTemperature: localTemperature,
@@ -300,50 +281,6 @@ export class ThermostatServerBase extends FeaturedBase {
     homeAssistant.callAction(action);
   }
 
-  /**
-   * Pre-commit handler to update thermostatRunningMode BEFORE the internal Matter.js
-   * reactor fires. This is called during $Changing (before commit) when we still
-   * have write permissions. The internal #handleSystemModeChange reactor will then
-   * see the value is already set correctly and won't throw a permission error.
-   */
-  private preUpdateRunningMode(
-    systemMode: Thermostat.SystemMode,
-    _oldValue: Thermostat.SystemMode,
-    context?: ActionContext,
-  ) {
-    if (transactionIsOffline(context)) {
-      return;
-    }
-    // Map systemMode to the corresponding runningMode
-    const runningMode = this.systemModeToRunningMode(systemMode);
-    // Use asLocalActor to get write permissions for state update
-    this.agent.asLocalActor(() => {
-      this.state.thermostatRunningMode = runningMode;
-    });
-  }
-
-  /**
-   * Maps SystemMode to ThermostatRunningMode.
-   * This mirrors the logic in Matter.js's internal #handleSystemModeChange reactor.
-   */
-  private systemModeToRunningMode(
-    systemMode: Thermostat.SystemMode,
-  ): Thermostat.ThermostatRunningMode {
-    switch (systemMode) {
-      case SystemMode.Heat:
-      case SystemMode.EmergencyHeat:
-        return RunningMode.Heat;
-      case SystemMode.Cool:
-      case SystemMode.Precooling:
-        return RunningMode.Cool;
-      case SystemMode.Auto:
-        // In Auto mode, keep current running mode or default to Off
-        return this.state.thermostatRunningMode ?? RunningMode.Off;
-      default:
-        return RunningMode.Off;
-    }
-  }
-
   private systemModeChanged(
     systemMode: Thermostat.SystemMode,
     _oldValue: Thermostat.SystemMode,
@@ -362,14 +299,13 @@ export class ThermostatServerBase extends FeaturedBase {
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {
     let systemMode = this.state.config.getSystemMode(entity.state, this.agent);
+    // Without AutoMode feature, map Auto to Heat or Cool based on available features
     if (systemMode === Thermostat.SystemMode.Auto) {
-      systemMode = this.features.autoMode
-        ? SystemMode.Auto
-        : this.features.heating
-          ? SystemMode.Heat
-          : this.features.cooling
-            ? SystemMode.Cool
-            : SystemMode.Sleep;
+      systemMode = this.features.heating
+        ? SystemMode.Heat
+        : this.features.cooling
+          ? SystemMode.Cool
+          : SystemMode.Off;
     }
     return systemMode;
   }
@@ -466,9 +402,7 @@ export function ThermostatServer(config: ThermostatServerConfig) {
   return ThermostatServerBase.set({
     config,
     // CRITICAL: Set deadband to 0 to prevent constraint validation failures
-    // Matter.js default is 25 (2.5°C) which can cause limit constraint errors
-    // when HA reports the same min/max for both heating and cooling
-    minSetpointDeadBand: 0,
+    // Note: minSetpointDeadBand removed - AutoMode feature not included due to Matter.js permission issues
     // Provide reasonable defaults for setpoints to prevent undefined->NaN issues
     // These will be overwritten with actual HA values during initialize()
     localTemperature: 2100, // 21°C - reasonable room temperature default
