@@ -96,6 +96,9 @@ importers:
       ajv:
         specifier: 8.17.1
         version: 8.17.1
+      archiver:
+        specifier: 7.0.1
+        version: 7.0.1
       color:
         specifier: 5.0.3
         version: 5.0.3
@@ -117,6 +120,9 @@ importers:
       lodash-es:
         specifier: 4.17.23
         version: 4.17.23
+      multer:
+        specifier: 2.0.2
+        version: 2.0.2
       nocache:
         specifier: 4.0.0
         version: 4.0.0
@@ -126,6 +132,9 @@ importers:
       strip-color:
         specifier: 0.1.0
         version: 0.1.0
+      unzipper:
+        specifier: 0.12.3
+        version: 0.12.3
       ws:
         specifier: 8.19.0
         version: 8.19.0
