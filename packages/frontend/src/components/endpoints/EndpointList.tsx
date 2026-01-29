@@ -1,8 +1,12 @@
-import type { EndpointData } from "@home-assistant-matter-hub/common";
+import type {
+  EndpointData,
+  EntityMappingConfig,
+} from "@home-assistant-matter-hub/common";
 import DevicesIcon from "@mui/icons-material/Devices";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ListIcon from "@mui/icons-material/List";
 import SortIcon from "@mui/icons-material/Sort";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -13,14 +17,20 @@ import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Snackbar from "@mui/material/Snackbar";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router";
+import {
+  fetchEntityMappings,
+  updateEntityMapping,
+} from "../../api/entity-mappings";
 import { navigation } from "../../routes.tsx";
+import { EntityMappingDialog } from "../entity-mapping/EntityMappingDialog.tsx";
 import { EndpointCard } from "./EndpointCard.tsx";
 import { getEndpointName } from "./EndpointName.tsx";
 import { EndpointState } from "./EndpointState.tsx";
@@ -28,6 +38,7 @@ import { EndpointTreeView, type SortOption } from "./EndpointTreeView.tsx";
 
 export interface EndpointListProps {
   endpoint: EndpointData;
+  bridgeId?: string;
 }
 
 const collectLeafEndpoints = (endpoint: EndpointData): EndpointData[] => {
@@ -46,6 +57,58 @@ export const EndpointList = (props: EndpointListProps) => {
   const [viewMode, setViewMode] = useState<"cards" | "tree">("cards");
   const [searchTerm, setSearchTerm] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Entity Mapping state
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [currentMapping, setCurrentMapping] = useState<
+    EntityMappingConfig | undefined
+  >();
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
+
+  const handleEditMapping = useCallback(
+    async (entityId: string, bridgeId: string) => {
+      if (!bridgeId) return;
+      setSelectedEntityId(entityId);
+      try {
+        const mappings = await fetchEntityMappings(bridgeId);
+        const existingMapping = mappings.mappings.find(
+          (m) => m.entityId === entityId,
+        );
+        setCurrentMapping(existingMapping);
+      } catch {
+        setCurrentMapping(undefined);
+      }
+      setMappingDialogOpen(true);
+    },
+    [],
+  );
+
+  const handleSaveMapping = useCallback(
+    async (config: Partial<EntityMappingConfig>) => {
+      if (!props.bridgeId || !selectedEntityId) return;
+      try {
+        await updateEntityMapping(props.bridgeId, selectedEntityId, config);
+        setSnackbar({
+          open: true,
+          message: `Mapping saved for ${selectedEntityId}. Restart the bridge to apply changes.`,
+          severity: "success",
+        });
+        setMappingDialogOpen(false);
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: `Failed to save mapping: ${error}`,
+          severity: "error",
+        });
+      }
+    },
+    [props.bridgeId, selectedEntityId],
+  );
 
   const endpoints = useMemo(() => {
     const leafEndpoints = collectLeafEndpoints(props.endpoint);
@@ -159,7 +222,12 @@ export const EndpointList = (props: EndpointListProps) => {
         <Grid container spacing={2}>
           {endpoints.map((ep) => (
             <Grid key={ep.id.global} size={{ xs: 12, sm: 6, lg: 4 }}>
-              <EndpointCard endpoint={ep} onClick={() => handleCardClick(ep)} />
+              <EndpointCard
+                endpoint={ep}
+                bridgeId={props.bridgeId}
+                onClick={() => handleCardClick(ep)}
+                onEditMapping={props.bridgeId ? handleEditMapping : undefined}
+              />
             </Grid>
           ))}
         </Grid>
@@ -192,6 +260,31 @@ export const EndpointList = (props: EndpointListProps) => {
           {selectedItem && <EndpointState endpoint={selectedItem} />}
         </DialogContent>
       </Dialog>
+
+      {props.bridgeId && (
+        <EntityMappingDialog
+          open={mappingDialogOpen}
+          onClose={() => setMappingDialogOpen(false)}
+          entityId={selectedEntityId}
+          domain={selectedEntityId.split(".")[0] || ""}
+          currentMapping={currentMapping}
+          onSave={handleSaveMapping}
+        />
+      )}
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
