@@ -13,6 +13,7 @@ import type { EntityMappingStorage } from "../services/storage/entity-mapping-st
 import { accessLogger } from "./access-log.js";
 import { backupApi } from "./backup-api.js";
 import { bridgeExportApi } from "./bridge-export-api.js";
+import { bridgeIconApi } from "./bridge-icon-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
 import { healthApi } from "./health-api.js";
 import { homeAssistantApi } from "./home-assistant-api.js";
@@ -86,6 +87,7 @@ export class WebApi extends Service {
         ),
       )
       .use("/bridges", bridgeExportApi(this.bridgeStorage))
+      .use("/bridge-icons", bridgeIconApi(this.props.storageLocation))
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
       .use(
         "/backup",

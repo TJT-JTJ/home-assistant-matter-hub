@@ -1,19 +1,24 @@
 import {
   type BridgeConfig,
+  type BridgeIconType,
   bridgeConfigSchema,
 } from "@home-assistant-matter-hub/common";
 import { LibraryBooks, TextFields } from "@mui/icons-material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useCallback, useState } from "react";
 import { navigation } from "../../routes.tsx";
 import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
 import type { ValidationError } from "../misc/editors/validation-error.ts";
+import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
 
 enum BridgeEditorMode {
@@ -68,6 +73,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     setConfig(data);
     setIsValid(isValid);
   };
+
+  const handleIconChange = useCallback((icon: BridgeIconType | undefined) => {
+    setConfig((prev) => ({
+      ...prev,
+      icon,
+    }));
+  }, []);
 
   const saveAction = async () => {
     if (!isValid) {
@@ -128,6 +140,19 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         {(config as BridgeConfig)?.filter && (
           <FilterPreview filter={(config as BridgeConfig).filter} />
         )}
+
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom fontWeight={600}>
+              Bridge Icon
+            </Typography>
+            <BridgeIconUpload
+              bridgeId={props.bridgeId}
+              selectedIcon={(config as BridgeConfig)?.icon}
+              onIconChange={handleIconChange}
+            />
+          </CardContent>
+        </Card>
 
         <Grid container>
           <Grid size={{ xs: 6, sm: 4, md: 3 }}>
