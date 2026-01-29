@@ -36,7 +36,12 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router";
+import {
+  checkBridgeIconExists,
+  getBridgeIconUrl,
+} from "../../api/bridge-icons";
 import { navigation } from "../../routes.tsx";
 import { BridgeStatusIcon } from "../bridge/BridgeStatusIcon.tsx";
 
@@ -113,7 +118,7 @@ const getDomainFromBridge = (bridge: BridgeDataWithMetadata): string | null => {
   return domainMatcher?.value ?? null;
 };
 
-const getIconFromBridgeName = (name: string): React.ElementType | null => {
+const getIconFromBridgeName = (name: string): React.ElementType | undefined => {
   const lowerName = name.toLowerCase();
   if (
     lowerName.includes("lamp") ||
@@ -147,7 +152,7 @@ const getIconFromBridgeName = (name: string): React.ElementType | null => {
   if (lowerName.includes("switch") || lowerName.includes("brytare"))
     return PowerSettingsNew;
   if (lowerName.includes("garage")) return Garage;
-  return null;
+  return undefined;
 };
 
 const getDeviceIcon = (bridge: BridgeDataWithMetadata): React.ElementType => {
@@ -177,6 +182,11 @@ export const DeviceCard = ({ bridge }: DeviceCardProps) => {
   const fabricCount = bridge.commissioning?.fabrics.length ?? 0;
   const DeviceIcon = getDeviceIcon(bridge);
   const deviceColor = getDeviceTypeColor(bridge);
+  const [hasCustomIcon, setHasCustomIcon] = useState(false);
+
+  useEffect(() => {
+    checkBridgeIconExists(bridge.id).then(setHasCustomIcon);
+  }, [bridge.id]);
 
   return (
     <Card
@@ -197,16 +207,31 @@ export const DeviceCard = ({ bridge }: DeviceCardProps) => {
       >
         <CardContent>
           <Box display="flex" alignItems="flex-start" gap={2}>
-            <Avatar
-              sx={{
-                bgcolor: deviceColor,
-                width: 56,
-                height: 56,
-                boxShadow: 2,
-              }}
-            >
-              <DeviceIcon sx={{ fontSize: 32 }} />
-            </Avatar>
+            {hasCustomIcon ? (
+              <Box
+                component="img"
+                src={getBridgeIconUrl(bridge.id)}
+                alt={bridge.name}
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  boxShadow: 2,
+                }}
+              />
+            ) : (
+              <Avatar
+                sx={{
+                  bgcolor: deviceColor,
+                  width: 56,
+                  height: 56,
+                  boxShadow: 2,
+                }}
+              >
+                <DeviceIcon sx={{ fontSize: 32 }} />
+              </Avatar>
+            )}
             <Box flexGrow={1} minWidth={0}>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <Typography
