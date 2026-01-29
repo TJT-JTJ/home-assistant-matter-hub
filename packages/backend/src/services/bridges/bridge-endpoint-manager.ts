@@ -6,8 +6,8 @@ import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
+import { createDomainEndpoint } from "../../matter/endpoints/domain/domain-endpoint-factory.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
-import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
@@ -98,7 +98,7 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
-          endpoint = await LegacyEndpoint.create(
+          endpoint = await createDomainEndpoint(
             this.registry,
             entityId,
             mapping,
