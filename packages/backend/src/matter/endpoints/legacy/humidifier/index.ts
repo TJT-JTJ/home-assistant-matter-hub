@@ -1,17 +1,17 @@
 import type { EndpointType } from "@matter/main";
-import { OnOffPlugInUnitDevice } from "@matter/main/devices";
+import { FanDevice as Device } from "@matter/main/devices";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
-import { OnOffServer } from "../../../behaviors/on-off-server.js";
-import { HumidifierLevelControlServer } from "./behaviors/humidifier-level-control-server.js";
+import { HumidifierFanControlServer } from "./behaviors/humidifier-fan-control-server.js";
+import { HumidifierOnOffServer } from "./behaviors/humidifier-on-off-server.js";
 
-const HumidifierEndpointType = OnOffPlugInUnitDevice.with(
+const HumidifierEndpointType = Device.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  OnOffServer().with(),
-  HumidifierLevelControlServer,
+  HumidifierOnOffServer,
+  HumidifierFanControlServer,
 );
 
 export function HumidifierDevice(
