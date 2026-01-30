@@ -6,6 +6,7 @@ import { BasicInformationServer } from "../../../behaviors/basic-information-ser
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
+import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { VacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
 
@@ -29,6 +30,9 @@ export function VacuumDevice(
   let device = VacuumEndpointType.set({ homeAssistantEntity });
   if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
     device = device.with(VacuumOnOffServer);
+  }
+  if (testBit(supportedFeatures, VacuumDeviceFeature.BATTERY)) {
+    device = device.with(VacuumPowerSourceServer);
   }
   return device;
 }
