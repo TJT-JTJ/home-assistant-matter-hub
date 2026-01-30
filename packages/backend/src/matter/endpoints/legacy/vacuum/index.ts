@@ -28,14 +28,14 @@ export function VacuumDevice(
     return undefined;
   }
 
-  const attributes = homeAssistantEntity.entity.state
-    .attributes as VacuumDeviceAttributes;
+  const attributes =
+    homeAssistantEntity.entity.state.attributes as VacuumDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
   let device = VacuumEndpointType.set({ homeAssistantEntity });
   if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
     device = device.with(VacuumOnOffServer);
   }
-  // Add PowerSource if BATTERY feature is set OR battery_level attribute exists
+  // Add PowerSource if BATTERY feature is set OR if battery_level attribute exists
   const hasBatteryLevel =
     attributes.battery_level != null &&
     typeof attributes.battery_level === "number";
