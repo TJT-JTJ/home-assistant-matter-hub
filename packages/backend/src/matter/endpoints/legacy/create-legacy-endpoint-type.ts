@@ -24,6 +24,7 @@ import { LightDevice } from "./light/index.js";
 import { LockDevice } from "./lock/index.js";
 import { VideoPlayerDevice } from "./media-player/basic-video-player.js";
 import { MediaPlayerDevice } from "./media-player/index.js";
+import { RemoteDevice } from "./remote/index.js";
 import { SceneDevice } from "./scene/index.js";
 import { ScriptDevice } from "./script/index.js";
 import { SensorDevice } from "./sensor/index.js";
@@ -81,6 +82,7 @@ const deviceCtrs: Partial<
   vacuum: VacuumDevice,
   valve: ValveDevice,
   alarm_control_panel: AlarmControlPanelDevice,
+  remote: RemoteDevice,
 };
 
 const matterDeviceTypeFactories: Partial<
