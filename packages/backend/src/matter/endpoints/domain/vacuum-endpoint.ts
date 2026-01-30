@@ -11,6 +11,7 @@ import { BasicInformationServer } from "../../behaviors/basic-information-server
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
 import { VacuumOnOffServer } from "../legacy/vacuum/behaviors/vacuum-on-off-server.js";
+import { VacuumPowerSourceServer } from "../legacy/vacuum/behaviors/vacuum-power-source-server.js";
 import { VacuumRvcOperationalStateServer } from "../legacy/vacuum/behaviors/vacuum-rvc-operational-state-server.js";
 import { VacuumRvcRunModeServer } from "../legacy/vacuum/behaviors/vacuum-rvc-run-mode-server.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
@@ -46,6 +47,9 @@ export class VacuumEndpoint extends DomainEndpoint {
     let device = VacuumEndpointType;
     if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
       device = device.with(VacuumOnOffServer);
+    }
+    if (testBit(supportedFeatures, VacuumDeviceFeature.BATTERY)) {
+      device = device.with(VacuumPowerSourceServer);
     }
 
     const homeAssistantEntity: HomeAssistantEntityBehavior.State = {
