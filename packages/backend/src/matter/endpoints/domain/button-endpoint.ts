@@ -6,21 +6,17 @@ import type { EndpointType } from "@matter/main";
 import { OnOffPlugInUnitDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { LightCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import { OnOffServer } from "../../behaviors/on-off-server.js";
+import { OnOffBehavior } from "./behaviors/on-off-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
-
-const ButtonOnOffServer = OnOffServer({
-  turnOn: () => ({ action: "button.press" }),
-  turnOff: null,
-}).with("Lighting");
 
 const ButtonEndpointType = OnOffPlugInUnitDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  ButtonOnOffServer,
+  OnOffBehavior,
 );
 
 /**
@@ -67,6 +63,19 @@ export class ButtonEndpoint extends DomainEndpoint {
 
   protected onEntityStateChanged(
     _entity: HomeAssistantEntityInformation,
-  ): void {}
-  protected onBehaviorCommand(_command: BehaviorCommand): void {}
+  ): void {
+    // Buttons don't have state to sync - they just trigger actions
+  }
+
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    if (command.command === LightCommands.TURN_ON) {
+      this.callAction("button", "press");
+    }
+    // Turn off is ignored for buttons - auto-resets
+    try {
+      this.setStateOf(OnOffBehavior, { onOff: false });
+    } catch {
+      // Behavior may not be initialized
+    }
+  }
 }

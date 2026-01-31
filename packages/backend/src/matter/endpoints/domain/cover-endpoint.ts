@@ -1,20 +1,24 @@
-import {
-  type CoverDeviceAttributes,
-  CoverSupportedFeatures,
-  type EntityMappingConfig,
-  type HomeAssistantEntityInformation,
+import type {
+  CoverDeviceAttributes,
+  EntityMappingConfig,
+  HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
-import type { WindowCovering } from "@matter/main/clusters";
 import { WindowCoveringDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
-import type { FeatureSelection } from "../../../utils/feature-selection.js";
-import { testBit } from "../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { CoverCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import { CoverWindowCoveringServer } from "../legacy/cover/behaviors/cover-window-covering-server.js";
+import { CoverBehavior } from "./behaviors/cover-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
+
+const CoverDeviceType = WindowCoveringDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomeAssistantEntityBehavior,
+  CoverBehavior,
+);
 
 /**
  * CoverEndpoint - Vision 1 implementation for cover entities.
@@ -33,39 +37,6 @@ export class CoverEndpoint extends DomainEndpoint {
       return undefined;
     }
 
-    const attributes = state.attributes as CoverDeviceAttributes;
-    const supportedFeatures = attributes.supported_features ?? 0;
-
-    const features: FeatureSelection<WindowCovering.Complete> = new Set();
-    if (testBit(supportedFeatures, CoverSupportedFeatures.support_open)) {
-      features.add("Lift");
-      features.add("PositionAwareLift");
-      if (
-        testBit(supportedFeatures, CoverSupportedFeatures.support_set_position)
-      ) {
-        features.add("AbsolutePosition");
-      }
-    }
-    if (testBit(supportedFeatures, CoverSupportedFeatures.support_open_tilt)) {
-      features.add("Tilt");
-      features.add("PositionAwareTilt");
-      if (
-        testBit(
-          supportedFeatures,
-          CoverSupportedFeatures.support_set_tilt_position,
-        )
-      ) {
-        features.add("AbsolutePosition");
-      }
-    }
-
-    const deviceType = WindowCoveringDevice.with(
-      BasicInformationServer,
-      IdentifyServer,
-      HomeAssistantEntityBehavior,
-      CoverWindowCoveringServer.with(...features),
-    );
-
     const homeAssistantEntity: HomeAssistantEntityBehavior.State = {
       entity: {
         entity_id: entityId,
@@ -77,7 +48,7 @@ export class CoverEndpoint extends DomainEndpoint {
 
     const customName = mapping?.customName;
     return new CoverEndpoint(
-      deviceType.set({ homeAssistantEntity }),
+      CoverDeviceType.set({ homeAssistantEntity }),
       entityId,
       customName,
     );
@@ -91,13 +62,46 @@ export class CoverEndpoint extends DomainEndpoint {
     super(type, entityId, customName);
   }
 
-  protected onEntityStateChanged(
-    _entity: HomeAssistantEntityInformation,
-  ): void {
-    // Behaviors handle their own state updates
+  protected onEntityStateChanged(entity: HomeAssistantEntityInformation): void {
+    if (!entity.state) return;
+
+    const attributes = entity.state.attributes as CoverDeviceAttributes;
+    const currentPosition = attributes.current_position;
+
+    // Convert HA position (0=closed, 100=open) to Matter (0=open, 10000=closed)
+    const matterPosition =
+      currentPosition != null ? (100 - currentPosition) * 100 : 0;
+
+    try {
+      this.setStateOf(CoverBehavior, {
+        currentPositionLiftPercent100ths: matterPosition,
+        targetPositionLiftPercent100ths: matterPosition,
+      });
+    } catch {
+      // Behavior may not be initialized yet
+    }
   }
 
-  protected onBehaviorCommand(_command: BehaviorCommand): void {
-    // Behaviors handle their own commands
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    switch (command.command) {
+      case CoverCommands.OPEN:
+        this.callAction("cover", "open_cover");
+        break;
+      case CoverCommands.CLOSE:
+        this.callAction("cover", "close_cover");
+        break;
+      case CoverCommands.STOP:
+        this.callAction("cover", "stop_cover");
+        break;
+      case CoverCommands.SET_POSITION: {
+        const args = command.args as { position?: number } | undefined;
+        if (args?.position != null) {
+          this.callAction("cover", "set_cover_position", {
+            position: Math.round(args.position),
+          });
+        }
+        break;
+      }
+    }
   }
 }

@@ -5,24 +5,18 @@ import type {
 import type { EndpointType } from "@matter/main";
 import { OnOffPlugInUnitDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
-import type { HomeAssistantAction } from "../../../services/home-assistant/home-assistant-actions.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { LightCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import { OnOffServer } from "../../behaviors/on-off-server.js";
+import { OnOffBehavior } from "./behaviors/on-off-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
-
-const ValveOnOffServer = OnOffServer({
-  isOn: (state) => state.state === "open",
-  turnOn: (): HomeAssistantAction => ({ action: "valve.open_valve" }),
-  turnOff: (): HomeAssistantAction => ({ action: "valve.close_valve" }),
-});
 
 const ValveEndpointType = OnOffPlugInUnitDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  ValveOnOffServer,
+  OnOffBehavior,
 );
 
 /**
@@ -67,8 +61,26 @@ export class ValveEndpoint extends DomainEndpoint {
     super(type, entityId, customName);
   }
 
-  protected onEntityStateChanged(
-    _entity: HomeAssistantEntityInformation,
-  ): void {}
-  protected onBehaviorCommand(_command: BehaviorCommand): void {}
+  protected onEntityStateChanged(entity: HomeAssistantEntityInformation): void {
+    if (!entity.state) return;
+
+    const isOpen = entity.state.state === "open";
+
+    try {
+      this.setStateOf(OnOffBehavior, { onOff: isOpen });
+    } catch {
+      // Behavior may not be initialized yet
+    }
+  }
+
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    switch (command.command) {
+      case LightCommands.TURN_ON:
+        this.callAction("valve", "open_valve");
+        break;
+      case LightCommands.TURN_OFF:
+        this.callAction("valve", "close_valve");
+        break;
+    }
+  }
 }

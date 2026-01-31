@@ -6,22 +6,25 @@ import type { EndpointType } from "@matter/main";
 import { OnOffPlugInUnitDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { LightCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import { OnOffServer } from "../../behaviors/on-off-server.js";
+import { OnOffBehavior } from "./behaviors/on-off-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
-
-const SwitchOnOffServer = OnOffServer().with("Lighting");
 
 const SwitchDeviceType = OnOffPlugInUnitDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  SwitchOnOffServer,
+  OnOffBehavior,
 );
 
 /**
  * SwitchEndpoint - Vision 1 implementation for switch/input_boolean entities.
+ *
+ * This endpoint:
+ * - Receives entity state changes and updates behavior states
+ * - Receives command callbacks from behaviors and calls HA services
  */
 export class SwitchEndpoint extends DomainEndpoint {
   public static async create(
@@ -62,13 +65,27 @@ export class SwitchEndpoint extends DomainEndpoint {
     super(type, entityId, customName);
   }
 
-  protected onEntityStateChanged(
-    _entity: HomeAssistantEntityInformation,
-  ): void {
-    // Behaviors handle their own state updates
+  protected onEntityStateChanged(entity: HomeAssistantEntityInformation): void {
+    if (!entity.state) return;
+
+    const isOn =
+      entity.state.state !== "off" && entity.state.state !== "unavailable";
+
+    try {
+      this.setStateOf(OnOffBehavior, { onOff: isOn });
+    } catch {
+      // Behavior may not be initialized yet
+    }
   }
 
-  protected onBehaviorCommand(_command: BehaviorCommand): void {
-    // Behaviors handle their own commands
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    switch (command.command) {
+      case LightCommands.TURN_ON:
+        this.callAction("homeassistant", "turn_on");
+        break;
+      case LightCommands.TURN_OFF:
+        this.callAction("homeassistant", "turn_off");
+        break;
+    }
   }
 }

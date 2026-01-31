@@ -6,22 +6,17 @@ import type { EndpointType } from "@matter/main";
 import { OnOffPlugInUnitDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { LightCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import { OnOffServer } from "../../behaviors/on-off-server.js";
+import { OnOffBehavior } from "./behaviors/on-off-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
-
-const SceneOnOffServer = OnOffServer({
-  isOn: () => false,
-  turnOn: () => ({ action: "scene.turn_on" }),
-  turnOff: null,
-}).with("Lighting");
 
 const SceneEndpointType = OnOffPlugInUnitDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  SceneOnOffServer,
+  OnOffBehavior,
 );
 
 /**
@@ -68,6 +63,24 @@ export class SceneEndpoint extends DomainEndpoint {
 
   protected onEntityStateChanged(
     _entity: HomeAssistantEntityInformation,
-  ): void {}
-  protected onBehaviorCommand(_command: BehaviorCommand): void {}
+  ): void {
+    // Scenes don't have state - always show as off
+    try {
+      this.setStateOf(OnOffBehavior, { onOff: false });
+    } catch {
+      // Behavior may not be initialized
+    }
+  }
+
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    if (command.command === LightCommands.TURN_ON) {
+      this.callAction("scene", "turn_on");
+    }
+    // Auto-reset to off after activation
+    try {
+      this.setStateOf(OnOffBehavior, { onOff: false });
+    } catch {
+      // Behavior may not be initialized
+    }
+  }
 }

@@ -7,12 +7,10 @@ import { DoorLock } from "@matter/main/clusters";
 import { DoorLockDevice } from "@matter/main/devices";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
+import { LockCommands } from "../../behaviors/callback-behavior.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
-import {
-  LockServer,
-  type LockServerConfig,
-} from "../../behaviors/lock-server.js";
+import { LockBehavior } from "./behaviors/lock-behavior.js";
 import { type BehaviorCommand, DomainEndpoint } from "./domain-endpoint.js";
 
 const mapHAState: Record<string, DoorLock.LockState> = {
@@ -22,18 +20,11 @@ const mapHAState: Record<string, DoorLock.LockState> = {
   unlocking: DoorLock.LockState.Unlocked,
 };
 
-const lockServerConfig: LockServerConfig = {
-  getLockState: (entity) =>
-    mapHAState[entity.state] ?? DoorLock.LockState.NotFullyLocked,
-  lock: () => ({ action: "lock.lock" }),
-  unlock: () => ({ action: "lock.unlock" }),
-};
-
 const LockDeviceType = DoorLockDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
-  LockServer(lockServerConfig),
+  LockBehavior,
 );
 
 /**
@@ -78,13 +69,27 @@ export class LockEndpoint extends DomainEndpoint {
     super(type, entityId, customName);
   }
 
-  protected onEntityStateChanged(
-    _entity: HomeAssistantEntityInformation,
-  ): void {
-    // Behaviors handle their own state updates
+  protected onEntityStateChanged(entity: HomeAssistantEntityInformation): void {
+    if (!entity.state) return;
+
+    const lockState =
+      mapHAState[entity.state.state] ?? DoorLock.LockState.NotFullyLocked;
+
+    try {
+      this.setStateOf(LockBehavior, { lockState });
+    } catch {
+      // Behavior may not be initialized yet
+    }
   }
 
-  protected onBehaviorCommand(_command: BehaviorCommand): void {
-    // Behaviors handle their own commands
+  protected onBehaviorCommand(command: BehaviorCommand): void {
+    switch (command.command) {
+      case LockCommands.LOCK:
+        this.callAction("lock", "lock");
+        break;
+      case LockCommands.UNLOCK:
+        this.callAction("lock", "unlock");
+        break;
+    }
   }
 }
