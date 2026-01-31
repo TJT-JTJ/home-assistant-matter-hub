@@ -12,7 +12,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/RiDDiX/home-assistant-matter-hub)](https://github.com/RiDDiX/home-assistant-matter-hub/stargazers)
 [![License](https://img.shields.io/github/license/RiDDiX/home-assistant-matter-hub)](LICENSE)
 
-[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
+[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [� Dashboard Screenshots](./Dashboard.md) • [�🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
 
 </div>
 
