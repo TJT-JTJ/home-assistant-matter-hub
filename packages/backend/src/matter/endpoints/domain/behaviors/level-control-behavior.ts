@@ -1,5 +1,4 @@
 import { LevelControlServer as Base } from "@matter/main/behaviors";
-import type { LevelControl } from "@matter/main/clusters";
 import { applyPatchState } from "../../../../utils/apply-patch-state.js";
 import {
   LightCommands,
@@ -29,23 +28,12 @@ export class LevelControlBehavior extends FeaturedBase {
     applyPatchState(this.state, update);
   }
 
-  override moveToLevel(request: LevelControl.MoveToLevelRequest): void {
+  override moveToLevelLogic(level: number): void {
+    // Update state first so Apple Home sees the change
+    this.state.currentLevel = level;
     notifyEndpoint(this, "LevelControl", LightCommands.SET_BRIGHTNESS, {
-      level: request.level,
+      level,
     });
-  }
-
-  override moveToLevelWithOnOff(
-    request: LevelControl.MoveToLevelRequest,
-  ): void {
-    if (request.level === 0) {
-      notifyEndpoint(this, "LevelControl", LightCommands.TURN_OFF);
-    } else {
-      notifyEndpoint(this, "LevelControl", LightCommands.SET_BRIGHTNESS, {
-        level: request.level,
-        withOnOff: true,
-      });
-    }
   }
 }
 

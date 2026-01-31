@@ -34,10 +34,15 @@ export class OnOffBehavior extends FeaturedBase {
   }
 
   override on() {
+    // Must call super.on() to update the onOff state, otherwise Apple Home
+    // thinks the command failed and shows "Not Responding"
+    super.on();
     notifyEndpoint(this, "OnOff", LightCommands.TURN_ON);
   }
 
   override off() {
+    // Must call super.off() to update the onOff state
+    super.off();
     notifyEndpoint(this, "OnOff", LightCommands.TURN_OFF);
   }
 }

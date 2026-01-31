@@ -35,10 +35,14 @@ export class LockBehavior extends Base {
   }
 
   override lockDoor(): void {
+    // Update state first so Apple Home sees the change
+    this.state.lockState = DoorLock.LockState.Locked;
     notifyEndpoint(this, "Lock", LockCommands.LOCK);
   }
 
   override unlockDoor(): void {
+    // Update state first so Apple Home sees the change
+    this.state.lockState = DoorLock.LockState.Unlocked;
     notifyEndpoint(this, "Lock", LockCommands.UNLOCK);
   }
 }

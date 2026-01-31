@@ -48,10 +48,14 @@ export class CoverBehavior extends FeaturedBase {
   }
 
   override upOrOpen(): void {
+    // Update state first so Apple Home sees the change
+    this.state.targetPositionLiftPercent100ths = 0;
     notifyEndpoint(this, "Cover", CoverCommands.OPEN);
   }
 
   override downOrClose(): void {
+    // Update state first so Apple Home sees the change
+    this.state.targetPositionLiftPercent100ths = 10000;
     notifyEndpoint(this, "Cover", CoverCommands.CLOSE);
   }
 
@@ -63,6 +67,10 @@ export class CoverBehavior extends FeaturedBase {
     request: WindowCovering.GoToLiftPercentageRequest,
   ): void {
     const position = request.liftPercent100thsValue;
+    // Update state first so Apple Home sees the change
+    if (position != null) {
+      this.state.targetPositionLiftPercent100ths = position;
+    }
     notifyEndpoint(this, "Cover", CoverCommands.SET_POSITION, {
       position: position != null ? 100 - position / 100 : undefined,
     });
