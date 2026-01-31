@@ -29,8 +29,9 @@ export class LevelControlBehavior extends FeaturedBase {
   }
 
   override moveToLevelLogic(level: number): void {
-    // Update state first so Apple Home sees the change
+    // Update state directly (Matter.js expects this)
     this.state.currentLevel = level;
+    // Notify parent endpoint to call HA action
     notifyEndpoint(this, "LevelControl", LightCommands.SET_BRIGHTNESS, {
       level,
     });
