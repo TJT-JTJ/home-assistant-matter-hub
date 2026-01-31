@@ -37,9 +37,9 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
-| **Testing** | `testing` | v4.0.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
+| **Stable** | `main` | v1.10.4 | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v1.10.4 | Same as stable (synced) |
+| **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
 
@@ -90,7 +90,7 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Air Purifier** - Map fans to Air Purifier device type via entity mapping
 - **Pump Device** - Map switches/valves to Pump device type via entity mapping
 
-### Stable Features (v1.9.0) - NEW! 🎉
+### Stable Features (v1.9.0)
 
 All previous features plus:
 
@@ -119,18 +119,70 @@ All previous features plus:
 - **Full Backup/Restore** - Complete backups including entity mappings and Matter identity
 - **Filter Preview** - Preview entity matches before saving
 
-### Alpha Features (v2.0.0-alpha) 🧪
+### Stable Features (v1.10.4) - NEW! 🎉
+
+All previous features plus:
+
+**🌡️ Climate & Thermostat**
+- **Humidity Sensor Fix** - Climate entities now correctly report humidity when `current_humidity` attribute exists ([#67](https://github.com/RiDDiX/home-assistant-matter-hub/issues/67))
+- **HVAC Auto Mode Mapping** - Improved mapping for `auto` mode to Matter's `heat_cool` ([#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71))
+- **Heat/Cool Fallback** - Better default fallback for auto mode mapping
+- **Thermostat Limits Fix** - Use HA limits directly for single-mode, wide limits for dual-mode ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52))
+
+**🚪 Covers & Blinds**
+- **Cover Position Fix** - Corrected inverted state-based position fallback ([#72](https://github.com/RiDDiX/home-assistant-matter-hub/issues/72))
+- **Cover Percentage Consistency** - `coverUseHomeAssistantPercentage` now works for both reading and writing ([#34](https://github.com/RiDDiX/home-assistant-matter-hub/issues/34))
+
+**🤖 Vacuum & Devices**
+- **Vacuum Battery Support** - Battery level now shown for vacuums with `battery_level` or `battery` attribute ([#59](https://github.com/RiDDiX/home-assistant-matter-hub/issues/59))
+- **Dreame Vacuum Fix** - Support for `battery` attribute used by Dreame and similar vacuums
+
+**💧 Humidifier**
+- **Humidity Sensor** - Humidifiers now expose humidity measurement cluster ([#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58))
+- **Auto Mode Support** - Fan control with auto mode for humidifiers
+- **Device Type Change** - Changed from OnOffPlugInUnit to FanDevice for better controller representation
+
+**🔌 Valves & Switches**
+- **Water Valve Device** - New WaterValveDevice for valve domain entities
+- **RoomAirConditioner** - Climate entities with `fan_mode` now use RoomAirConditioner type
+
+**🏷️ Entity Mapping**
+- **Custom Name Support** - Entity mappings now correctly apply custom names to Matter `nodeLabel`
+- **Auto-refresh List** - Entity Mappings list refreshes automatically after saving
+
+**🎚️ Alexa Integration**
+- **Brightness Preserve** - New `alexaPreserveBrightnessOnTurnOn` feature flag prevents Alexa from resetting brightness to 100% ([#37](https://github.com/RiDDiX/home-assistant-matter-hub/issues/37))
+
+**🖼️ UI Improvements**
+- **Bridge Icon Selection** - Fixed icon selection applying correctly
+- **Button Inverted State** - Fixed button showing inverted state ([#57](https://github.com/RiDDiX/home-assistant-matter-hub/issues/57))
+- **Duplicate Status Chip** - Removed duplicate status chip from UI
+- **Remote Device Support** - Added support for remote devices ([#40](https://github.com/RiDDiX/home-assistant-matter-hub/issues/40))
+
+**🐛 Bug Fixes**
+- **Hidden Entities** - Hidden entities only included via feature flag, not by filter match ([#56](https://github.com/RiDDiX/home-assistant-matter-hub/issues/56))
+- **Device Lookup** - Use `device_id` instead of `entity_id` for proper device lookup
+- **Icon API** - Fixed leading slash in bridge-icons API for Ingress compatibility
+- **Icon Preservation** - Icon field now preserved when saving bridge config
+
+### Alpha Features (v1.10.4) 🧪
 
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-All stable features plus experimental changes being actively developed.
+Currently synced with stable. New experimental features coming soon!
 
-### Testing Features (v4.0.0-testing) ⚠️
+### Testing Features (v4.1.0-testing) ⚠️
 
 > [!CAUTION]
 > Testing versions are **highly unstable** and intended for developers only!
 > Features may be incomplete, broken, or removed without notice.
+
+**🏗️ Architecture Refactoring (Vision 1)**
+- **DomainEndpoint Architecture** - New endpoint system replacing LegacyEndpoint
+- **Neighbor Entity Support** - Endpoints can access related entities within the same HA device
+- **ThermostatEndpoint** - Can use external temperature sensors from neighbor entities
+- **Callback Pattern** - Behaviors notify parent endpoint via callbacks instead of self-updating
 
 Experimental features being actively developed before promotion to alpha.
 
