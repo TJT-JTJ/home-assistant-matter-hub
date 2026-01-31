@@ -156,4 +156,5 @@ const matterDeviceTypeFactories: Partial<
     }),
   water_valve: ValveDevice,
   pump: PumpEndpoint,
+  water_heater: WaterHeaterDevice,
 };
