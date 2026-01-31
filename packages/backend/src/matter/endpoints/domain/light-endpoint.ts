@@ -104,8 +104,10 @@ export class LightEndpoint extends DomainEndpoint {
     const attributes = entity.state.attributes as LightDeviceAttributes;
 
     try {
-      this.setStateOf(OnOffBehavior, { onOff: isOn });
-
+      // IMPORTANT: Set levelControl BEFORE onOff to avoid synchronous-transaction-conflict.
+      // When onOff changes, Matter.js fires onOff$Changed which triggers an internal
+      // handleOnOffChange reactor that tries to update levelControl synchronously.
+      // If we set levelControl after onOff, it would still be locked, causing a conflict.
       if (this.supportsBrightness) {
         // When light is off, set currentLevel to null (Matter spec allows null for off state)
         // When on, use brightness (clamped to 254 max) or default to 254 if not provided
@@ -114,6 +116,8 @@ export class LightEndpoint extends DomainEndpoint {
         const currentLevel = isOn ? Math.min(brightness, 254) : null;
         this.setStateOf(LevelControlBehavior, { currentLevel });
       }
+
+      this.setStateOf(OnOffBehavior, { onOff: isOn });
     } catch {
       // Behavior may not be initialized yet
     }
