@@ -271,20 +271,28 @@ export class ThermostatServerBase extends FeaturedBase {
         `heatingSetpointChanging: supportsRange=${supportsRange}, systemMode=${currentMode}, features.heating=${this.features.heating}, features.cooling=${this.features.cooling}`,
       );
 
-      // For single-temperature thermostats, only update HA when heating setpoint changes
-      // if we're in heating mode (or auto/heat_cool). This prevents Apple Home's deadband
-      // enforcement from sending the wrong temperature when both setpoints are updated.
+      // For single-temperature thermostats, determine if heating setpoint should update HA.
+      // We need to check the ACTUAL HA hvac_mode, not the mapped Matter systemMode,
+      // because Auto mode gets mapped to Heat internally (without AutoMode feature).
       if (!supportsRange) {
+        const haHvacMode = homeAssistant.entity.state.state;
+        const isAutoMode = haHvacMode === "auto" || haHvacMode === "heat_cool";
         const isHeatingMode =
           currentMode === Thermostat.SystemMode.Heat ||
-          currentMode === Thermostat.SystemMode.EmergencyHeat ||
-          currentMode === Thermostat.SystemMode.Auto;
-        if (!isHeatingMode) {
+          currentMode === Thermostat.SystemMode.EmergencyHeat;
+
+        // In Auto mode: heating setpoint updates temperature (cooling setpoint is ignored)
+        // In Heat mode: heating setpoint updates temperature
+        // In Cool mode: let coolingSetpointChanging handle this
+        if (!isAutoMode && !isHeatingMode) {
           logger.debug(
-            `heatingSetpointChanging: skipping - not in heating mode (mode=${currentMode})`,
+            `heatingSetpointChanging: skipping - not in heating/auto mode (mode=${currentMode}, haMode=${haHvacMode})`,
           );
           return; // Let coolingSetpointChanging handle this
         }
+        logger.debug(
+          `heatingSetpointChanging: proceeding - isAutoMode=${isAutoMode}, isHeatingMode=${isHeatingMode}, haMode=${haHvacMode}`,
+        );
       }
 
       const coolingSetpoint = this.state.occupiedCoolingSetpoint;
@@ -325,15 +333,30 @@ export class ThermostatServerBase extends FeaturedBase {
         this.agent,
       );
 
-      // For single-temperature thermostats, only update HA when cooling setpoint changes
-      // if we're in cooling mode. This prevents Apple Home's deadband enforcement from
-      // sending the wrong temperature when both setpoints are updated.
+      // For single-temperature thermostats, determine if cooling setpoint should update HA.
+      // We need to check the ACTUAL HA hvac_mode, not the mapped Matter systemMode,
+      // because Auto mode gets mapped to Heat internally (without AutoMode feature).
       if (!supportsRange) {
         const currentMode = this.state.systemMode;
+        const haHvacMode = homeAssistant.entity.state.state;
+        const isAutoMode = haHvacMode === "auto" || haHvacMode === "heat_cool";
         const isCoolingMode =
           currentMode === Thermostat.SystemMode.Cool ||
           currentMode === Thermostat.SystemMode.Precooling;
+
+        // In Auto mode: heating setpoint handles the update, so skip here to avoid double-update
+        // In Cool mode: cooling setpoint updates temperature
+        // In Heat mode: let heatingSetpointChanging handle this
+        if (isAutoMode) {
+          logger.debug(
+            `coolingSetpointChanging: skipping - auto mode handled by heatingSetpointChanging (haMode=${haHvacMode})`,
+          );
+          return; // heatingSetpointChanging handles auto mode
+        }
         if (!isCoolingMode) {
+          logger.debug(
+            `coolingSetpointChanging: skipping - not in cooling mode (mode=${currentMode}, haMode=${haHvacMode})`,
+          );
           return; // Let heatingSetpointChanging handle this
         }
       }

@@ -27,6 +27,9 @@ export class FlowMeasurementServerBase extends Base {
     }
     applyPatchState(this.state, {
       measuredValue: this.getFlow(entity.state) ?? null,
+      // min/max values in 0.1 m³/h units: 0 to 65534 (max uint16)
+      minMeasuredValue: 0,
+      maxMeasuredValue: 0xfffe,
     });
   }
 

@@ -23,12 +23,14 @@ export type MatterDeviceType =
   | "on_off_plugin_unit"
   | "on_off_switch"
   | "pressure_sensor"
+  | "pump"
   | "robot_vacuum_cleaner"
   | "smoke_co_alarm"
   | "speaker"
   | "temperature_sensor"
   | "thermostat"
   | "water_leak_detector"
+  | "water_valve"
   | "window_covering";
 
 export interface EntityMappingConfig {
@@ -74,12 +76,14 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   on_off_plugin_unit: "On/Off Plug-in Unit",
   on_off_switch: "On/Off Switch",
   pressure_sensor: "Pressure Sensor",
+  pump: "Pump",
   robot_vacuum_cleaner: "Robot Vacuum Cleaner",
   smoke_co_alarm: "Smoke/CO Alarm",
   speaker: "Speaker",
   temperature_sensor: "Temperature Sensor",
   thermostat: "Thermostat",
   water_leak_detector: "Water Leak Detector",
+  water_valve: "Water Valve",
   window_covering: "Window Covering",
 };
 
@@ -112,6 +116,7 @@ export const domainToDefaultMatterTypes: Partial<
     "pressure_sensor",
     "temperature_sensor",
   ],
-  switch: ["on_off_plugin_unit", "on_off_switch"],
+  switch: ["on_off_plugin_unit", "on_off_switch", "pump", "water_valve"],
   vacuum: ["robot_vacuum_cleaner"],
+  valve: ["water_valve", "on_off_plugin_unit"],
 };

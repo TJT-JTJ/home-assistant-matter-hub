@@ -24,13 +24,21 @@ import { LightDevice } from "./light/index.js";
 import { LockDevice } from "./lock/index.js";
 import { VideoPlayerDevice } from "./media-player/basic-video-player.js";
 import { MediaPlayerDevice } from "./media-player/index.js";
+import { PumpEndpoint } from "./pump/index.js";
 import { RemoteDevice } from "./remote/index.js";
 import { SceneDevice } from "./scene/index.js";
 import { ScriptDevice } from "./script/index.js";
+import { AirQualitySensorType } from "./sensor/devices/air-quality-sensor.js";
+import { FlowSensorType } from "./sensor/devices/flow-sensor.js";
+import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
+import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
+import { PressureSensorType } from "./sensor/devices/pressure-sensor.js";
+import { TemperatureSensorType } from "./sensor/devices/temperature-sensor.js";
 import { SensorDevice } from "./sensor/index.js";
 import { SwitchDevice } from "./switch/index.js";
 import { VacuumDevice } from "./vacuum/index.js";
 import { ValveDevice } from "./valve/index.js";
+import { WaterHeaterDevice } from "./water-heater/index.js";
 
 /**
  * @deprecated
@@ -84,6 +92,7 @@ const deviceCtrs: Partial<
   valve: ValveDevice,
   alarm_control_panel: AlarmControlPanelDevice,
   remote: RemoteDevice,
+  water_heater: WaterHeaterDevice,
 };
 
 const matterDeviceTypeFactories: Partial<
@@ -121,4 +130,30 @@ const matterDeviceTypeFactories: Partial<
   humidifier_dehumidifier: HumidifierDevice,
   speaker: MediaPlayerDevice,
   basic_video_player: VideoPlayerDevice,
+  humidity_sensor: (ha) =>
+    HumiditySensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  temperature_sensor: (ha) =>
+    TemperatureSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  pressure_sensor: (ha) =>
+    PressureSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  light_sensor: (ha) =>
+    IlluminanceSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  flow_sensor: (ha) =>
+    FlowSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  air_quality_sensor: (ha) =>
+    AirQualitySensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  water_valve: ValveDevice,
+  pump: PumpEndpoint,
 };
