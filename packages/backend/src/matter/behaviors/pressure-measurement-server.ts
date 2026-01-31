@@ -27,6 +27,9 @@ export class PressureMeasurementServerBase extends Base {
     }
     applyPatchState(this.state, {
       measuredValue: this.getPressure(entity.state) ?? null,
+      // min/max values in dkPa (decikiloPascals): 300-1100 hPa typical atmospheric range
+      minMeasuredValue: 300,
+      maxMeasuredValue: 1100,
     });
   }
 
