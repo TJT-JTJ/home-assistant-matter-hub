@@ -1,4 +1,5 @@
 import { LevelControlServer as Base } from "@matter/main/behaviors";
+import type { LevelControl } from "@matter/main/clusters";
 import { applyPatchState } from "../../../../utils/apply-patch-state.js";
 import {
   LightCommands,
@@ -26,6 +27,24 @@ export class LevelControlBehavior extends FeaturedBase {
    */
   public updateFromEndpoint(update: { currentLevel?: number | null }): void {
     applyPatchState(this.state, update);
+  }
+
+  // Fix for Google Home: it sends moveToLevel/moveToLevelWithOnOff with transitionTime as null.
+  // Matter.js validation fails on null/undefined, so we provide a default value of 0.
+  override async moveToLevel(request: LevelControl.MoveToLevelRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.moveToLevel(request);
+  }
+
+  override async moveToLevelWithOnOff(
+    request: LevelControl.MoveToLevelRequest,
+  ) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.moveToLevelWithOnOff(request);
   }
 
   override moveToLevelLogic(level: number): void {
