@@ -29,8 +29,9 @@ class IlluminanceMeasurementServerBase extends Base {
     const illuminance = this.getIlluminance(this.state.config, entity.state);
     applyPatchState(this.state, {
       measuredValue: illuminance,
-      // min/max values: 0 (dark) to 0xFFFE (max illuminance in log scale)
-      minMeasuredValue: 0,
+      // min/max values: 1 (min valid) to 0xFFFE (max illuminance in log scale)
+      // Matter spec requires minMeasuredValue >= 1 for IlluminanceMeasurement
+      minMeasuredValue: 1,
       maxMeasuredValue: 0xfffe,
     });
   }
