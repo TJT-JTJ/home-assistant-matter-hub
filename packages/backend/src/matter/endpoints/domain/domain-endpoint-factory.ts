@@ -30,7 +30,7 @@ type EndpointFactory = (
  * Vision 1 Domain Endpoint Factories.
  * Maps HA domains to their Vision 1 endpoint implementations.
  */
-const domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = {
+const _domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = {
   light: LightEndpoint.create,
   climate: ThermostatEndpoint.create,
   switch: SwitchEndpoint.create,
@@ -50,30 +50,17 @@ const domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = {
 };
 
 /**
- * Creates the appropriate Vision 1 domain endpoint for an entity.
- * Falls back to LegacyEndpoint for domains not yet migrated.
+ * Creates the appropriate endpoint for an entity.
+ *
+ * NOTE: Vision 1 architecture is disabled for now - using proven LegacyEndpoint
+ * until Vision 1 endpoints are properly tested with real hardware.
+ * The Vision 1 factories are kept in domainFactories for future use.
  */
 export async function createDomainEndpoint(
   registry: BridgeRegistry,
   entityId: string,
   mapping?: EntityMappingConfig,
 ): Promise<EntityEndpoint | undefined> {
-  const domain = entityId.split(".")[0] as HomeAssistantDomain;
-
-  // Try Vision 1 factory first
-  const factory = domainFactories[domain];
-  if (factory) {
-    try {
-      return await factory(registry, entityId, mapping);
-    } catch (error) {
-      // If Vision 1 fails, fall back to legacy
-      console.warn(
-        `[DomainEndpointFactory] Vision 1 failed for ${entityId}, falling back to legacy:`,
-        error,
-      );
-    }
-  }
-
-  // Fall back to LegacyEndpoint for unsupported domains
+  // Use proven LegacyEndpoint architecture for all domains
   return LegacyEndpoint.create(registry, entityId, mapping);
 }
