@@ -15,13 +15,10 @@
 
 ---
 
-### Bridge Management
-![Dashboard 2](./showcase/Dashboard%202.jpg)
-
----
-
-### Entity Configuration
+### System Health
 ![Dashboard 3](./showcase/Dashboard%203.jpg)
+
+![Dashboard 2](./showcase/Dashboard%202.jpg)
 
 ---
 
@@ -30,7 +27,7 @@
 
 ---
 
-### Settings & Customization
+### Bridge Details
 ![Dashboard 5](./showcase/Dashboard%205.jpg)
 
 ---
