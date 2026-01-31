@@ -29,6 +29,9 @@ class TemperatureMeasurementServerBase extends Base {
     }
     applyPatchState(this.state, {
       measuredValue: this.getTemperature(entity.state) ?? null,
+      // min/max values in 0.01°C units: -40°C to 125°C (typical sensor range)
+      minMeasuredValue: -4000,
+      maxMeasuredValue: 12500,
     });
   }
 
