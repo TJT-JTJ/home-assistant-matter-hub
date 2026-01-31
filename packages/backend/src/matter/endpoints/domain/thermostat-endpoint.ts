@@ -69,10 +69,11 @@ export class ThermostatEndpoint extends DomainEndpoint {
     const supportsHeating = heatingModes.some((mode) =>
       hvacModes.includes(mode),
     );
-    const supportsHumidity = testBit(
-      supportedFeatures,
-      ClimateDeviceFeature.TARGET_HUMIDITY,
-    );
+    // Check if current_humidity attribute exists (not just TARGET_HUMIDITY feature)
+    // Many devices report humidity without supporting target humidity control
+    const supportsHumidity =
+      attributes.current_humidity != null ||
+      testBit(supportedFeatures, ClimateDeviceFeature.TARGET_HUMIDITY);
     const supportsOnOff =
       testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
       testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF);
