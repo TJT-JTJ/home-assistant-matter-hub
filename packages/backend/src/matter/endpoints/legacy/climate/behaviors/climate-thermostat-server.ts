@@ -10,6 +10,7 @@ import { Thermostat } from "@matter/main/clusters";
 import { HomeAssistantConfig } from "../../../../../services/home-assistant/home-assistant-config.js";
 import { Temperature } from "../../../../../utils/converters/temperature.js";
 import { testBit } from "../../../../../utils/test-bit.js";
+import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import {
   ThermostatServer,
   type ThermostatServerConfig,
@@ -36,7 +37,7 @@ const getTemp = (
 };
 
 const systemModeToHvacMode: Record<Thermostat.SystemMode, ClimateHvacMode> = {
-  [Thermostat.SystemMode.Auto]: ClimateHvacMode.heat_cool,
+  [Thermostat.SystemMode.Auto]: ClimateHvacMode.auto,
   [Thermostat.SystemMode.Precooling]: ClimateHvacMode.cool,
   [Thermostat.SystemMode.Cool]: ClimateHvacMode.cool,
   [Thermostat.SystemMode.Heat]: ClimateHvacMode.heat,
@@ -108,12 +109,25 @@ const config: ThermostatServerConfig = {
       hvacActionToRunningMode[action] ?? Thermostat.ThermostatRunningMode.Off
     );
   },
-  setSystemMode: (systemMode) => ({
-    action: "climate.set_hvac_mode",
-    data: {
-      hvac_mode: systemModeToHvacMode[systemMode] ?? ClimateHvacMode.off,
-    },
-  }),
+  setSystemMode: (systemMode, agent) => {
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const hvacModes = attributes(homeAssistant.entity.state).hvac_modes ?? [];
+    let targetMode = systemModeToHvacMode[systemMode] ?? ClimateHvacMode.off;
+
+    // Handle Auto mode: prefer 'auto' if available, fallback to 'heat_cool'
+    if (systemMode === Thermostat.SystemMode.Auto) {
+      if (hvacModes.includes(ClimateHvacMode.auto)) {
+        targetMode = ClimateHvacMode.auto;
+      } else if (hvacModes.includes(ClimateHvacMode.heat_cool)) {
+        targetMode = ClimateHvacMode.heat_cool;
+      }
+    }
+
+    return {
+      action: "climate.set_hvac_mode",
+      data: { hvac_mode: targetMode },
+    };
+  },
   setTargetTemperature: (value, agent) => ({
     action: "climate.set_temperature",
     data: {
