@@ -178,11 +178,42 @@ All stable features plus experimental changes being actively developed.
 > Testing versions are **highly unstable** and intended for developers only!
 > Features may be incomplete, broken, or removed without notice.
 
-**🏗️ Architecture Refactoring (Vision 1)**
-- **DomainEndpoint Architecture** - New endpoint system replacing LegacyEndpoint
-- **Neighbor Entity Support** - Endpoints can access related entities within the same HA device
-- **ThermostatEndpoint** - Can use external temperature sensors from neighbor entities
-- **Callback Pattern** - Behaviors notify parent endpoint via callbacks instead of self-updating
+**🏗️ Vision 1: Callback-based Architecture**
+
+Complete refactoring of the behavior system from self-updating to callback-based:
+
+| Old (Legacy) | New (Vision 1) |
+|--------------|----------------|
+| Behaviors update themselves via `reactTo(homeAssistant.onChange)` | Endpoint updates behaviors via `setStateOf()` |
+| Behaviors call HA actions directly | Behaviors notify endpoint via `notifyEndpoint()` |
+| Endpoint has no control over behaviors | Endpoint handles all HA action calls |
+
+**New Callback-Behaviors:**
+- `OnOffBehavior` - On/Off control for lights, switches, buttons, valves, scenes
+- `LevelControlBehavior` - Brightness/level control for dimmable lights, humidifiers
+- `LockBehavior` - Lock/unlock for door locks
+- `CoverBehavior` - Open/close/position for covers and blinds
+- `FanBehavior` - Speed control for fans
+- `ColorControlBehavior` - Color and temperature control for lights
+- `VacuumRunModeBehavior` - Run mode control for vacuums
+- `VacuumOperationalStateBehavior` - Operational state for vacuums
+
+**Updated DomainEndpoints with Vision 1:**
+- ✅ SwitchEndpoint, LockEndpoint, CoverEndpoint
+- ✅ VacuumEndpoint, ButtonEndpoint, ValveEndpoint
+- ✅ SceneEndpoint, HumidifierEndpoint
+- ✅ LightEndpoint (OnOff + Dimmable)
+- ✅ FanEndpoint
+
+**Benefits:**
+- Endpoint has full control over all HA service calls
+- Behaviors are simpler and easier to test
+- Enables future multi-entity scenarios (nested endpoints, neighbor entity access)
+- Clean separation between Matter protocol and HA logic
+
+**🖼️ Bridge Icons in Backup**
+- Full backup now includes bridge icons when exporting with identity
+- Icons are automatically restored during backup import
 
 Experimental features being actively developed before promotion to alpha.
 
