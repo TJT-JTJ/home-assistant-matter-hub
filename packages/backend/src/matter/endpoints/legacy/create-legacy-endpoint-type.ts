@@ -24,6 +24,7 @@ import { LightDevice } from "./light/index.js";
 import { LockDevice } from "./lock/index.js";
 import { VideoPlayerDevice } from "./media-player/basic-video-player.js";
 import { MediaPlayerDevice } from "./media-player/index.js";
+import { PumpEndpoint } from "./pump/index.js";
 import { RemoteDevice } from "./remote/index.js";
 import { SceneDevice } from "./scene/index.js";
 import { ScriptDevice } from "./script/index.js";
@@ -153,4 +154,6 @@ const matterDeviceTypeFactories: Partial<
     AirQualitySensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
+  water_valve: ValveDevice,
+  pump: PumpEndpoint,
 };
