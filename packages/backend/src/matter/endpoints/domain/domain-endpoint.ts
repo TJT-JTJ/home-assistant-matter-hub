@@ -83,12 +83,77 @@ export abstract class DomainEndpoint extends EntityEndpoint {
   }
 
   /**
+   * Get all neighbor entities.
+   */
+  protected getAllNeighborEntities(): Map<
+    string,
+    HomeAssistantEntityInformation
+  > {
+    return this.neighborEntities;
+  }
+
+  /**
+   * Find neighbor entities by domain (e.g., "sensor", "binary_sensor").
+   */
+  protected findNeighborsByDomain(
+    domain: string,
+  ): HomeAssistantEntityInformation[] {
+    const results: HomeAssistantEntityInformation[] = [];
+    for (const [id, entity] of this.neighborEntities) {
+      if (id.startsWith(`${domain}.`)) {
+        results.push(entity);
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Find neighbor entities by device class (e.g., "temperature", "humidity").
+   */
+  protected findNeighborsByDeviceClass(
+    deviceClass: string,
+  ): HomeAssistantEntityInformation[] {
+    const results: HomeAssistantEntityInformation[] = [];
+    for (const entity of this.neighborEntities.values()) {
+      if (entity.state?.attributes?.device_class === deviceClass) {
+        results.push(entity);
+      }
+    }
+    return results;
+  }
+
+  /**
    * Register neighbor entities that this endpoint can access.
    */
   public registerNeighborEntities(
     entities: Map<string, HomeAssistantEntityInformation>,
   ): void {
     this.neighborEntities = entities;
+  }
+
+  /**
+   * Update a specific neighbor entity's state.
+   */
+  public updateNeighborState(
+    entityId: string,
+    state: HomeAssistantEntityState,
+  ): void {
+    const existing = this.neighborEntities.get(entityId);
+    if (existing) {
+      this.neighborEntities.set(entityId, { ...existing, state });
+      this.onNeighborStateChanged(entityId, { ...existing, state });
+    }
+  }
+
+  /**
+   * Called when a neighbor entity's state changes.
+   * Subclasses can override to react to neighbor state changes.
+   */
+  protected onNeighborStateChanged(
+    _entityId: string,
+    _entity: HomeAssistantEntityInformation,
+  ): void {
+    // Default: do nothing. Subclasses can override.
   }
 
   /**

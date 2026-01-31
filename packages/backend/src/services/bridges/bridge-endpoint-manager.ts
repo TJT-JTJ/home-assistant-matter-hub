@@ -1,11 +1,13 @@
 import type {
   EntityMappingConfig,
   FailedEntity,
+  HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
+import { DomainEndpoint } from "../../matter/endpoints/domain/domain-endpoint.js";
 import { createDomainEndpoint } from "../../matter/endpoints/domain/domain-endpoint-factory.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
@@ -113,6 +115,10 @@ export class BridgeEndpointManager extends Service {
 
         if (endpoint) {
           try {
+            // Register neighbor entities for DomainEndpoints
+            if (endpoint instanceof DomainEndpoint) {
+              this.registerNeighborEntities(endpoint, entityId);
+            }
             await this.root.add(endpoint);
           } catch (e) {
             const errorMessage = e instanceof Error ? e.message : String(e);
@@ -134,13 +140,56 @@ export class BridgeEndpointManager extends Service {
     }
   }
 
+  /**
+   * Register neighbor entities for a DomainEndpoint.
+   * This allows endpoints to access other entities from the same HA device.
+   */
+  private registerNeighborEntities(
+    endpoint: DomainEndpoint,
+    entityId: string,
+  ): void {
+    const neighborInfo = this.registry.neighborInfoOf(entityId);
+    const neighbors = new Map<string, HomeAssistantEntityInformation>();
+
+    for (const [id, info] of neighborInfo) {
+      neighbors.set(id, {
+        entity_id: id,
+        state: info.state,
+        registry: info.entity,
+        deviceRegistry: this.registry.deviceOf(entityId),
+      } as HomeAssistantEntityInformation);
+    }
+
+    endpoint.registerNeighborEntities(neighbors);
+  }
+
   async updateStates(states: HomeAssistantStates) {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     // Process state updates in parallel for faster response times
     // This significantly reduces latency for Alexa/Google Home
     await Promise.all(
-      endpoints.map((endpoint) => endpoint.updateStates(states)),
+      endpoints.map((endpoint) => {
+        // Update neighbor entity states for DomainEndpoints
+        if (endpoint instanceof DomainEndpoint) {
+          this.updateNeighborStates(endpoint, states);
+        }
+        return endpoint.updateStates(states);
+      }),
     );
+  }
+
+  /**
+   * Update neighbor entity states for a DomainEndpoint.
+   */
+  private updateNeighborStates(
+    endpoint: DomainEndpoint,
+    states: HomeAssistantStates,
+  ): void {
+    for (const [entityId, state] of Object.entries(states)) {
+      if (entityId !== endpoint.entityId) {
+        endpoint.updateNeighborState(entityId, state);
+      }
+    }
   }
 
   private extractErrorReason(error: unknown): string {

@@ -38,6 +38,53 @@ export class BridgeRegistry {
     return this._states[entityId];
   }
 
+  /**
+   * Get all entities that belong to the same HA device as the given entity.
+   * This enables domain endpoints to access neighbor entities (e.g., a thermostat
+   * accessing an external temperature sensor from the same device).
+   */
+  neighborsOf(entityId: string): Map<string, HomeAssistantEntityRegistry> {
+    const entity = this._entities[entityId];
+    if (!entity?.device_id) {
+      return new Map();
+    }
+
+    const neighbors = new Map<string, HomeAssistantEntityRegistry>();
+    for (const [id, ent] of Object.entries(this.registry.entities)) {
+      if (ent.device_id === entity.device_id && id !== entityId) {
+        neighbors.set(id, ent);
+      }
+    }
+    return neighbors;
+  }
+
+  /**
+   * Get neighbor entity information including state for domain endpoints.
+   */
+  neighborInfoOf(
+    entityId: string,
+  ): Map<
+    string,
+    { entity: HomeAssistantEntityRegistry; state: HomeAssistantStates[string] }
+  > {
+    const neighbors = this.neighborsOf(entityId);
+    const result = new Map<
+      string,
+      {
+        entity: HomeAssistantEntityRegistry;
+        state: HomeAssistantStates[string];
+      }
+    >();
+
+    for (const [id, entity] of neighbors) {
+      const state = this.registry.states[id];
+      if (state) {
+        result.set(id, { entity, state });
+      }
+    }
+    return result;
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
