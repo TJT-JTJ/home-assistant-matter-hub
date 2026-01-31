@@ -95,11 +95,12 @@ const config: WindowCoveringConfig = {
     let position = attributes(entity).current_position;
     if (position == null) {
       const coverState = entity.state as CoverDeviceState;
+      // HA semantics: 0=closed, 100=open
       position =
         coverState === CoverDeviceState.closed
-          ? 100
+          ? 0
           : coverState === CoverDeviceState.open
-            ? 0
+            ? 100
             : undefined;
     }
     return position == null ? null : adjustPositionForReading(position, agent);
@@ -108,11 +109,12 @@ const config: WindowCoveringConfig = {
     let position = attributes(entity).current_tilt_position;
     if (position == null) {
       const coverState = entity.state as CoverDeviceState;
+      // HA semantics: 0=closed, 100=open
       position =
         coverState === CoverDeviceState.closed
-          ? 100
+          ? 0
           : coverState === CoverDeviceState.open
-            ? 0
+            ? 100
             : undefined;
     }
     return position == null ? null : adjustPositionForReading(position, agent);
