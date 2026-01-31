@@ -107,8 +107,10 @@ export class LightEndpoint extends DomainEndpoint {
       this.setStateOf(OnOffBehavior, { onOff: isOn });
 
       if (this.supportsBrightness) {
-        const brightness = attributes.brightness ?? 0;
-        this.setStateOf(LevelControlBehavior, { currentLevel: brightness });
+        // When light is off, set currentLevel to null (Matter spec allows null for off state)
+        // When on, use brightness or default to 254 (max) if not provided
+        const currentLevel = isOn ? (attributes.brightness ?? 254) : null;
+        this.setStateOf(LevelControlBehavior, { currentLevel });
       }
     } catch {
       // Behavior may not be initialized yet

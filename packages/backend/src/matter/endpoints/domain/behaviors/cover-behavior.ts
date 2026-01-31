@@ -15,6 +15,7 @@ export class CoverBehavior extends FeaturedBase {
   declare state: CoverBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.type = WindowCovering.WindowCoveringType.Rollershade;
     this.state.configStatus = {
       operational: true,
@@ -34,7 +35,6 @@ export class CoverBehavior extends FeaturedBase {
     this.state.mode = {};
     this.state.targetPositionLiftPercent100ths = 0;
     this.state.currentPositionLiftPercent100ths = 0;
-    await super.initialize();
   }
 
   /**

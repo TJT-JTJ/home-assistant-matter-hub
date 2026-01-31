@@ -13,6 +13,7 @@ export class LockBehavior extends Base {
   declare state: LockBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.lockState = DoorLock.LockState.Unlocked;
     this.state.lockType = DoorLock.LockType.DeadBolt;
     this.state.actuatorEnabled = true;
@@ -24,7 +25,6 @@ export class LockBehavior extends Base {
       noRemoteLockUnlock: false,
       passage: false,
     };
-    await super.initialize();
   }
 
   /**

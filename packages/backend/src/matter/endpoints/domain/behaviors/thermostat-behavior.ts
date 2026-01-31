@@ -11,6 +11,7 @@ export class ThermostatBehavior extends FeaturedBase {
   declare state: ThermostatBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.localTemperature = 2000;
     this.state.occupiedHeatingSetpoint = 2000;
     this.state.occupiedCoolingSetpoint = 2600;
@@ -22,7 +23,6 @@ export class ThermostatBehavior extends FeaturedBase {
     this.state.controlSequenceOfOperation =
       Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
     this.state.systemMode = Thermostat.SystemMode.Off;
-    await super.initialize();
   }
 
   /**

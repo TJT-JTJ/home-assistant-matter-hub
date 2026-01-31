@@ -15,11 +15,11 @@ export class LevelControlBehavior extends FeaturedBase {
   declare state: LevelControlBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.currentLevel = 254;
     this.state.minLevel = 1;
     this.state.maxLevel = 254;
     this.state.onLevel = 254;
-    await super.initialize();
   }
 
   /**

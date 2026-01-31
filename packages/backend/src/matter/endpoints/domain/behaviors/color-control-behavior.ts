@@ -15,6 +15,7 @@ export class ColorControlBehavior extends FeaturedBase {
   declare state: ColorControlBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.colorMode =
       ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
     this.state.options = { executeIfOff: false };
@@ -35,7 +36,6 @@ export class ColorControlBehavior extends FeaturedBase {
     this.state.colorTempPhysicalMaxMireds = 500;
     this.state.coupleColorTempToLevelMinMireds = 153;
     this.state.startUpColorTemperatureMireds = 370;
-    await super.initialize();
   }
 
   /**

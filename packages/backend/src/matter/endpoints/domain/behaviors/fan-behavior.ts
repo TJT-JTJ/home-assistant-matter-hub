@@ -11,6 +11,7 @@ export class FanBehavior extends FeaturedBase {
   declare state: FanBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.fanMode = FanControl.FanMode.Off;
     this.state.fanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto;
     this.state.percentCurrent = 0;
@@ -18,7 +19,6 @@ export class FanBehavior extends FeaturedBase {
     this.state.speedMax = 100;
     this.state.speedCurrent = 0;
     this.state.speedSetting = 0;
-    await super.initialize();
   }
 
   /**

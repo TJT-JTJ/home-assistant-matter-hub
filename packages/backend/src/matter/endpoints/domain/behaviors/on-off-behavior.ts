@@ -22,8 +22,8 @@ export class OnOffBehavior extends FeaturedBase {
   declare state: OnOffBehavior.State;
 
   override async initialize() {
-    this.state.onOff = false;
     await super.initialize();
+    this.state.onOff = false;
   }
 
   /**

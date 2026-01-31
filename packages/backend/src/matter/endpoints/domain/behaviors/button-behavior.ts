@@ -10,9 +10,9 @@ export class ButtonBehavior extends FeaturedBase {
   declare state: ButtonBehavior.State;
 
   override async initialize() {
+    await super.initialize();
     this.state.numberOfPositions = 2;
     this.state.currentPosition = 0;
-    await super.initialize();
   }
 
   /**

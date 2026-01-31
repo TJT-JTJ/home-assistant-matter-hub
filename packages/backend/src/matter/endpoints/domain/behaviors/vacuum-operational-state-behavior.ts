@@ -13,8 +13,8 @@ export class VacuumOperationalStateBehavior extends Base {
   declare state: VacuumOperationalStateBehavior.State;
 
   override async initialize() {
-    this.state.operationalState = RvcOperationalState.OperationalState.Stopped;
     await super.initialize();
+    this.state.operationalState = RvcOperationalState.OperationalState.Stopped;
 
     // NOTE: We do NOT subscribe to homeAssistant.onChange here!
   }

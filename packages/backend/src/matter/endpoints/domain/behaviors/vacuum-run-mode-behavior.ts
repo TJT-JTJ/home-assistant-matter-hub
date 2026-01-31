@@ -38,6 +38,8 @@ export class VacuumRunModeBehavior extends Base {
   declare state: VacuumRunModeBehavior.State;
 
   override async initialize() {
+    await super.initialize();
+
     // Set initial supportedModes with required Idle tag
     this.state.supportedModes = [
       {
@@ -52,8 +54,6 @@ export class VacuumRunModeBehavior extends Base {
       },
     ];
     this.state.currentMode = VacuumRunMode.Idle;
-
-    await super.initialize();
 
     // NOTE: We do NOT subscribe to homeAssistant.onChange here!
     // The parent endpoint will call updateFromEndpoint() when state changes.
