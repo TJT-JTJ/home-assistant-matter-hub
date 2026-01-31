@@ -108,8 +108,10 @@ export class LightEndpoint extends DomainEndpoint {
 
       if (this.supportsBrightness) {
         // When light is off, set currentLevel to null (Matter spec allows null for off state)
-        // When on, use brightness or default to 254 (max) if not provided
-        const currentLevel = isOn ? (attributes.brightness ?? 254) : null;
+        // When on, use brightness (clamped to 254 max) or default to 254 if not provided
+        // HA uses 0-255 but Matter.js LevelControl max is 254
+        const brightness = attributes.brightness ?? 254;
+        const currentLevel = isOn ? Math.min(brightness, 254) : null;
         this.setStateOf(LevelControlBehavior, { currentLevel });
       }
     } catch {
