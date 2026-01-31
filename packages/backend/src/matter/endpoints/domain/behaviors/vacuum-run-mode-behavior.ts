@@ -38,9 +38,8 @@ export class VacuumRunModeBehavior extends Base {
   declare state: VacuumRunModeBehavior.State;
 
   override async initialize() {
-    await super.initialize();
-
-    // Set initial supportedModes with required Idle tag
+    // IMPORTANT: Set supportedModes BEFORE super.initialize() because Matter.js
+    // validates that at least one mode has the Idle tag during initialization.
     this.state.supportedModes = [
       {
         label: "Idle",
@@ -54,6 +53,8 @@ export class VacuumRunModeBehavior extends Base {
       },
     ];
     this.state.currentMode = VacuumRunMode.Idle;
+
+    await super.initialize();
 
     // NOTE: We do NOT subscribe to homeAssistant.onChange here!
     // The parent endpoint will call updateFromEndpoint() when state changes.

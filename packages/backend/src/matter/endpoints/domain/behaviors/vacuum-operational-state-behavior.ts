@@ -13,8 +13,21 @@ export class VacuumOperationalStateBehavior extends Base {
   declare state: VacuumOperationalStateBehavior.State;
 
   override async initialize() {
-    await super.initialize();
+    // IMPORTANT: Set operationalStateList BEFORE super.initialize() because Matter.js
+    // validates that the list contains required entries during initialization.
+    this.state.operationalStateList = Object.values(
+      RvcOperationalState.OperationalState,
+    )
+      .filter((id): id is number => !Number.isNaN(+id))
+      .map((id) => ({
+        operationalStateId: id,
+      }));
     this.state.operationalState = RvcOperationalState.OperationalState.Stopped;
+    this.state.operationalError = {
+      errorStateId: RvcOperationalState.ErrorState.NoError,
+    };
+
+    await super.initialize();
 
     // NOTE: We do NOT subscribe to homeAssistant.onChange here!
   }
