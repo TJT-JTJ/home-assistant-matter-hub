@@ -36,7 +36,6 @@ const ClimateDeviceType = (
   supportsOnOff: boolean,
   supportsHumidity: boolean,
   supportsFanMode: boolean,
-  initialState: InitialThermostatState,
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
 
@@ -47,10 +46,10 @@ const ClimateDeviceType = (
     additionalClusters.push(ClimateHumidityMeasurementServer);
   }
 
-  // CRITICAL: Pass initial state values DIRECTLY to Matter.js during registration.
-  // This is the ONLY way to prevent NaN validation errors.
-  // Pattern from Matterbridge: All thermostat attributes must be set during registration.
-  const thermostatServer = ClimateThermostatServer(initialState);
+  // NOTE: ClimateThermostatServer() returns ThermostatServerBase which already
+  // has HeatingCooling features and default setpoints. The actual initial values
+  // are passed via .set() on the final device type in ClimateDevice().
+  const thermostatServer = ClimateThermostatServer();
 
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
@@ -157,10 +156,30 @@ export function ClimateDevice(
     maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
   };
 
+  // CRITICAL: Pass ALL thermostat attributes in the final .set() call.
+  // Matter.js validates setpoints during initialization BEFORE our initialize() runs.
+  // If we only pass homeAssistantEntity, the thermostat defaults from ThermostatServerBase
+  // get overwritten with undefined values, causing NaN validation errors.
+  // Pattern from Matterbridge: All attributes must be set during registration.
   return ClimateDeviceType(
     supportsOnOff,
     supportsHumidity,
     supportsFanMode,
-    initialState,
-  ).set({ homeAssistantEntity });
+  ).set({
+    homeAssistantEntity,
+    // Thermostat cluster attributes - pass directly to prevent NaN errors
+    thermostat: {
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+    },
+  });
 }
