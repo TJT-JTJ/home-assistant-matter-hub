@@ -10,6 +10,10 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
+import {
+  createVacuumRvcCleanModeServer,
+  supportsCleaningModes,
+} from "./behaviors/vacuum-rvc-clean-mode-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
 import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
@@ -54,6 +58,11 @@ export function VacuumDevice(
   const rooms = parseVacuumRooms(attributes);
   if (rooms.length > 0) {
     device = device.with(createVacuumServiceAreaServer(attributes));
+  }
+
+  // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
+  if (supportsCleaningModes(attributes)) {
+    device = device.with(createVacuumRvcCleanModeServer(attributes));
   }
 
   return device;
