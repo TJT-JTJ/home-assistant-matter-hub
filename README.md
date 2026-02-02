@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.5 | Production-ready, recommended for most users |
+| **Stable** | `main` | v1.10.8 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -55,9 +55,18 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Stable Features (v1.10.5) - NEW! 🎉
+### Stable Features (v1.10.8) - NEW! 🎉
 
-#### 🆕 New in v1.10.5
+#### 🆕 New in v1.10.8
+
+**🛡️ Stability & Crash Prevention**
+- **Invalid intervalMs Crash Fix** - Suppress Matter.js subscription timing errors that caused FATAL crashes ([#74](https://github.com/RiDDiX/home-assistant-matter-hub/issues/74), [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82))
+- **Entity Isolation Service** - Automatically isolate problematic entities at runtime instead of crashing the bridge ([#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82))
+
+**🌡️ Climate & Thermostat**
+- **Thermostat Auto Mode Fix** - Auto mode now correctly displays on Matter controllers (was incorrectly showing "Heat") ([#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71))
+
+#### Previous in v1.10.5
 
 **🌡️ New Device Support**
 - **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
