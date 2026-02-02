@@ -83,7 +83,7 @@ export class BridgeRegistry {
   ) {
     if (
       filter.include.length > 0 &&
-      !testMatchers(filter.include, device, entity)
+      !testMatchers(filter.include, device, entity, filter.includeMode)
     ) {
       return false;
     }

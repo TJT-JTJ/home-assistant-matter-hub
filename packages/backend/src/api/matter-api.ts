@@ -169,7 +169,7 @@ export function matterApi(
 
       const included =
         filter.include.length === 0 ||
-        testMatchers(filter.include, device, entity);
+        testMatchers(filter.include, device, entity, filter.includeMode);
       const excluded =
         filter.exclude.length > 0 &&
         testMatchers(filter.exclude, device, entity);

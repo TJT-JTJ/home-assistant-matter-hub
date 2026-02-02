@@ -34,6 +34,14 @@ const homeAssistantFilterSchema: JSONSchema7 = {
       type: "array",
       items: homeAssistantMatcherSchema,
     },
+    includeMode: {
+      title: "Include Mode",
+      type: "string",
+      description:
+        "How to combine include rules: 'any' matches if ANY rule matches (OR), 'all' matches only if ALL rules match (AND). Default: 'any'",
+      enum: ["any", "all"],
+      default: "any",
+    },
   },
   required: ["include", "exclude"],
   additionalProperties: false,
