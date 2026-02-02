@@ -18,11 +18,11 @@ export interface SpeakerLevelControlConfig {
  *
  * Key difference from LevelControlServer (for lights):
  * - Does NOT use the "Lighting" feature
- * - Uses range 0-100 for currentLevel (Google Home expects volume as percentage)
- * - minLevel = 0, maxLevel = 100
+ * - Uses range 0-254 for currentLevel (Google Home calculates percentage as currentLevel/254)
+ * - minLevel = 0, maxLevel = 254 (no +1 offset like lights)
  *
- * Google Home interprets currentLevel for speakers as a percentage value (0-100),
- * not as the 1-254 range used for lights with the Lighting feature.
+ * Google Home always calculates volume percentage as: currentLevel / 254 * 100
+ * regardless of the maxLevel attribute value.
  */
 const FeaturedBase = Base.with("OnOff");
 
@@ -39,14 +39,16 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
   private update({ state }: HomeAssistantEntityInformation) {
     const config = this.state.config;
 
-    // For speakers, use 0-100 range (Google Home expects percentage)
+    // For speakers, use 0-254 range (Google Home calculates: currentLevel / 254 * 100)
+    // No +1 offset like lights - 0 means muted, 254 means max volume
     const minLevel = 0;
-    const maxLevel = 100;
+    const maxLevel = 254;
 
     const currentLevelPercent =
       config.getValuePercent(state, this.agent) ??
       this.state.currentLevelPercent;
 
+    // Convert percentage (0.0-1.0) to 0-254 range
     let currentLevel =
       currentLevelPercent != null
         ? Math.round(currentLevelPercent * maxLevel)
@@ -91,8 +93,8 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     const config = this.state.config;
     const entityId = homeAssistant.entity.entity_id;
 
-    // Level is already 0-100, convert to 0.0-1.0 for HA
-    const levelPercent = level / 100;
+    // Level is 0-254, convert to 0.0-1.0 for HA
+    const levelPercent = level / 254;
 
     logger.debug(
       `[${entityId}] Volume command: level=${level} -> HA volume_level=${levelPercent}`,
