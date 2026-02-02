@@ -95,26 +95,34 @@ export class ThermostatServerBase extends FeaturedBase {
   };
 
   override async initialize() {
-    // CRITICAL: Set controlSequenceOfOperation BEFORE super.initialize() runs
-    // because the value depends on which features are enabled, and Matter.js
-    // validates conformance during initialization. Setting a wrong default in
-    // the factory function would break single-mode thermostats (heat-only or cool-only).
+    // CRITICAL: Set default setpoints BEFORE anything else, including super.initialize().
+    // Matter.js's ThermostatServer.initialize() calls #clampSetpointToLimits() which validates
+    // these values. If they are undefined, it clamps to NaN and causes "Behaviors have errors".
+    // We MUST set valid defaults unconditionally before super.initialize() runs.
+    const currentHeating = this.state.occupiedHeatingSetpoint;
+    const currentCooling = this.state.occupiedCoolingSetpoint;
+
+    // Always ensure valid setpoints - use existing value if valid, otherwise use default
+    if (this.features.heating) {
+      this.state.occupiedHeatingSetpoint =
+        typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+          ? currentHeating
+          : 2000; // 20°C default
+    }
+    if (this.features.cooling) {
+      this.state.occupiedCoolingSetpoint =
+        typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+          ? currentCooling
+          : 2400; // 24°C default
+    }
+
+    // Set controlSequenceOfOperation based on enabled features
     this.state.controlSequenceOfOperation =
       this.features.cooling && this.features.heating
         ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
         : this.features.cooling
           ? Thermostat.ControlSequenceOfOperation.CoolingOnly
           : Thermostat.ControlSequenceOfOperation.HeatingOnly;
-
-    // CRITICAL: Set default setpoints BEFORE super.initialize() to prevent
-    // Matter.js validation errors. Matter.js validates setpoints during initialization
-    // and will fail with NaN if they are undefined.
-    if (this.features.heating && this.state.occupiedHeatingSetpoint == null) {
-      this.state.occupiedHeatingSetpoint = 2000; // 20°C default
-    }
-    if (this.features.cooling && this.state.occupiedCoolingSetpoint == null) {
-      this.state.occupiedCoolingSetpoint = 2400; // 24°C default
-    }
 
     await super.initialize();
 
