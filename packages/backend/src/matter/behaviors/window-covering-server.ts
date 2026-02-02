@@ -200,6 +200,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
+    // Update target immediately to prevent duplicate commands from controllers
+    // that send multiple position updates in quick succession (e.g., Google Home)
+    this.state.targetPositionLiftPercent100ths = targetPercent100ths;
     const targetPosition = targetPercent100ths / 100;
     homeAssistant.callAction(
       config.setLiftPosition(targetPosition, this.agent),
@@ -232,6 +235,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
+    // Update target immediately to prevent duplicate commands from controllers
+    // that send multiple position updates in quick succession (e.g., Google Home)
+    this.state.targetPositionTiltPercent100ths = targetPercent100ths;
     const targetPosition = targetPercent100ths / 100;
     homeAssistant.callAction(
       config.setTiltPosition(targetPosition, this.agent),

@@ -1,3 +1,5 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import BackupIcon from "@mui/icons-material/Backup";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -7,6 +9,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 import MemoryIcon from "@mui/icons-material/Memory";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SecurityIcon from "@mui/icons-material/Security";
+import SortIcon from "@mui/icons-material/Sort";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -21,12 +24,19 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+
+type SortField = "name" | "created";
+type SortDirection = "asc" | "desc";
 
 interface BridgeHealthInfo {
   id: string;
@@ -94,6 +104,8 @@ export function HealthDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fullBackupDialogOpen, setFullBackupDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -253,111 +265,158 @@ export function HealthDashboard() {
 
       <Divider sx={{ my: 3 }} />
 
-      <Box display="flex" alignItems="center" gap={1} mb={2}>
-        <MemoryIcon />
-        <Typography variant="h6">Bridge Status</Typography>
-        <Chip
-          label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
-          size="small"
-          variant="outlined"
-        />
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+        flexWrap="wrap"
+        gap={1}
+      >
+        <Box display="flex" alignItems="center" gap={1}>
+          <MemoryIcon />
+          <Typography variant="h6">Bridge Status</Typography>
+          <Chip
+            label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
+            size="small"
+            variant="outlined"
+          />
+        </Box>
+        <Box display="flex" alignItems="center" gap={1}>
+          <SortIcon fontSize="small" color="action" />
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Sort by</InputLabel>
+            <Select
+              value={sortField}
+              label="Sort by"
+              onChange={(e) => setSortField(e.target.value as SortField)}
+            >
+              <MenuItem value="name">Name</MenuItem>
+              <MenuItem value="created">Created</MenuItem>
+            </Select>
+          </FormControl>
+          <Tooltip title={sortDirection === "asc" ? "Ascending" : "Descending"}>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
+              }
+            >
+              {sortDirection === "asc" ? (
+                <ArrowUpwardIcon fontSize="small" />
+              ) : (
+                <ArrowDownwardIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Grid container spacing={2}>
-        {health.bridgeDetails.map((bridge) => (
-          <Grid size={{ xs: 12, md: 6 }} key={bridge.id}>
-            <Card
-              variant="outlined"
-              sx={{
-                borderColor:
-                  bridge.status === "running"
-                    ? "success.main"
-                    : bridge.status === "failed"
-                      ? "error.main"
-                      : "warning.main",
-              }}
-            >
-              <CardContent>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <DevicesIcon />
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {bridge.name}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Chip
-                      label={bridge.status.toUpperCase()}
-                      color={
-                        bridge.status === "running"
-                          ? "success"
-                          : bridge.status === "failed"
-                            ? "error"
-                            : "warning"
-                      }
-                      size="small"
-                    />
-                    {bridge.status === "failed" && (
-                      <Tooltip title="Restart Bridge">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleRestart(bridge.id)}
-                        >
-                          <AutorenewIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                </Box>
-
-                {bridge.statusReason && (
-                  <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-                    {bridge.statusReason}
-                  </Typography>
-                )}
-
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Port: {bridge.port} | Devices: {bridge.deviceCount} |
-                    Fabrics: {bridge.fabricCount}
-                    {bridge.failedEntityCount > 0 && (
+        {[...health.bridgeDetails]
+          .sort((a, b) => {
+            let cmp = 0;
+            if (sortField === "name") {
+              cmp = a.name.localeCompare(b.name);
+            } else {
+              cmp = a.id.localeCompare(b.id);
+            }
+            return sortDirection === "asc" ? cmp : -cmp;
+          })
+          .map((bridge) => (
+            <Grid size={{ xs: 12, md: 6 }} key={bridge.id}>
+              <Card
+                variant="outlined"
+                sx={{
+                  borderColor:
+                    bridge.status === "running"
+                      ? "success.main"
+                      : bridge.status === "failed"
+                        ? "error.main"
+                        : "warning.main",
+                }}
+              >
+                <CardContent>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <DevicesIcon />
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {bridge.name}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
                       <Chip
-                        label={`${bridge.failedEntityCount} failed`}
-                        color="error"
+                        label={bridge.status.toUpperCase()}
+                        color={
+                          bridge.status === "running"
+                            ? "success"
+                            : bridge.status === "failed"
+                              ? "error"
+                              : "warning"
+                        }
                         size="small"
-                        sx={{ ml: 1 }}
                       />
-                    )}
-                  </Typography>
-                </Box>
-
-                {bridge.fabrics.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Connected to:
-                    </Typography>
-                    <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
-                      {bridge.fabrics.map((fabric) => (
-                        <Chip
-                          key={fabric.fabricIndex}
-                          label={
-                            fabric.label || getVendorName(fabric.rootVendorId)
-                          }
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
+                      {bridge.status === "failed" && (
+                        <Tooltip title="Restart Bridge">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRestart(bridge.id)}
+                          >
+                            <AutorenewIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </Box>
                   </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+
+                  {bridge.statusReason && (
+                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                      {bridge.statusReason}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Port: {bridge.port} | Devices: {bridge.deviceCount} |
+                      Fabrics: {bridge.fabricCount}
+                      {bridge.failedEntityCount > 0 && (
+                        <Chip
+                          label={`${bridge.failedEntityCount} failed`}
+                          color="error"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </Typography>
+                  </Box>
+
+                  {bridge.fabrics.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Connected to:
+                      </Typography>
+                      <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
+                        {bridge.fabrics.map((fabric) => (
+                          <Chip
+                            key={fabric.fabricIndex}
+                            label={
+                              fabric.label || getVendorName(fabric.rootVendorId)
+                            }
+                            size="small"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
       </Grid>
 
       {health.recovery.enabled && (
