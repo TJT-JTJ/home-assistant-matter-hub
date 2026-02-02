@@ -75,7 +75,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
     entityId: string;
     actions: HomeAssistantActions;
   } | null = null;
-  private static readonly DEBOUNCE_MS = 500;
+  private static readonly DEBOUNCE_MS = 200;
 
   override async initialize() {
     await super.initialize();
