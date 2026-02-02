@@ -54,6 +54,12 @@ export interface WindowCoveringConfig {
 export class WindowCoveringServerBase extends FeaturedBase {
   declare state: WindowCoveringServerBase.State;
 
+  private liftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private tiltDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingLiftPosition: number | null = null;
+  private pendingTiltPosition: number | null = null;
+  private static readonly DEBOUNCE_MS = 500;
+
   override async initialize() {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
@@ -189,7 +195,6 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   private handleGoToLiftPosition(targetPercent100ths: number) {
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const config = this.state.config;
     // Compare in Matter space (both values should be in same coordinate system)
     const currentPositionMatter = this.state.currentPositionLiftPercent100ths;
@@ -200,13 +205,25 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
-    // Update target immediately to prevent duplicate commands from controllers
-    // that send multiple position updates in quick succession (e.g., Google Home)
+    // Update target immediately for UI feedback
     this.state.targetPositionLiftPercent100ths = targetPercent100ths;
-    const targetPosition = targetPercent100ths / 100;
-    homeAssistant.callAction(
-      config.setLiftPosition(targetPosition, this.agent),
-    );
+    // Store pending position and debounce the HA call
+    // This prevents rapid commands from Google Home during slider drag
+    this.pendingLiftPosition = targetPercent100ths;
+    if (this.liftDebounceTimer) {
+      clearTimeout(this.liftDebounceTimer);
+    }
+    this.liftDebounceTimer = setTimeout(() => {
+      this.liftDebounceTimer = null;
+      if (this.pendingLiftPosition != null) {
+        const targetPosition = this.pendingLiftPosition / 100;
+        this.pendingLiftPosition = null;
+        const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+        homeAssistant.callAction(
+          config.setLiftPosition(targetPosition, this.agent),
+        );
+      }
+    }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
 
   private handleTiltOpen() {
@@ -224,7 +241,6 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   private handleGoToTiltPosition(targetPercent100ths: number) {
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const config = this.state.config;
     // Compare in Matter space (both values should be in same coordinate system)
     const currentPositionMatter = this.state.currentPositionTiltPercent100ths;
@@ -235,13 +251,25 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
-    // Update target immediately to prevent duplicate commands from controllers
-    // that send multiple position updates in quick succession (e.g., Google Home)
+    // Update target immediately for UI feedback
     this.state.targetPositionTiltPercent100ths = targetPercent100ths;
-    const targetPosition = targetPercent100ths / 100;
-    homeAssistant.callAction(
-      config.setTiltPosition(targetPosition, this.agent),
-    );
+    // Store pending position and debounce the HA call
+    // This prevents rapid commands from Google Home during slider drag
+    this.pendingTiltPosition = targetPercent100ths;
+    if (this.tiltDebounceTimer) {
+      clearTimeout(this.tiltDebounceTimer);
+    }
+    this.tiltDebounceTimer = setTimeout(() => {
+      this.tiltDebounceTimer = null;
+      if (this.pendingTiltPosition != null) {
+        const targetPosition = this.pendingTiltPosition / 100;
+        this.pendingTiltPosition = null;
+        const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+        homeAssistant.callAction(
+          config.setTiltPosition(targetPosition, this.agent),
+        );
+      }
+    }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
 }
 
