@@ -105,12 +105,14 @@ export class EntityMappingStorage extends Service {
       matterDeviceType: request.matterDeviceType,
       customName: request.customName?.trim() || undefined,
       disabled: request.disabled,
+      filterLifeEntity: request.filterLifeEntity?.trim() || undefined,
     };
 
     if (
       !config.matterDeviceType &&
       !config.customName &&
-      config.disabled !== true
+      config.disabled !== true &&
+      !config.filterLifeEntity
     ) {
       bridgeMap.delete(request.entityId);
     } else {
