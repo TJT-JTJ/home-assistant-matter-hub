@@ -2,6 +2,7 @@ import BackupIcon from "@mui/icons-material/Backup";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RestoreIcon from "@mui/icons-material/Restore";
+import SecurityIcon from "@mui/icons-material/Security";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -14,10 +15,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Grid from "@mui/material/Grid";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useRef, useState } from "react";
 
@@ -242,54 +245,104 @@ export function BackupRestore() {
           </Alert>
         )}
 
-        <Box display="flex" gap={2} flexWrap="wrap">
-          <Button
-            variant="contained"
-            startIcon={
-              loading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <CloudDownloadIcon />
-              )
-            }
-            onClick={() => handleDownloadBackup(false)}
-            disabled={loading}
-          >
-            Download Backup
-          </Button>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 2, height: "100%" }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <CloudDownloadIcon color="primary" />
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Config Backup
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Export bridge configurations and entity mappings.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Bridges will need to be re-commissioned after restore.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <CloudDownloadIcon />
+                  )
+                }
+                onClick={() => handleDownloadBackup(false)}
+                disabled={loading}
+                fullWidth
+              >
+                Config Backup
+              </Button>
+            </Paper>
+          </Grid>
 
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={
-              loading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <BackupIcon />
-              )
-            }
-            onClick={() => handleDownloadBackup(true)}
-            disabled={loading}
-          >
-            Full Backup (with Identity)
-          </Button>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 2, height: "100%" }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <SecurityIcon color="warning" />
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Full Backup (with Identity)
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Includes Matter identity files (keypairs, fabric credentials).
+              </Typography>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Preserves commissioning state across restores. DONT SHARE!
+              </Typography>
+              <Button
+                variant="contained"
+                color="warning"
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <BackupIcon />
+                  )
+                }
+                onClick={() => handleDownloadBackup(true)}
+                disabled={loading}
+                fullWidth
+              >
+                Full Backup (with Identity)
+              </Button>
+            </Paper>
+          </Grid>
 
-          <Button
-            variant="outlined"
-            startIcon={<RestoreIcon />}
-            component="label"
-            disabled={loading}
-          >
-            Restore from Backup
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip"
-              hidden
-              onChange={handleFileSelect}
-            />
-          </Button>
-        </Box>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 2, height: "100%" }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <RestoreIcon color="info" />
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Restore from Backup
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Upload a previously created backup file to restore bridges and
+                configurations.
+              </Typography>
+              <Button
+                variant="outlined"
+                color="info"
+                startIcon={<RestoreIcon />}
+                component="label"
+                disabled={loading}
+                fullWidth
+              >
+                Restore from Backup
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".zip"
+                  hidden
+                  onChange={handleFileSelect}
+                />
+              </Button>
+            </Paper>
+          </Grid>
+        </Grid>
       </CardContent>
 
       <Dialog
