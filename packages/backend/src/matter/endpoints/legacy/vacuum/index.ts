@@ -12,8 +12,10 @@ import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
-import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
-import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
+
+// ServiceArea temporarily disabled - see Issue #49
+// import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
+// import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
 
 const VacuumEndpointType = RoboticVacuumCleanerDevice.with(
   BasicInformationServer,
@@ -49,12 +51,14 @@ export function VacuumDevice(
     device = device.with(VacuumPowerSourceServer);
   }
 
-  // Add ServiceArea cluster if rooms/segments are available
-  // This enables room selection in Apple Home (Matter 1.4 feature)
-  const rooms = parseVacuumRooms(attributes);
-  if (rooms.length > 0) {
-    device = device.with(createVacuumServiceAreaServer(attributes));
-  }
+  // ServiceArea cluster temporarily disabled due to Matter.js initialization issue
+  // See GitHub Issue #49 - TypeError in super.initialize()
+  // Room selection still works via RvcRunMode modes
+  // TODO: Debug ServiceArea cluster initialization with Matter.js
+  // const rooms = parseVacuumRooms(attributes);
+  // if (rooms.length > 0) {
+  //   device = device.with(createVacuumServiceAreaServer(attributes));
+  // }
 
   return device;
 }
