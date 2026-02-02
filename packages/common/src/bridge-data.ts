@@ -5,6 +5,7 @@ interface AllBridgeFeatureFlags {
   readonly coverUseHomeAssistantPercentage: boolean;
   readonly includeHiddenEntities: boolean;
   readonly alexaPreserveBrightnessOnTurnOn: boolean;
+  readonly vacuumIncludeUnnamedRooms: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

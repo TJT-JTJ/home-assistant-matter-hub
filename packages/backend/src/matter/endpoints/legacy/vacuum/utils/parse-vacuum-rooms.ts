@@ -58,6 +58,23 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
 }
 
 /**
+ * Regular expression to match generic/unnamed room names.
+ * Matches patterns like "Room 1", "Room 7", "Raum 3", etc.
+ * These are typically auto-generated names for unmapped/hidden rooms.
+ */
+const UNNAMED_ROOM_PATTERN =
+  /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
+
+/**
+ * Check if a room name appears to be a generic/unnamed room.
+ * Generic rooms typically have names like "Room 7" which are auto-generated
+ * by vacuum integrations for unmapped or hidden rooms.
+ */
+export function isUnnamedRoom(roomName: string): boolean {
+  return UNNAMED_ROOM_PATTERN.test(roomName.trim());
+}
+
+/**
  * Parse vacuum rooms from various attribute formats.
  * Different integrations store rooms in different formats:
  * - Array of VacuumRoom objects: [{ id: 1, name: "Kitchen" }, ...]
@@ -67,18 +84,25 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
  *
  * Tries each attribute in order and returns the first one with valid rooms.
  *
+ * @param attributes - Vacuum device attributes
+ * @param includeUnnamedRooms - If false (default), filters out rooms with generic names like "Room 7"
  * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
  */
 export function parseVacuumRooms(
   attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
 ): VacuumRoom[] {
   // Try each attribute source in order, return first one with valid rooms
   // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
   const sources = [attributes.rooms, attributes.segments, attributes.room_list];
 
   for (const source of sources) {
-    const rooms = parseRoomData(source);
+    let rooms = parseRoomData(source);
     if (rooms.length > 0) {
+      // Filter out unnamed/generic rooms unless explicitly included
+      if (!includeUnnamedRooms) {
+        rooms = rooms.filter((room) => !isUnnamedRoom(room.name));
+      }
       return rooms;
     }
   }

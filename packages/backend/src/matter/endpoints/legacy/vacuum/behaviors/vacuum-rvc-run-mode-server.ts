@@ -23,9 +23,13 @@ const logger = Logger.get("VacuumRvcRunModeServer");
 /**
  * Build supported modes from vacuum attributes.
  * This includes base modes (Idle, Cleaning) plus room-specific modes if available.
+ *
+ * @param attributes - Vacuum device attributes
+ * @param includeUnnamedRooms - If true, includes rooms with generic names like "Room 7". Default: false
  */
 function buildSupportedModes(
   attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
 ): RvcRunMode.ModeOption[] {
   const modes: RvcRunMode.ModeOption[] = [
     {
@@ -40,7 +44,7 @@ function buildSupportedModes(
     },
   ];
 
-  const rooms = parseVacuumRooms(attributes);
+  const rooms = parseVacuumRooms(attributes, includeUnnamedRooms);
   for (let i = 0; i < rooms.length; i++) {
     const room = rooms[i];
     modes.push({
@@ -132,19 +136,36 @@ const vacuumRvcRunModeConfig = {
 /**
  * Create a VacuumRvcRunModeServer with initial supportedModes.
  * The modes MUST be provided at creation time for Matter.js initialization.
+ *
+ * @param attributes - Vacuum device attributes
+ * @param includeUnnamedRooms - If true, includes rooms with generic names like "Room 7". Default: false
  */
 export function createVacuumRvcRunModeServer(
   attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
 ) {
-  const rooms = parseVacuumRooms(attributes);
-  const supportedModes = buildSupportedModes(attributes);
+  // Get all rooms first for logging
+  const allRooms = parseVacuumRooms(attributes, true);
+  const rooms = includeUnnamedRooms
+    ? allRooms
+    : parseVacuumRooms(attributes, false);
+  const filteredCount = allRooms.length - rooms.length;
+
+  const supportedModes = buildSupportedModes(attributes, includeUnnamedRooms);
 
   logger.info(
     `Creating VacuumRvcRunModeServer with ${rooms.length} rooms, ${supportedModes.length} total modes`,
   );
   if (rooms.length > 0) {
     logger.info(`Rooms found: ${rooms.map((r) => r.name).join(", ")}`);
-  } else {
+  }
+  if (filteredCount > 0) {
+    const filtered = allRooms.filter((r) => !rooms.some((x) => x.id === r.id));
+    logger.info(
+      `Filtered out ${filteredCount} unnamed room(s): ${filtered.map((r) => r.name).join(", ")}`,
+    );
+  }
+  if (allRooms.length === 0) {
     logger.debug(
       `No rooms found. Attributes: rooms=${JSON.stringify(attributes.rooms)}, segments=${JSON.stringify(attributes.segments)}, room_list=${attributes.room_list}`,
     );

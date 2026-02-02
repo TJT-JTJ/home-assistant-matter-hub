@@ -102,11 +102,15 @@ function createVacuumServiceAreaConfig(
  * Create a VacuumServiceAreaServer with initial supportedAreas.
  * The areas MUST be provided at creation time for Matter.js initialization.
  * Following Matterbridge pattern: all state is set at creation time.
+ *
+ * @param attributes - Vacuum device attributes
+ * @param includeUnnamedRooms - If true, includes rooms with generic names like "Room 7". Default: false
  */
 export function createVacuumServiceAreaServer(
   attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
 ) {
-  const rooms = parseVacuumRooms(attributes);
+  const rooms = parseVacuumRooms(attributes, includeUnnamedRooms);
   const supportedAreas = roomsToAreas(rooms);
   const config = createVacuumServiceAreaConfig(attributes);
 
