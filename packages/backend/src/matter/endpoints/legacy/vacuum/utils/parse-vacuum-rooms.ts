@@ -4,25 +4,18 @@ import type {
 } from "@home-assistant-matter-hub/common";
 
 /**
- * Parse vacuum rooms from various attribute formats.
- * Different integrations store rooms in different formats:
- * - Array of VacuumRoom objects: [{ id: 1, name: "Kitchen" }, ...]
- * - Record/Object: { 1: "Kitchen", 2: "Living Room", ... }
- * - May be in 'rooms', 'segments', or 'room_list' attribute
- *
- * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
+ * Parse a single room data source into VacuumRoom array.
+ * Handles multiple formats:
+ * - Direct array: [{ id: 1, name: "Kitchen" }, ...]
+ * - Simple object: { 1: "Kitchen", 2: "Living Room", ... }
+ * - Nested/Dreame format: { "Map Name": [{ id: 1, name: "Kitchen" }, ...] }
  */
-export function parseVacuumRooms(
-  attributes: VacuumDeviceAttributes,
-): VacuumRoom[] {
-  const roomsData =
-    attributes.rooms ?? attributes.segments ?? attributes.room_list;
-
+function parseRoomData(roomsData: unknown): VacuumRoom[] {
   if (!roomsData) {
     return [];
   }
 
-  // Handle array format
+  // Handle direct array format
   if (Array.isArray(roomsData)) {
     return roomsData
       .filter((room): room is VacuumRoom => {
@@ -42,20 +35,52 @@ export function parseVacuumRooms(
       }));
   }
 
-  // Handle Record/Object format: { id: name, ... }
-  if (typeof roomsData === "object") {
+  // Handle object formats
+  if (typeof roomsData === "object" && roomsData !== null) {
     const rooms: VacuumRoom[] = [];
     for (const [key, value] of Object.entries(roomsData)) {
+      // Format 1: Simple object { id: name, ... }
       if (typeof value === "string") {
-        // Key could be numeric string or actual string
         const id = /^\d+$/.test(key) ? Number.parseInt(key, 10) : key;
-        rooms.push({
-          id,
-          name: value,
-        });
+        rooms.push({ id, name: value });
+      }
+      // Format 2: Nested/Dreame format { "Map Name": [rooms...] }
+      // The key is the map name, value is an array of room objects
+      else if (Array.isArray(value)) {
+        const nestedRooms = parseRoomData(value);
+        rooms.push(...nestedRooms);
       }
     }
     return rooms;
+  }
+
+  return [];
+}
+
+/**
+ * Parse vacuum rooms from various attribute formats.
+ * Different integrations store rooms in different formats:
+ * - Array of VacuumRoom objects: [{ id: 1, name: "Kitchen" }, ...]
+ * - Record/Object: { 1: "Kitchen", 2: "Living Room", ... }
+ * - Nested/Dreame: { "Map Name": [{ id: 1, name: "Room" }, ...] }
+ * - May be in 'rooms', 'segments', or 'room_list' attribute
+ *
+ * Tries each attribute in order and returns the first one with valid rooms.
+ *
+ * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
+ */
+export function parseVacuumRooms(
+  attributes: VacuumDeviceAttributes,
+): VacuumRoom[] {
+  // Try each attribute source in order, return first one with valid rooms
+  // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
+  const sources = [attributes.rooms, attributes.segments, attributes.room_list];
+
+  for (const source of sources) {
+    const rooms = parseRoomData(source);
+    if (rooms.length > 0) {
+      return rooms;
+    }
   }
 
   return [];
