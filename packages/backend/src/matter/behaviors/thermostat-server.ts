@@ -409,13 +409,18 @@ export class ThermostatServerBase extends FeaturedBase {
   }
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {
-    const systemMode = this.state.config.getSystemMode(
-      entity.state,
-      this.agent,
-    );
-    // Auto systemMode is supported even without AutoMode feature.
-    // The AutoMode feature only adds thermostatRunningMode attribute which we don't need.
-    // By keeping systemMode as Auto, Matter controllers can properly display auto mode.
+    let systemMode = this.state.config.getSystemMode(entity.state, this.agent);
+    // CRITICAL: Without AutoMode feature, we MUST map Auto to Heat or Cool.
+    // Matter.js cannot handle SystemMode.Auto without the AutoMode feature enabled.
+    // This was the working behavior in v1.10.6 before commits d348265 and 0a4af9e broke it.
+    // The AutoMode feature is intentionally not included due to Matter.js issue #3105.
+    if (systemMode === Thermostat.SystemMode.Auto) {
+      systemMode = this.features.heating
+        ? SystemMode.Heat
+        : this.features.cooling
+          ? SystemMode.Cool
+          : SystemMode.Off;
+    }
     return systemMode;
   }
 
