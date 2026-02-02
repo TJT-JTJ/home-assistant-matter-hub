@@ -139,29 +139,30 @@ export class ThermostatServerBase extends FeaturedBase {
     // This ensures Apple Home shows the correct temperature range for single-mode thermostats
     // while still working correctly for dual-mode thermostats.
 
+    // Wide limits used as fallback when HA doesn't provide limits (0-50°C = 0-5000 in 0.01°C units)
+    const WIDE_MIN = 0; // 0°C
+    const WIDE_MAX = 5000; // 50°C
+
     let minHeatLimit: number | undefined;
     let minCoolLimit: number | undefined;
     let maxHeatLimit: number | undefined;
     let maxCoolLimit: number | undefined;
 
     if (this.features.heating && this.features.cooling) {
-      // DUAL-MODE: Use wide limits like Matterbridge (0-50°C = 0-5000 in 0.01°C units)
+      // DUAL-MODE: Use wide limits like Matterbridge
       // This avoids Matter.js deadband constraints and lets HA do the validation
-      const WIDE_MIN = 0; // 0°C
-      const WIDE_MAX = 5000; // 50°C
-
       minHeatLimit = WIDE_MIN;
       maxHeatLimit = WIDE_MAX;
       minCoolLimit = WIDE_MIN;
       maxCoolLimit = WIDE_MAX;
     } else if (this.features.heating && !this.features.cooling) {
-      // HEAT-ONLY: Use HA's actual limits directly
-      minHeatLimit = minSetpointLimit;
-      maxHeatLimit = maxSetpointLimit;
+      // HEAT-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+      minHeatLimit = minSetpointLimit ?? WIDE_MIN;
+      maxHeatLimit = maxSetpointLimit ?? WIDE_MAX;
     } else if (this.features.cooling && !this.features.heating) {
-      // COOL-ONLY: Use HA's actual limits directly
-      minCoolLimit = minSetpointLimit;
-      maxCoolLimit = maxSetpointLimit;
+      // COOL-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+      minCoolLimit = minSetpointLimit ?? WIDE_MIN;
+      maxCoolLimit = maxSetpointLimit ?? WIDE_MAX;
     }
 
     // For single-mode, use HA limits for clamping; for dual-mode use wide limits
@@ -466,29 +467,24 @@ export class ThermostatServerBase extends FeaturedBase {
     value: number | undefined,
     min: number | undefined,
     max: number | undefined,
-    _type: "heat" | "cool",
-  ): number | undefined {
-    // If no limits defined, return value as-is
-    if (min == null && max == null) {
-      return value;
-    }
+    type: "heat" | "cool",
+  ): number {
+    // Use reasonable defaults if limits not provided
+    const effectiveMin = min ?? 0; // 0°C
+    const effectiveMax = max ?? 5000; // 50°C
 
-    // If value is undefined, use the minimum limit as default
-    // This prevents NaN issues when HA doesn't provide a setpoint
+    // If value is undefined, use a reasonable default based on type
+    // Heat defaults to 20°C (2000), Cool defaults to 24°C (2400)
     if (value == null) {
-      return min;
+      const defaultValue = type === "heat" ? 2000 : 2400;
+      logger.debug(
+        `${type} setpoint is undefined, using default: ${defaultValue}`,
+      );
+      return Math.max(effectiveMin, Math.min(effectiveMax, defaultValue));
     }
 
     // Clamp value to be within limits
-    let clamped = value;
-    if (min != null && clamped < min) {
-      clamped = min;
-    }
-    if (max != null && clamped > max) {
-      clamped = max;
-    }
-
-    return clamped;
+    return Math.max(effectiveMin, Math.min(effectiveMax, value));
   }
 }
 
