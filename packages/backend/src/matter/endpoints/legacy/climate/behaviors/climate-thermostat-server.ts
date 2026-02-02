@@ -14,7 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistan
 import {
   ThermostatServer,
   type ThermostatServerConfig,
-  type ThermostatServerFeatures,
+  type ThermostatServerInitialState,
 } from "../../../../behaviors/thermostat-server.js";
 
 const getUnit = (agent: Agent) =>
@@ -143,16 +143,18 @@ const config: ThermostatServerConfig = {
   }),
 };
 /**
- * Creates a ClimateThermostatServer with the specified features.
+ * Creates a ClimateThermostatServer with the specified initial state.
  *
- * IMPORTANT: Do NOT call .with() on the returned class! The features must be
- * specified here because .with() creates a new class without the defaults
- * that prevent NaN validation errors during Matter.js initialization.
+ * CRITICAL: The initial state values are passed DIRECTLY to Matter.js during
+ * behavior registration. This prevents NaN validation errors because Matter.js
+ * validates setpoints BEFORE our initialize() method runs.
  *
- * @param features - Which features to enable (heating, cooling, or both)
+ * Pattern from Matterbridge: Pass ALL thermostat attributes during registration.
+ *
+ * @param initialState - Initial attribute values (temperature, setpoints, limits)
  */
 export function ClimateThermostatServer(
-  features: ThermostatServerFeatures = { heating: true, cooling: true },
+  initialState: ThermostatServerInitialState = {},
 ) {
-  return ThermostatServer(config, features);
+  return ThermostatServer(config, initialState);
 }

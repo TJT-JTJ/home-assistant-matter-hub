@@ -552,27 +552,61 @@ export interface ThermostatServerFeatures {
 }
 
 /**
- * Creates a ThermostatServer behavior with the specified config and features.
+ * Initial state values for the thermostat.
+ * These MUST be provided when creating the behavior to prevent NaN validation errors.
+ * Matter.js validates setpoints during initialization BEFORE our initialize() runs.
+ */
+export interface ThermostatServerInitialState {
+  /** Local temperature in 0.01°C units (e.g., 2100 = 21°C). Default: 2100 */
+  localTemperature?: number;
+  /** Heating setpoint in 0.01°C units (e.g., 2000 = 20°C). Default: 2000 */
+  occupiedHeatingSetpoint?: number;
+  /** Cooling setpoint in 0.01°C units (e.g., 2400 = 24°C). Default: 2400 */
+  occupiedCoolingSetpoint?: number;
+  /** Minimum heat setpoint limit. Default: 0 (0°C) */
+  minHeatSetpointLimit?: number;
+  /** Maximum heat setpoint limit. Default: 5000 (50°C) */
+  maxHeatSetpointLimit?: number;
+  /** Minimum cool setpoint limit. Default: 0 (0°C) */
+  minCoolSetpointLimit?: number;
+  /** Maximum cool setpoint limit. Default: 5000 (50°C) */
+  maxCoolSetpointLimit?: number;
+}
+
+/**
+ * Creates a ThermostatServer behavior with the specified config and initial state.
  *
- * IMPORTANT: Do NOT call .with() on the returned class! The features must be
- * specified here because .with() creates a new class without the defaults
- * that prevent NaN validation errors during Matter.js initialization.
+ * CRITICAL: The initialState values are passed DIRECTLY to Matter.js during behavior
+ * registration. This is the ONLY way to prevent NaN validation errors, because
+ * Matter.js validates setpoints BEFORE our initialize() method runs.
  *
- * @param config - The thermostat server configuration
- * @param features - Which features to enable (heating, cooling, or both). Defaults to both.
+ * Pattern copied from Matterbridge (https://github.com/Luligu/matterbridge):
+ * They pass ALL thermostat attributes directly to behaviors.require() call.
+ *
+ * @param config - The thermostat server configuration (getters/setters for HA)
+ * @param initialState - Initial attribute values. MUST include valid setpoints!
  */
 export function ThermostatServer(
   config: ThermostatServerConfig,
-  _features: ThermostatServerFeatures = { heating: true, cooling: true },
+  initialState: ThermostatServerInitialState = {},
 ) {
-  // ThermostatServerBase always has HeatingCooling features.
-  // The defaults are already set via defaultState on FeaturedBase.
-  // We just add the config here.
-  //
-  // NOTE: The features parameter is currently not used to change the base class
-  // because ThermostatServerBase extends HeatingCoolingFeaturedBase.
-  // The features are used at runtime in initialize() via this.features.
-  // This is a limitation we accept for now - all thermostats expose both
-  // heating and cooling attributes, but only respond to the ones they support.
-  return ThermostatServerBase.set({ config });
+  // Merge provided initial state with defaults
+  // These values are passed DIRECTLY to Matter.js during registration,
+  // ensuring they are available BEFORE any validation runs.
+  const state = {
+    config,
+    localTemperature: initialState.localTemperature ?? 2100,
+    occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+    occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+    minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+    maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+    minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+    maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+    absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+    absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+    absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+    absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+  };
+
+  return ThermostatServerBase.set(state);
 }
