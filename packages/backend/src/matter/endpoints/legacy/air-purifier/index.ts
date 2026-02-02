@@ -12,12 +12,31 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { FanFanControlServer } from "../fan/behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "../fan/behaviors/fan-on-off-server.js";
+import { AirPurifierHepaFilterMonitoringServer } from "./behaviors/air-purifier-hepa-filter-monitoring-server.js";
+
+// Extended attributes interface for filter life support
+interface AirPurifierAttributes extends FanDeviceAttributes {
+  filter_life?: number;
+  filter_life_remaining?: number;
+  filter_life_level?: number;
+}
+
+/**
+ * Check if the entity has filter life information available.
+ */
+function hasFilterLifeAttribute(attributes: AirPurifierAttributes): boolean {
+  return (
+    attributes.filter_life != null ||
+    attributes.filter_life_remaining != null ||
+    attributes.filter_life_level != null
+  );
+}
 
 export function AirPurifierEndpoint(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const attributes = homeAssistantEntity.entity.state
-    .attributes as FanDeviceAttributes;
+    .attributes as AirPurifierAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
 
   const features: FeatureSelection<FanControl.Cluster> = new Set();
@@ -32,12 +51,22 @@ export function AirPurifierEndpoint(
     features.add("AirflowDirection");
   }
 
-  const device = Device.with(
+  // Base device with fan control behaviors
+  const baseDevice = Device.with(
     IdentifyServer,
     BasicInformationServer,
     HomeAssistantEntityBehavior,
     FanOnOffServer,
     FanFanControlServer.with(...features),
   );
-  return device.set({ homeAssistantEntity });
+
+  // Add HEPA filter monitoring if filter life attribute is available
+  if (hasFilterLifeAttribute(attributes)) {
+    const deviceWithFilter = baseDevice.with(
+      AirPurifierHepaFilterMonitoringServer,
+    );
+    return deviceWithFilter.set({ homeAssistantEntity });
+  }
+
+  return baseDevice.set({ homeAssistantEntity });
 }
