@@ -84,6 +84,16 @@ export interface ThermostatServerConfig {
 export class ThermostatServerBase extends FeaturedBase {
   declare state: ThermostatServerBase.State;
 
+  // CRITICAL: Define State class with defaults as static property.
+  // This is the Matter.js pattern for ensuring defaults are applied during
+  // behavior instantiation, BEFORE any validation runs.
+  static override State = class State extends FeaturedBase.State {
+    config!: ThermostatServerConfig;
+    // Default setpoints to prevent NaN validation errors
+    override occupiedHeatingSetpoint: number = 2000; // 20°C
+    override occupiedCoolingSetpoint: number = 2400; // 24°C
+  };
+
   override async initialize() {
     // CRITICAL: Set controlSequenceOfOperation BEFORE super.initialize() runs
     // because the value depends on which features are enabled, and Matter.js
@@ -525,14 +535,7 @@ export class ThermostatServerBase extends FeaturedBase {
 }
 
 export namespace ThermostatServerBase {
-  export class State extends FeaturedBase.State {
-    config!: ThermostatServerConfig;
-    // CRITICAL: Define defaults directly in State class to ensure they are set
-    // BEFORE Matter.js validates attributes during cluster initialization.
-    // The factory function defaults are applied too late.
-    override occupiedHeatingSetpoint: number = 2000; // 20°C default
-    override occupiedCoolingSetpoint: number = 2400; // 24°C default
-  }
+  export type State = InstanceType<typeof ThermostatServerBase.State>;
 }
 
 export interface ThermostatServerFeatures {
