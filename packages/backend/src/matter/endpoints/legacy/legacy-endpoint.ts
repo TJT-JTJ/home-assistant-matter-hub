@@ -4,6 +4,7 @@ import type {
 } from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
+  Logger,
   TransactionDestroyedError,
 } from "@matter/general";
 import type { EndpointType } from "@matter/main";
@@ -13,6 +14,8 @@ import type { HomeAssistantStates } from "../../../services/home-assistant/home-
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { EntityEndpoint } from "../../endpoints/entity-endpoint.js";
 import { createLegacyEndpointType } from "./create-legacy-endpoint-type.js";
+
+const logger = Logger.get("LegacyEndpoint");
 
 /**
  * @deprecated
@@ -74,6 +77,9 @@ export class LegacyEndpoint extends EntityEndpoint {
       return;
     }
 
+    logger.debug(
+      `State update received for ${this.entityId}: state=${state.state}`,
+    );
     this.lastState = state;
     this.flushUpdate(state);
   }

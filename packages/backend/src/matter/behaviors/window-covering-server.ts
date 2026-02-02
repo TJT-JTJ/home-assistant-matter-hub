@@ -2,6 +2,7 @@ import type {
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import {
   WindowCoveringServer as Base,
   MovementDirection,
@@ -15,6 +16,8 @@ import {
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("WindowCoveringServer");
 
 import MovementStatus = WindowCovering.MovementStatus;
 
@@ -105,55 +108,68 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
     const currentTilt100ths = currentTilt != null ? currentTilt * 100 : null;
 
-    applyPatchState<WindowCoveringServerBase.State>(this.state, {
-      type:
-        this.features.lift && this.features.tilt
-          ? WindowCovering.WindowCoveringType.TiltBlindLift
-          : this.features.tilt
-            ? WindowCovering.WindowCoveringType.TiltBlindTiltOnly
-            : WindowCovering.WindowCoveringType.Rollershade,
-      endProductType:
-        this.features.lift && this.features.tilt
-          ? WindowCovering.EndProductType.SheerShade
-          : this.features.tilt
-            ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
-            : WindowCovering.EndProductType.RollerShade,
-      operationalStatus: {
-        global: movementStatus,
-        ...(this.features.lift ? { lift: movementStatus } : {}),
-        ...(this.features.tilt ? { tilt: movementStatus } : {}),
+    logger.debug(
+      `Cover update for ${entity.entity_id}: state=${state.state}, lift=${currentLift}%, tilt=${currentTilt}%, movement=${MovementStatus[movementStatus]}`,
+    );
+
+    const appliedPatch = applyPatchState<WindowCoveringServerBase.State>(
+      this.state,
+      {
+        type:
+          this.features.lift && this.features.tilt
+            ? WindowCovering.WindowCoveringType.TiltBlindLift
+            : this.features.tilt
+              ? WindowCovering.WindowCoveringType.TiltBlindTiltOnly
+              : WindowCovering.WindowCoveringType.Rollershade,
+        endProductType:
+          this.features.lift && this.features.tilt
+            ? WindowCovering.EndProductType.SheerShade
+            : this.features.tilt
+              ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
+              : WindowCovering.EndProductType.RollerShade,
+        operationalStatus: {
+          global: movementStatus,
+          ...(this.features.lift ? { lift: movementStatus } : {}),
+          ...(this.features.tilt ? { tilt: movementStatus } : {}),
+        },
+        ...(this.features.absolutePosition && this.features.lift
+          ? {
+              installedOpenLimitLift: 0,
+              installedClosedLimitLift: 100_00,
+              currentPositionLift: currentLift100ths,
+            }
+          : {}),
+        ...(this.features.absolutePosition && this.features.tilt
+          ? {
+              installedOpenLimitTilt: 0,
+              installedClosedLimitTilt: 100_00,
+              currentPositionTilt: currentTilt100ths,
+            }
+          : {}),
+        ...(this.features.positionAwareLift
+          ? {
+              currentPositionLiftPercentage: currentLift,
+              currentPositionLiftPercent100ths: currentLift100ths,
+              targetPositionLiftPercent100ths:
+                this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
+            }
+          : {}),
+        ...(this.features.positionAwareTilt
+          ? {
+              currentPositionTiltPercentage: currentTilt,
+              currentPositionTiltPercent100ths: currentTilt100ths,
+              targetPositionTiltPercent100ths:
+                this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
+            }
+          : {}),
       },
-      ...(this.features.absolutePosition && this.features.lift
-        ? {
-            installedOpenLimitLift: 0,
-            installedClosedLimitLift: 100_00,
-            currentPositionLift: currentLift100ths,
-          }
-        : {}),
-      ...(this.features.absolutePosition && this.features.tilt
-        ? {
-            installedOpenLimitTilt: 0,
-            installedClosedLimitTilt: 100_00,
-            currentPositionTilt: currentTilt100ths,
-          }
-        : {}),
-      ...(this.features.positionAwareLift
-        ? {
-            currentPositionLiftPercentage: currentLift,
-            currentPositionLiftPercent100ths: currentLift100ths,
-            targetPositionLiftPercent100ths:
-              this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
-          }
-        : {}),
-      ...(this.features.positionAwareTilt
-        ? {
-            currentPositionTiltPercentage: currentTilt,
-            currentPositionTiltPercent100ths: currentTilt100ths,
-            targetPositionTiltPercent100ths:
-              this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
-          }
-        : {}),
-    });
+    );
+
+    if (Object.keys(appliedPatch).length > 0) {
+      logger.info(
+        `Cover ${entity.entity_id} state changed: ${JSON.stringify(appliedPatch)}`,
+      );
+    }
   }
 
   override async handleMovement(

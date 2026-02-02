@@ -1,3 +1,7 @@
+import { Logger } from "@matter/general";
+
+const logger = Logger.get("ApplyPatchState");
+
 /**
  * Safely applies a patch to state, handling transaction contexts properly.
  *
@@ -47,6 +51,9 @@ function applyPatch<T extends object>(state: T, patch: Partial<T>): Partial<T> {
         "Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint",
       )
     ) {
+      logger.debug(
+        `Suppressed endpoint storage error, patch not applied: ${JSON.stringify(actualPatch)}`,
+      );
       return actualPatch;
     }
     // Suppress synchronous transaction conflicts that occur when a reactor
@@ -54,6 +61,9 @@ function applyPatch<T extends object>(state: T, patch: Partial<T>): Partial<T> {
     // This can happen during rapid state changes (e.g., cover position updates).
     // The state will be corrected on the next HA state update.
     if (errorMessage.includes("synchronous-transaction-conflict")) {
+      logger.warn(
+        `Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`,
+      );
       return actualPatch;
     }
     throw new Error(
