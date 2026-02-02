@@ -188,6 +188,25 @@ All stable features plus:
 **🔧 Binary Sensor**
 - **Update Device Class** - New `update` device class mapping for binary sensors
 
+### Alpha Fixes (pending cherry-pick to main) 🍒
+
+> [!TIP]
+> These fixes are in alpha and will be cherry-picked to main in the next stable release.
+
+| Commit | Issue | Description | Cherry-pick |
+|--------|-------|-------------|-------------|
+| `e609988` | [#74](https://github.com/RiDDiX/home-assistant-matter-hub/issues/74), [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82) | **Invalid intervalMs Crash Fix** - Suppress Matter.js subscription timing errors that caused FATAL crashes | `git cherry-pick e609988` |
+| `1f53a24` | [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82) | **Entity Isolation Service** - Automatically isolate problematic entities at runtime instead of crashing the bridge | `git cherry-pick 1f53a24` |
+| `68c7cb1` | [#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71) | **Thermostat Auto Mode Fix** - Auto mode now correctly displays on Matter controllers (was showing "Heat") | `git cherry-pick 68c7cb1` |
+
+**Other alpha changes (not yet ready for main):**
+
+| Commit | Issue | Description |
+|--------|-------|-------------|
+| `e609988` | [#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76) | **WindowCover Position** - Set target position immediately to prevent duplicate commands |
+| `e609988` | [#79](https://github.com/RiDDiX/home-assistant-matter-hub/issues/79) | **Speaker Volume Debug** - Added debug logging for volume conversion (Matter 1-254 spec confirmed) |
+| `e609988` | [#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80) | **Bridge Sorting UI** - Added sort dropdown (Name/Created, Asc/Desc) to Bridge Status |
+
 ### Testing Features (v4.1.0-testing) ⚠️
 
 > [!CAUTION]
