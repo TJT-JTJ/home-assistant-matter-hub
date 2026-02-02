@@ -22,6 +22,11 @@ export interface RvcRunModeServerConfig {
   cleanRoom?: ValueSetter<number>;
 }
 
+export interface RvcRunModeServerInitialState {
+  supportedModes: RvcRunMode.ModeOption[];
+  currentMode: number;
+}
+
 /** Base mode value for room-specific cleaning modes */
 export const ROOM_MODE_BASE = 100;
 
@@ -35,38 +40,10 @@ class RvcRunModeServerBase extends Base {
   declare state: RvcRunModeServerBase.State;
 
   override async initialize() {
-    // Load HomeAssistantEntityBehavior FIRST to get initial entity data
-    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
-
-    // Set supportedModes with room data BEFORE super.initialize()
-    // Matter controllers cache supportedModes at pairing time, so they must be set early
-    if (homeAssistant.entity.state) {
-      this.state.supportedModes = this.state.config.getSupportedModes(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-      this.state.currentMode = this.state.config.getCurrentMode(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-    } else {
-      // Fallback to base modes if entity state not yet available
-      this.state.supportedModes = [
-        {
-          label: "Idle",
-          mode: RvcSupportedRunMode.Idle,
-          modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
-        },
-        {
-          label: "Cleaning",
-          mode: RvcSupportedRunMode.Cleaning,
-          modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
-        },
-      ];
-      this.state.currentMode = RvcSupportedRunMode.Idle;
-    }
-
+    // supportedModes and currentMode are set via .set() BEFORE initialize is called
+    // This ensures Matter.js has the modes at pairing time
     await super.initialize();
+    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
   }
@@ -127,6 +104,30 @@ namespace RvcRunModeServerBase {
   }
 }
 
-export function RvcRunModeServer(config: RvcRunModeServerConfig) {
-  return RvcRunModeServerBase.set({ config });
+/**
+ * Create an RvcRunMode behavior with initial state.
+ * The initialState MUST include supportedModes - Matter.js requires this at pairing time.
+ */
+export function RvcRunModeServer(
+  config: RvcRunModeServerConfig,
+  initialState?: RvcRunModeServerInitialState,
+) {
+  const defaultModes: RvcRunMode.ModeOption[] = [
+    {
+      label: "Idle",
+      mode: RvcSupportedRunMode.Idle,
+      modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
+    },
+    {
+      label: "Cleaning",
+      mode: RvcSupportedRunMode.Cleaning,
+      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+    },
+  ];
+
+  return RvcRunModeServerBase.set({
+    config,
+    supportedModes: initialState?.supportedModes ?? defaultModes,
+    currentMode: initialState?.currentMode ?? RvcSupportedRunMode.Idle,
+  });
 }

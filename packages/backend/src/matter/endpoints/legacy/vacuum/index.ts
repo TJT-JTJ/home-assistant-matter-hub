@@ -11,16 +11,16 @@ import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
-import { VacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
-import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
-import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
+import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
+
+// import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
+// import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
 
 const VacuumEndpointType = RoboticVacuumCleanerDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
   VacuumRvcOperationalStateServer,
-  VacuumRvcRunModeServer,
 );
 
 export function VacuumDevice(
@@ -33,7 +33,12 @@ export function VacuumDevice(
   const attributes = homeAssistantEntity.entity.state
     .attributes as VacuumDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
-  let device = VacuumEndpointType.set({ homeAssistantEntity });
+
+  // Add RvcRunModeServer with initial supportedModes (including room modes if available)
+  let device = VacuumEndpointType.with(
+    createVacuumRvcRunModeServer(attributes),
+  ).set({ homeAssistantEntity });
+
   if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
     device = device.with(VacuumOnOffServer);
   }
@@ -47,11 +52,11 @@ export function VacuumDevice(
 
   // Add ServiceArea cluster if rooms/segments are available
   // This enables room selection in Apple Home (Matter 1.4 feature)
-  const rooms = parseVacuumRooms(attributes);
-  if (rooms.length > 0) {
-    // Create ServiceArea with initial supportedAreas - Matter.js requires this at pairing time
-    device = device.with(createVacuumServiceAreaServer(attributes));
-  }
+  // TODO: Temporarily disabled to debug "Behaviors have errors" - testing if RvcRunMode is the culprit
+  // const rooms = parseVacuumRooms(attributes);
+  // if (rooms.length > 0) {
+  //   device = device.with(createVacuumServiceAreaServer(attributes));
+  // }
 
   return device;
 }

@@ -16,46 +16,61 @@ import {
   parseVacuumRooms,
 } from "../utils/parse-vacuum-rooms.js";
 
-export const VacuumRvcRunModeServer = RvcRunModeServer({
-  getCurrentMode: (entity) =>
+/**
+ * Build supported modes from vacuum attributes.
+ * This includes base modes (Idle, Cleaning) plus room-specific modes if available.
+ */
+function buildSupportedModes(
+  attributes: VacuumDeviceAttributes,
+): RvcRunMode.ModeOption[] {
+  const modes: RvcRunMode.ModeOption[] = [
+    {
+      label: "Idle",
+      mode: RvcSupportedRunMode.Idle,
+      modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
+    },
+    {
+      label: "Cleaning",
+      mode: RvcSupportedRunMode.Cleaning,
+      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+    },
+  ];
+
+  const rooms = parseVacuumRooms(attributes);
+  for (let i = 0; i < rooms.length; i++) {
+    const room = rooms[i];
+    modes.push({
+      label: `Clean ${room.name}`,
+      mode: getRoomModeValue(i),
+      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+    });
+  }
+
+  return modes;
+}
+
+const vacuumRvcRunModeConfig = {
+  getCurrentMode: (entity: { state: string }) =>
     [VacuumState.cleaning].includes(entity.state as VacuumState)
       ? RvcSupportedRunMode.Cleaning
       : RvcSupportedRunMode.Idle,
 
-  getSupportedModes: (entity) => {
-    const baseModes: RvcRunMode.ModeOption[] = [
-      {
-        label: "Idle",
-        mode: RvcSupportedRunMode.Idle,
-        modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
-      },
-      {
-        label: "Cleaning",
-        mode: RvcSupportedRunMode.Cleaning,
-        modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
-      },
-    ];
-
+  getSupportedModes: (entity: { attributes: unknown }) => {
     const attributes = entity.attributes as VacuumDeviceAttributes;
-    const rooms = parseVacuumRooms(attributes);
-
-    if (rooms.length > 0) {
-      for (let i = 0; i < rooms.length; i++) {
-        const room = rooms[i];
-        baseModes.push({
-          label: `Clean ${room.name}`,
-          mode: getRoomModeValue(i),
-          modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
-        });
-      }
-    }
-
-    return baseModes;
+    return buildSupportedModes(attributes);
   },
 
   start: () => ({ action: "vacuum.start" }),
   returnToBase: () => ({ action: "vacuum.return_to_base" }),
-  pause: (_, agent) => {
+  // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
+  pause: (
+    _: void,
+    agent: {
+      get: (
+        type: typeof HomeAssistantEntityBehavior,
+      ) => HomeAssistantEntityBehavior;
+    },
+  ) => {
     const supportedFeatures =
       agent.get(HomeAssistantEntityBehavior).entity.state.attributes
         .supported_features ?? 0;
@@ -65,7 +80,14 @@ export const VacuumRvcRunModeServer = RvcRunModeServer({
     return { action: "vacuum.stop" };
   },
 
-  cleanRoom: (roomMode: number, agent) => {
+  cleanRoom: (
+    roomMode: number,
+    agent: {
+      get: (
+        type: typeof HomeAssistantEntityBehavior,
+      ) => HomeAssistantEntityBehavior;
+    },
+  ) => {
     const entity = agent.get(HomeAssistantEntityBehavior).entity;
     const attributes = entity.state.attributes as VacuumDeviceAttributes;
     const rooms = parseVacuumRooms(attributes);
@@ -83,4 +105,22 @@ export const VacuumRvcRunModeServer = RvcRunModeServer({
     }
     return { action: "vacuum.start" };
   },
-});
+};
+
+/**
+ * Create a VacuumRvcRunModeServer with initial supportedModes.
+ * The modes MUST be provided at creation time for Matter.js initialization.
+ */
+export function createVacuumRvcRunModeServer(
+  attributes: VacuumDeviceAttributes,
+) {
+  const supportedModes = buildSupportedModes(attributes);
+
+  return RvcRunModeServer(vacuumRvcRunModeConfig, {
+    supportedModes,
+    currentMode: RvcSupportedRunMode.Idle,
+  });
+}
+
+/** @deprecated Use createVacuumRvcRunModeServer instead */
+export const VacuumRvcRunModeServer = RvcRunModeServer(vacuumRvcRunModeConfig);
