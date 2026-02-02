@@ -70,6 +70,16 @@ export class ThermostatServerBase extends FeaturedBase {
           ? Thermostat.ControlSequenceOfOperation.CoolingOnly
           : Thermostat.ControlSequenceOfOperation.HeatingOnly;
 
+    // CRITICAL: Set default setpoints BEFORE super.initialize() to prevent
+    // Matter.js validation errors. Matter.js validates setpoints during initialization
+    // and will fail with NaN if they are undefined.
+    if (this.features.heating && this.state.occupiedHeatingSetpoint == null) {
+      this.state.occupiedHeatingSetpoint = 2000; // 20°C default
+    }
+    if (this.features.cooling && this.state.occupiedCoolingSetpoint == null) {
+      this.state.occupiedCoolingSetpoint = 2400; // 24°C default
+    }
+
     await super.initialize();
 
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
