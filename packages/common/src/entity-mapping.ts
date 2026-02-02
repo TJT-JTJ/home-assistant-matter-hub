@@ -39,6 +39,12 @@ export interface EntityMappingConfig {
   readonly matterDeviceType?: MatterDeviceType;
   readonly customName?: string;
   readonly disabled?: boolean;
+  /**
+   * Optional: Entity ID of a sensor that provides filter life percentage (0-100).
+   * Used for Air Purifiers to show HEPA filter life in Matter controllers.
+   * Example: "sensor.luftreiniger_filter_life"
+   */
+  readonly filterLifeEntity?: string;
 }
 
 export interface EntityMappingRequest {
@@ -47,6 +53,7 @@ export interface EntityMappingRequest {
   readonly matterDeviceType?: MatterDeviceType;
   readonly customName?: string;
   readonly disabled?: boolean;
+  readonly filterLifeEntity?: string;
 }
 
 export interface EntityMappingResponse {

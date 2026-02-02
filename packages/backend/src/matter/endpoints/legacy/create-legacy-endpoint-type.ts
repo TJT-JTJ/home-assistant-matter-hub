@@ -53,7 +53,7 @@ export function createLegacyEndpointType(
   if (mapping?.matterDeviceType) {
     const overrideFactory = matterDeviceTypeFactories[mapping.matterDeviceType];
     if (overrideFactory) {
-      return overrideFactory({ entity, customName });
+      return overrideFactory({ entity, customName, mapping });
     }
   }
 
@@ -61,7 +61,7 @@ export function createLegacyEndpointType(
   if (!factory) {
     return undefined;
   }
-  return factory({ entity, customName });
+  return factory({ entity, customName, mapping });
 }
 
 const deviceCtrs: Partial<

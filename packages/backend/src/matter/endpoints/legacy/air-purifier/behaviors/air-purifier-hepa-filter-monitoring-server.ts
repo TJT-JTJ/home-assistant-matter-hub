@@ -1,8 +1,10 @@
 import type { FanDeviceAttributes } from "@home-assistant-matter-hub/common";
+import { EntityStateProvider } from "../../../../../services/bridges/entity-state-provider.js";
 import {
   type HepaFilterMonitoringConfig,
   HepaFilterMonitoringServer,
 } from "../../../../behaviors/hepa-filter-monitoring-server.js";
+import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 
 const attributes = (entity: { attributes: unknown }) =>
   entity.attributes as FanDeviceAttributes & {
@@ -12,20 +14,32 @@ const attributes = (entity: { attributes: unknown }) =>
   };
 
 const config: HepaFilterMonitoringConfig = {
-  getFilterLifePercent: (entity) => {
+  getFilterLifePercent: (entity, agent) => {
     const attrs = attributes(entity);
-    // Try various attribute names used by different integrations
-    const filterLife =
+
+    // First, try direct attributes on the fan entity
+    const directFilterLife =
       attrs.filter_life ??
       attrs.filter_life_remaining ??
       attrs.filter_life_level;
 
-    if (filterLife == null) {
-      return null;
+    if (directFilterLife != null) {
+      return Math.max(0, Math.min(100, directFilterLife));
     }
 
-    // Ensure value is in 0-100 range
-    return Math.max(0, Math.min(100, filterLife));
+    // Second, try mapped filter life sensor entity
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const filterLifeEntity = homeAssistant.state.mapping?.filterLifeEntity;
+
+    if (filterLifeEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const sensorValue = stateProvider.getNumericState(filterLifeEntity);
+      if (sensorValue != null) {
+        return Math.max(0, Math.min(100, sensorValue));
+      }
+    }
+
+    return null;
   },
 };
 

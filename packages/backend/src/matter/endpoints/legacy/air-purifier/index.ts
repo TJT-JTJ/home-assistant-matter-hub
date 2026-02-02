@@ -22,14 +22,26 @@ interface AirPurifierAttributes extends FanDeviceAttributes {
 }
 
 /**
- * Check if the entity has filter life information available.
+ * Check if filter life information is available.
+ * Either as an attribute on the entity or via a mapped sensor entity.
  */
-function hasFilterLifeAttribute(attributes: AirPurifierAttributes): boolean {
-  return (
+function hasFilterLifeSupport(
+  attributes: AirPurifierAttributes,
+  mapping?: HomeAssistantEntityBehavior.State["mapping"],
+): boolean {
+  // Check for direct attribute on the fan entity
+  if (
     attributes.filter_life != null ||
     attributes.filter_life_remaining != null ||
     attributes.filter_life_level != null
-  );
+  ) {
+    return true;
+  }
+  // Check for mapped filter life sensor entity
+  if (mapping?.filterLifeEntity) {
+    return true;
+  }
+  return false;
 }
 
 export function AirPurifierEndpoint(
@@ -38,6 +50,7 @@ export function AirPurifierEndpoint(
   const attributes = homeAssistantEntity.entity.state
     .attributes as AirPurifierAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
+  const mapping = homeAssistantEntity.mapping;
 
   const features: FeatureSelection<FanControl.Cluster> = new Set();
   if (testBit(supportedFeatures, FanDeviceFeature.SET_SPEED)) {
@@ -60,8 +73,8 @@ export function AirPurifierEndpoint(
     FanFanControlServer.with(...features),
   );
 
-  // Add HEPA filter monitoring if filter life attribute is available
-  if (hasFilterLifeAttribute(attributes)) {
+  // Add HEPA filter monitoring if filter life is available (attribute or mapped sensor)
+  if (hasFilterLifeSupport(attributes, mapping)) {
     const deviceWithFilter = baseDevice.with(
       AirPurifierHepaFilterMonitoringServer,
     );
