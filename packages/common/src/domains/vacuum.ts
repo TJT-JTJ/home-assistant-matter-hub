@@ -5,6 +5,11 @@ export enum VacuumState {
   error = "error",
   idle = "idle",
   paused = "paused",
+  // Additional states reported by various vacuum integrations
+  segment_cleaning = "segment_cleaning",
+  zone_cleaning = "zone_cleaning",
+  spot_cleaning = "spot_cleaning",
+  mop_cleaning = "mop_cleaning",
 }
 
 export enum VacuumDeviceFeature {
