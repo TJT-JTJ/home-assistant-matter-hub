@@ -24,7 +24,26 @@ import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 // the problematic write. We still support Auto systemMode - the AutoMode feature only adds
 // thermostatRunningMode attribute, not the ability to use SystemMode.Auto.
 // See: https://github.com/matter-js/matter.js/issues/3105
-const FeaturedBase = Base.with("Heating", "Cooling");
+//
+// CRITICAL: Set defaults on the base class BEFORE extending it.
+// Matter.js validates setpoints during cluster initialization, which happens before
+// our initialize() method or State class property initializers run.
+// Using .set() on the featured base ensures defaults are present from the start.
+const FeaturedBase = Base.with("Heating", "Cooling").set({
+  // Defaults to prevent NaN validation errors during initialization
+  localTemperature: 2100, // 21°C
+  occupiedHeatingSetpoint: 2000, // 20°C
+  occupiedCoolingSetpoint: 2400, // 24°C
+  // Wide limits like Matterbridge (0-50°C)
+  minHeatSetpointLimit: 0,
+  maxHeatSetpointLimit: 5000,
+  minCoolSetpointLimit: 0,
+  maxCoolSetpointLimit: 5000,
+  absMinHeatSetpointLimit: 0,
+  absMaxHeatSetpointLimit: 5000,
+  absMinCoolSetpointLimit: 0,
+  absMaxCoolSetpointLimit: 5000,
+});
 
 export interface ThermostatRunningState {
   heat: boolean;
