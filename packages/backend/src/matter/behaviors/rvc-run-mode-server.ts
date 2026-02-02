@@ -35,24 +35,38 @@ class RvcRunModeServerBase extends Base {
   declare state: RvcRunModeServerBase.State;
 
   override async initialize() {
-    // Set initial supportedModes with required Idle tag BEFORE super.initialize()
-    // Matter.js validates that at least one mode has the Idle tag
-    this.state.supportedModes = [
-      {
-        label: "Idle",
-        mode: RvcSupportedRunMode.Idle,
-        modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
-      },
-      {
-        label: "Cleaning",
-        mode: RvcSupportedRunMode.Cleaning,
-        modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
-      },
-    ];
-    this.state.currentMode = RvcSupportedRunMode.Idle;
+    // Load HomeAssistantEntityBehavior FIRST to get initial entity data
+    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
+
+    // Set supportedModes with room data BEFORE super.initialize()
+    // Matter controllers cache supportedModes at pairing time, so they must be set early
+    if (homeAssistant.entity.state) {
+      this.state.supportedModes = this.state.config.getSupportedModes(
+        homeAssistant.entity.state,
+        this.agent,
+      );
+      this.state.currentMode = this.state.config.getCurrentMode(
+        homeAssistant.entity.state,
+        this.agent,
+      );
+    } else {
+      // Fallback to base modes if entity state not yet available
+      this.state.supportedModes = [
+        {
+          label: "Idle",
+          mode: RvcSupportedRunMode.Idle,
+          modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
+        },
+        {
+          label: "Cleaning",
+          mode: RvcSupportedRunMode.Cleaning,
+          modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+        },
+      ];
+      this.state.currentMode = RvcSupportedRunMode.Idle;
+    }
 
     await super.initialize();
-    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
   }
