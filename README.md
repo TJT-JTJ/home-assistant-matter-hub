@@ -188,24 +188,26 @@ All stable features plus:
 **🔧 Binary Sensor**
 - **Update Device Class** - New `update` device class mapping for binary sensors
 
-### Alpha Fixes (pending cherry-pick to main) 🍒
+### Alpha Features & Fixes 🧪
 
 > [!TIP]
-> These fixes are in alpha and will be cherry-picked to main in the next stable release.
+> These features and fixes are available in alpha and will be included in the next stable release.
 
-| Commit | Issue | Description | Cherry-pick |
-|--------|-------|-------------|-------------|
-| `e609988` | [#74](https://github.com/RiDDiX/home-assistant-matter-hub/issues/74), [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82) | **Invalid intervalMs Crash Fix** - Suppress Matter.js subscription timing errors that caused FATAL crashes | `git cherry-pick e609988` |
-| `1f53a24` | [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82) | **Entity Isolation Service** - Automatically isolate problematic entities at runtime instead of crashing the bridge | `git cherry-pick 1f53a24` |
-| `68c7cb1` | [#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71) | **Thermostat Auto Mode Fix** - Auto mode now correctly displays on Matter controllers (was showing "Heat") | `git cherry-pick 68c7cb1` |
+**🌬️ Air Purifier**
+- **HEPA Filter Life Monitoring** - Air Purifiers now show filter life remaining via Matter's HepaFilterMonitoring cluster. Supports `filter_life`, `filter_life_remaining`, and `filter_life_level` attributes.
 
-**Other alpha changes (not yet ready for main):**
+**🤖 Vacuum**
+- **Dreame Room Format Fix** - Room selection now supports nested Dreame format (`rooms: { "Map Name": [...] }`) and properly falls back to `segments` attribute ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
 
-| Commit | Issue | Description |
-|--------|-------|-------------|
-| `e609988` | [#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76) | **WindowCover Position** - Set target position immediately to prevent duplicate commands |
-| `e609988` | [#79](https://github.com/RiDDiX/home-assistant-matter-hub/issues/79) | **Speaker Volume Debug** - Added debug logging for volume conversion (Matter 1-254 spec confirmed) |
-| `e609988` | [#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80) | **Bridge Sorting UI** - Added sort dropdown (Name/Created, Asc/Desc) to Bridge Status |
+**🚪 Cover/Blinds**
+- **Binary Cover Fix** - Garage doors and other binary covers (open/close only) now show Open/Close buttons instead of only a percentage slider in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
+- **WindowCover Position** - Set target position immediately to prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
+
+**🔊 Media**
+- **Speaker Volume Debug** - Added debug logging for volume conversion (Matter 1-254 spec confirmed) ([#79](https://github.com/RiDDiX/home-assistant-matter-hub/issues/79))
+
+**🎨 UI/UX**
+- **Bridge Sorting** - Added sort dropdown (Name/Created, Asc/Desc) to Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
 
 ### Testing Features (v4.1.0-testing) ⚠️
 
