@@ -41,3 +41,23 @@ export async function resetBridge(bridgeId: string) {
     method: "GET",
   }).then((res) => res.json() as Promise<BridgeDataWithMetadata>);
 }
+
+export interface BridgePriorityUpdate {
+  id: string;
+  priority: number;
+}
+
+export async function updateBridgePriorities(
+  updates: BridgePriorityUpdate[],
+): Promise<void> {
+  const res = await fetch("api/matter/bridges/priorities", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ updates }),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to update priorities");
+  }
+}

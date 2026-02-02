@@ -72,6 +72,24 @@ export function matterApi(
     res.status(204).send();
   });
 
+  router.put("/bridges/priorities", async (req, res) => {
+    const body = req.body as {
+      updates: Array<{ id: string; priority: number }>;
+    };
+    if (!body.updates || !Array.isArray(body.updates)) {
+      res.status(400).json({ error: "Invalid request body" });
+      return;
+    }
+    try {
+      await bridgeService.updatePriorities(body.updates);
+      res.status(200).json({ success: true });
+    } catch (e) {
+      res.status(500).json({
+        error: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
+  });
+
   router.post("/bridges/:bridgeId/actions/factory-reset", async (req, res) => {
     const bridgeId = req.params.bridgeId;
     const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);

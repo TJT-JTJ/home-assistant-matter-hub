@@ -163,6 +163,28 @@ export class BridgeService extends Service {
     await this.bridgeStorage.remove(bridgeId);
   }
 
+  async updatePriorities(
+    updates: Array<{ id: string; priority: number }>,
+  ): Promise<void> {
+    for (const update of updates) {
+      const bridge = this.get(update.id);
+      if (bridge) {
+        // Update using existing update method with minimal data
+        const currentData = bridge.data;
+        await this.update({
+          id: update.id,
+          name: currentData.name,
+          port: currentData.port,
+          filter: currentData.filter,
+          featureFlags: currentData.featureFlags,
+          countryCode: currentData.countryCode,
+          icon: currentData.icon,
+          priority: update.priority,
+        });
+      }
+    }
+  }
+
   private async addBridge(bridgeData: BridgeData): Promise<Bridge> {
     const bridge = await this.bridgeFactory.create(bridgeData);
     this.bridges.push(bridge);
