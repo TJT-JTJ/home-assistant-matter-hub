@@ -14,6 +14,7 @@ import {
 import {
   getRoomIndexFromMode,
   getRoomModeValue,
+  isDreameVacuum,
   parseVacuumRooms,
 } from "../utils/parse-vacuum-rooms.js";
 
@@ -98,6 +99,24 @@ const vacuumRvcRunModeConfig = {
 
     if (roomIndex >= 0 && roomIndex < rooms.length) {
       const room = rooms[roomIndex];
+
+      // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
+      if (isDreameVacuum(attributes)) {
+        logger.debug(
+          `Dreame vacuum detected, using dreame_vacuum.vacuum_clean_segment for room ${room.name} (id: ${room.id})`,
+        );
+        return {
+          action: "dreame_vacuum.vacuum_clean_segment",
+          data: {
+            segments: room.id,
+          },
+        };
+      }
+
+      // Roborock/Xiaomi vacuums use vacuum.send_command with app_segment_clean
+      logger.debug(
+        `Using vacuum.send_command with app_segment_clean for room ${room.name} (id: ${room.id})`,
+      );
       return {
         action: "vacuum.send_command",
         data: {

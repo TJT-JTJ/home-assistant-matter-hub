@@ -121,3 +121,23 @@ export function getRoomIndexFromMode(mode: number): number {
   }
   return mode - ROOM_MODE_BASE;
 }
+
+/**
+ * Detect if the vacuum uses Dreame integration format.
+ * Dreame vacuums have rooms nested under a map name key: { "Map Name": [rooms...] }
+ * This is different from Roborock/Xiaomi which use flat arrays or simple objects.
+ */
+export function isDreameVacuum(attributes: VacuumDeviceAttributes): boolean {
+  const roomsData = attributes.rooms;
+  if (!roomsData || typeof roomsData !== "object" || Array.isArray(roomsData)) {
+    return false;
+  }
+
+  // Check if any value is an array (Dreame nested format)
+  for (const value of Object.values(roomsData)) {
+    if (Array.isArray(value)) {
+      return true;
+    }
+  }
+  return false;
+}
