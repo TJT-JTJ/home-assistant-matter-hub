@@ -27,6 +27,14 @@ class ServiceAreaServerBase extends Base {
     logger.info(
       `Initializing ServiceAreaServer with ${this.state.supportedAreas?.length ?? 0} areas`,
     );
+    logger.debug(
+      `ServiceAreaServer state: supportedAreas=${JSON.stringify(this.state.supportedAreas)}, selectedAreas=${JSON.stringify(this.state.selectedAreas)}, currentArea=${this.state.currentArea}`,
+    );
+    if (this.state.supportedAreas && this.state.supportedAreas.length > 0) {
+      logger.debug(
+        `First area: ${JSON.stringify(this.state.supportedAreas[0])}`,
+      );
+    }
     try {
       await super.initialize();
       logger.info("ServiceAreaServer super.initialize() completed");
