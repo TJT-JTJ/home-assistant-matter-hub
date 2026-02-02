@@ -1,9 +1,12 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { ServiceAreaServer as Base } from "@matter/main/behaviors";
 import { ServiceArea } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("ServiceAreaServer");
 
 export interface ServiceAreaServerConfig {
   /** Get the list of supported areas (rooms) */
@@ -21,7 +24,16 @@ class ServiceAreaServerBase extends Base {
   declare state: ServiceAreaServerBase.State;
 
   override async initialize() {
-    await super.initialize();
+    logger.info(
+      `Initializing ServiceAreaServer with ${this.state.supportedAreas?.length ?? 0} areas`,
+    );
+    try {
+      await super.initialize();
+      logger.info("ServiceAreaServer super.initialize() completed");
+    } catch (error) {
+      logger.error(`ServiceAreaServer super.initialize() failed: ${error}`);
+      throw error;
+    }
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
