@@ -16,6 +16,7 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { thermostatDefaultState } from "../../../behaviors/thermostat-server.js";
 import { ClimateFanControlServer } from "./behaviors/climate-fan-control-server.js";
 import { ClimateHumidityMeasurementServer } from "./behaviors/climate-humidity-measurement-server.js";
 import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
@@ -67,12 +68,15 @@ const ClimateDeviceType = (
 
   // Use RoomAirConditionerDevice for climate entities with fan_mode support
   // This exposes both Thermostat and FanControl clusters
+  // CRITICAL: .with() creates a NEW class without the defaults we set in thermostat-server.ts
+  // We MUST re-apply the defaults via .set() after .with() to prevent NaN validation errors
+  // during Matter.js initialization. This affects all feature combinations (HeatOnly, CoolOnly, Heat+Cool).
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
       BasicInformationServer,
       IdentifyServer,
       HomeAssistantEntityBehavior,
-      ClimateThermostatServer.with(...features),
+      ClimateThermostatServer.with(...features).set(thermostatDefaultState),
       ClimateFanControlServer,
       ...additionalClusters,
     );
@@ -82,7 +86,7 @@ const ClimateDeviceType = (
     BasicInformationServer,
     IdentifyServer,
     HomeAssistantEntityBehavior,
-    ClimateThermostatServer.with(...features),
+    ClimateThermostatServer.with(...features).set(thermostatDefaultState),
     ...additionalClusters,
   );
 };
