@@ -195,6 +195,7 @@ All stable features plus:
 
 **🌬️ Air Purifier**
 - **HEPA Filter Life Monitoring** - Air Purifiers now show filter life remaining via Matter's HepaFilterMonitoring cluster. Supports `filter_life`, `filter_life_remaining`, and `filter_life_level` attributes.
+- **Filter Life Sensor Mapping** - Map a separate sensor entity (e.g., `sensor.air_purifier_filter_life`) to your Air Purifier via Entity Mapping UI. See [Air Purifier Documentation](docs/Devices/Air%20Purifier.md) for details.
 
 **🤖 Vacuum**
 - **Dreame Room Format Fix** - Room selection now supports nested Dreame format (`rooms: { "Map Name": [...] }`) and properly falls back to `segments` attribute ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
