@@ -198,7 +198,8 @@ All stable features plus:
 - **Filter Life Sensor Mapping** - Map a separate sensor entity (e.g., `sensor.air_purifier_filter_life`) to your Air Purifier via Entity Mapping UI. See [Air Purifier Documentation](docs/Devices/Air%20Purifier.md) for details.
 
 **🤖 Vacuum**
-- **Dreame Room Format Fix** - Room selection now supports nested Dreame format (`rooms: { "Map Name": [...] }`) and properly falls back to `segments` attribute ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+- **Apple Home Room Selection** - Added Matter 1.4 Service Area cluster for native room selection in Apple Home. See [Robot Vacuum Documentation](docs/Devices/Robot%20Vacuum.md) for details. ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+- **Dreame Room Format Fix** - Room selection now supports nested Dreame format (`rooms: { "Map Name": [...] }`) and properly falls back to `segments` attribute
 
 **🚪 Cover/Blinds**
 - **Binary Cover Fix** - Garage doors and other binary covers (open/close only) now show Open/Close buttons instead of only a percentage slider in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
