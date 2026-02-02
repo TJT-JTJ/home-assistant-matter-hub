@@ -8,6 +8,7 @@ import {
   MovementType,
 } from "@matter/main/behaviors";
 import { WindowCovering } from "@matter/main/clusters";
+import type { HomeAssistantAction } from "../../services/home-assistant/home-assistant-actions.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -56,8 +57,14 @@ export class WindowCoveringServerBase extends FeaturedBase {
 
   private liftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private tiltDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private pendingLiftPosition: number | null = null;
-  private pendingTiltPosition: number | null = null;
+  private pendingLiftAction: {
+    action: HomeAssistantAction;
+    homeAssistant: HomeAssistantEntityBehavior;
+  } | null = null;
+  private pendingTiltAction: {
+    action: HomeAssistantAction;
+    homeAssistant: HomeAssistantEntityBehavior;
+  } | null = null;
   private static readonly DEBOUNCE_MS = 500;
 
   override async initialize() {
@@ -207,21 +214,23 @@ export class WindowCoveringServerBase extends FeaturedBase {
     }
     // Update target immediately for UI feedback
     this.state.targetPositionLiftPercent100ths = targetPercent100ths;
-    // Store pending position and debounce the HA call
-    // This prevents rapid commands from Google Home during slider drag
-    this.pendingLiftPosition = targetPercent100ths;
+    // Prepare action NOW while context is valid (agent context expires after command handler)
+    // Store both the action and homeAssistant reference for the debounced callback
+    const targetPosition = targetPercent100ths / 100;
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const action = config.setLiftPosition(targetPosition, this.agent);
+    this.pendingLiftAction = { action, homeAssistant };
+    // Debounce the HA call to handle rapid commands from Google Home during slider drag
     if (this.liftDebounceTimer) {
       clearTimeout(this.liftDebounceTimer);
     }
     this.liftDebounceTimer = setTimeout(() => {
       this.liftDebounceTimer = null;
-      if (this.pendingLiftPosition != null) {
-        const targetPosition = this.pendingLiftPosition / 100;
-        this.pendingLiftPosition = null;
-        const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-        homeAssistant.callAction(
-          config.setLiftPosition(targetPosition, this.agent),
-        );
+      if (this.pendingLiftAction) {
+        const { action: pendingAction, homeAssistant: ha } =
+          this.pendingLiftAction;
+        this.pendingLiftAction = null;
+        ha.callAction(pendingAction);
       }
     }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
@@ -253,21 +262,23 @@ export class WindowCoveringServerBase extends FeaturedBase {
     }
     // Update target immediately for UI feedback
     this.state.targetPositionTiltPercent100ths = targetPercent100ths;
-    // Store pending position and debounce the HA call
-    // This prevents rapid commands from Google Home during slider drag
-    this.pendingTiltPosition = targetPercent100ths;
+    // Prepare action NOW while context is valid (agent context expires after command handler)
+    // Store both the action and homeAssistant reference for the debounced callback
+    const targetPosition = targetPercent100ths / 100;
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const action = config.setTiltPosition(targetPosition, this.agent);
+    this.pendingTiltAction = { action, homeAssistant };
+    // Debounce the HA call to handle rapid commands from Google Home during slider drag
     if (this.tiltDebounceTimer) {
       clearTimeout(this.tiltDebounceTimer);
     }
     this.tiltDebounceTimer = setTimeout(() => {
       this.tiltDebounceTimer = null;
-      if (this.pendingTiltPosition != null) {
-        const targetPosition = this.pendingTiltPosition / 100;
-        this.pendingTiltPosition = null;
-        const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-        homeAssistant.callAction(
-          config.setTiltPosition(targetPosition, this.agent),
-        );
+      if (this.pendingTiltAction) {
+        const { action: pendingAction, homeAssistant: ha } =
+          this.pendingTiltAction;
+        this.pendingTiltAction = null;
+        ha.callAction(pendingAction);
       }
     }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
