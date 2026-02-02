@@ -50,7 +50,7 @@ export class LevelControlServerBase extends FeaturedBase {
       this.state.currentLevelPercent;
     let currentLevel =
       currentLevelPercent != null
-        ? currentLevelPercent * levelRange + minLevel
+        ? Math.round(currentLevelPercent * levelRange + minLevel)
         : null;
 
     if (currentLevel != null) {
