@@ -8,7 +8,10 @@ import {
   MovementType,
 } from "@matter/main/behaviors";
 import { WindowCovering } from "@matter/main/clusters";
-import type { HomeAssistantAction } from "../../services/home-assistant/home-assistant-actions.js";
+import {
+  type HomeAssistantAction,
+  HomeAssistantActions,
+} from "../../services/home-assistant/home-assistant-actions.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -57,13 +60,17 @@ export class WindowCoveringServerBase extends FeaturedBase {
 
   private liftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private tiltDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  // Store everything needed for debounced HA calls - entityId and actions service
+  // must be captured before setTimeout because agent context expires after command handler
   private pendingLiftAction: {
     action: HomeAssistantAction;
-    homeAssistant: HomeAssistantEntityBehavior;
+    entityId: string;
+    actions: HomeAssistantActions;
   } | null = null;
   private pendingTiltAction: {
     action: HomeAssistantAction;
-    homeAssistant: HomeAssistantEntityBehavior;
+    entityId: string;
+    actions: HomeAssistantActions;
   } | null = null;
   private static readonly DEBOUNCE_MS = 500;
 
@@ -214,12 +221,15 @@ export class WindowCoveringServerBase extends FeaturedBase {
     }
     // Update target immediately for UI feedback
     this.state.targetPositionLiftPercent100ths = targetPercent100ths;
-    // Prepare action NOW while context is valid (agent context expires after command handler)
-    // Store both the action and homeAssistant reference for the debounced callback
+    // Capture EVERYTHING needed for the debounced callback NOW while context is valid
+    // The agent context expires after the command handler returns, so we must not
+    // access any behavior properties (including entityId) inside setTimeout
     const targetPosition = targetPercent100ths / 100;
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = config.setLiftPosition(targetPosition, this.agent);
-    this.pendingLiftAction = { action, homeAssistant };
+    const entityId = homeAssistant.entityId;
+    const actions = this.env.get(HomeAssistantActions);
+    this.pendingLiftAction = { action, entityId, actions };
     // Debounce the HA call to handle rapid commands from Google Home during slider drag
     if (this.liftDebounceTimer) {
       clearTimeout(this.liftDebounceTimer);
@@ -227,10 +237,13 @@ export class WindowCoveringServerBase extends FeaturedBase {
     this.liftDebounceTimer = setTimeout(() => {
       this.liftDebounceTimer = null;
       if (this.pendingLiftAction) {
-        const { action: pendingAction, homeAssistant: ha } =
-          this.pendingLiftAction;
+        const {
+          action: pendingAction,
+          entityId: eid,
+          actions: act,
+        } = this.pendingLiftAction;
         this.pendingLiftAction = null;
-        ha.callAction(pendingAction);
+        act.call(pendingAction, eid);
       }
     }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
@@ -262,12 +275,15 @@ export class WindowCoveringServerBase extends FeaturedBase {
     }
     // Update target immediately for UI feedback
     this.state.targetPositionTiltPercent100ths = targetPercent100ths;
-    // Prepare action NOW while context is valid (agent context expires after command handler)
-    // Store both the action and homeAssistant reference for the debounced callback
+    // Capture EVERYTHING needed for the debounced callback NOW while context is valid
+    // The agent context expires after the command handler returns, so we must not
+    // access any behavior properties (including entityId) inside setTimeout
     const targetPosition = targetPercent100ths / 100;
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = config.setTiltPosition(targetPosition, this.agent);
-    this.pendingTiltAction = { action, homeAssistant };
+    const entityId = homeAssistant.entityId;
+    const actions = this.env.get(HomeAssistantActions);
+    this.pendingTiltAction = { action, entityId, actions };
     // Debounce the HA call to handle rapid commands from Google Home during slider drag
     if (this.tiltDebounceTimer) {
       clearTimeout(this.tiltDebounceTimer);
@@ -275,10 +291,13 @@ export class WindowCoveringServerBase extends FeaturedBase {
     this.tiltDebounceTimer = setTimeout(() => {
       this.tiltDebounceTimer = null;
       if (this.pendingTiltAction) {
-        const { action: pendingAction, homeAssistant: ha } =
-          this.pendingTiltAction;
+        const {
+          action: pendingAction,
+          entityId: eid,
+          actions: act,
+        } = this.pendingTiltAction;
         this.pendingTiltAction = null;
-        ha.callAction(pendingAction);
+        act.call(pendingAction, eid);
       }
     }, WindowCoveringServerBase.DEBOUNCE_MS);
   }
