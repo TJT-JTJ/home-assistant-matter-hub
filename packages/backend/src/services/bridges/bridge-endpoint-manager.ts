@@ -13,6 +13,7 @@ import type { HomeAssistantClient } from "../home-assistant/home-assistant-clien
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
 import type { EntityMappingStorage } from "../storage/entity-mapping-storage.js";
 import type { BridgeRegistry } from "./bridge-registry.js";
+import { EntityIsolationService } from "./entity-isolation-service.js";
 
 const MAX_ENTITY_ID_LENGTH = 150;
 
@@ -23,7 +24,9 @@ export class BridgeEndpointManager extends Service {
   private _failedEntities: FailedEntity[] = [];
 
   get failedEntities(): FailedEntity[] {
-    return this._failedEntities;
+    // Combine static failed entities with dynamically isolated entities
+    const isolated = EntityIsolationService.getIsolatedEntities(this.bridgeId);
+    return [...this._failedEntities, ...isolated];
   }
 
   constructor(
@@ -35,6 +38,34 @@ export class BridgeEndpointManager extends Service {
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
+
+    // Register callback to isolate problematic entities at runtime
+    EntityIsolationService.registerIsolationCallback(
+      bridgeId,
+      this.isolateEntity.bind(this),
+    );
+  }
+
+  /**
+   * Isolate an entity by removing it from the aggregator.
+   * Called by EntityIsolationService when a runtime error is detected.
+   */
+  async isolateEntity(entityName: string): Promise<void> {
+    const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    const endpoint = endpoints.find(
+      (e) => e.id === entityName || e.entityId === entityName,
+    );
+
+    if (endpoint) {
+      this.log.warn(
+        `Isolating entity ${endpoint.entityId} due to runtime error`,
+      );
+      try {
+        await endpoint.delete();
+      } catch (e) {
+        this.log.error(`Failed to delete isolated endpoint:`, e);
+      }
+    }
   }
 
   private getEntityMapping(entityId: string): EntityMappingConfig | undefined {
@@ -43,6 +74,8 @@ export class BridgeEndpointManager extends Service {
 
   override async dispose(): Promise<void> {
     this.stopObserving();
+    EntityIsolationService.unregisterIsolationCallback(this.bridgeId);
+    EntityIsolationService.clearIsolatedEntities(this.bridgeId);
   }
 
   async startObserving() {

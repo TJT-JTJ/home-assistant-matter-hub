@@ -5,14 +5,11 @@ import { configureDefaultEnvironment } from "../../core/app/configure-default-en
 import { Options } from "../../core/app/options.js";
 import { AppEnvironment } from "../../core/ioc/app-environment.js";
 import { BridgeService } from "../../services/bridges/bridge-service.js";
+import { EntityIsolationService } from "../../services/bridges/entity-isolation-service.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
 import type { StartOptions } from "./start-options.js";
 
-// Suppress Matter.js internal errors that occur asynchronously during bridge operations
-// These errors happen when:
-// - Endpoints are already detached but Matter.js tries to persist data
-// - Subscription timing calculations overflow (Invalid intervalMs)
-// - GeneralDiagnostics cluster has invalid timing values
+// Check if an error should be suppressed (not crash the process)
 function shouldSuppressError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
   return (
@@ -20,6 +17,12 @@ function shouldSuppressError(error: unknown): boolean {
     msg.includes("Invalid intervalMs") ||
     msg.includes("generalDiagnostics")
   );
+}
+
+// Check if an error is isolatable (can isolate the entity causing it)
+function isIsolatableError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes("Invalid intervalMs");
 }
 
 // Register early error handlers to catch errors before Matter.js initializes
@@ -49,6 +52,12 @@ function registerFinalErrorHandlers() {
 
   process.on("uncaughtException", (error) => {
     if (shouldSuppressError(error)) {
+      // Try to isolate the problematic entity instead of just suppressing
+      if (isIsolatableError(error)) {
+        EntityIsolationService.isolateFromError(error).catch(() => {
+          // Isolation failed, but error is still suppressed
+        });
+      }
       console.warn("Suppressed Matter.js internal error:", error);
       return;
     }
@@ -58,6 +67,12 @@ function registerFinalErrorHandlers() {
 
   process.on("unhandledRejection", (reason) => {
     if (shouldSuppressError(reason)) {
+      // Try to isolate the problematic entity instead of just suppressing
+      if (isIsolatableError(reason)) {
+        EntityIsolationService.isolateFromError(reason).catch(() => {
+          // Isolation failed, but error is still suppressed
+        });
+      }
       console.warn("Suppressed Matter.js internal error:", reason);
       return;
     }
