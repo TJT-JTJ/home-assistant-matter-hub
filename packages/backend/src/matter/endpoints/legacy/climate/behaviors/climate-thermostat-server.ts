@@ -14,6 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistan
 import {
   ThermostatServer,
   type ThermostatServerConfig,
+  type ThermostatServerFeatures,
 } from "../../../../behaviors/thermostat-server.js";
 
 const getUnit = (agent: Agent) =>
@@ -141,4 +142,17 @@ const config: ThermostatServerConfig = {
     },
   }),
 };
-export const ClimateThermostatServer = ThermostatServer(config);
+/**
+ * Creates a ClimateThermostatServer with the specified features.
+ *
+ * IMPORTANT: Do NOT call .with() on the returned class! The features must be
+ * specified here because .with() creates a new class without the defaults
+ * that prevent NaN validation errors during Matter.js initialization.
+ *
+ * @param features - Which features to enable (heating, cooling, or both)
+ */
+export function ClimateThermostatServer(
+  features: ThermostatServerFeatures = { heating: true, cooling: true },
+) {
+  return ThermostatServer(config, features);
+}

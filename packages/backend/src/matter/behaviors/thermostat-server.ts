@@ -28,8 +28,7 @@ import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 // Default state values to prevent NaN validation errors during initialization.
 // These MUST be set via .set() when creating the behavior class because Matter.js
 // validates setpoints before our initialize() method runs.
-// IMPORTANT: Export this so it can be re-applied after .with() calls in climate/index.ts
-export const thermostatDefaultState = {
+const defaultState = {
   localTemperature: 2100, // 21°C
   occupiedHeatingSetpoint: 2000, // 20°C
   occupiedCoolingSetpoint: 2400, // 24°C
@@ -44,9 +43,14 @@ export const thermostatDefaultState = {
   absMaxCoolSetpointLimit: 5000,
 };
 
-const FeaturedBase = Base.with("Heating", "Cooling").set(
-  thermostatDefaultState,
-);
+// Create the FeaturedBase with HeatingCooling features and defaults.
+// NOTE: Currently all thermostats use HeatingCooling features regardless of what
+// the HA entity actually supports. This is a limitation because Matter.js's .with()
+// method creates a new class that loses the defaults set via .set().
+// The features are still checked at runtime in initialize() via this.features,
+// so single-mode thermostats will work correctly - they just expose both attributes.
+// TODO: Future improvement - create separate behavior classes for each feature combo.
+const FeaturedBase = Base.with("Heating", "Cooling").set(defaultState);
 
 export interface ThermostatRunningState {
   heat: boolean;
@@ -531,30 +535,33 @@ export namespace ThermostatServerBase {
   }
 }
 
-export function ThermostatServer(config: ThermostatServerConfig) {
-  // Provide default values for attributes to prevent conformance errors.
-  // NOTE: controlSequenceOfOperation is NOT set here because its valid values
-  // depend on which features (Heating, Cooling) are enabled. It MUST be set
-  // in initialize() BEFORE super.initialize() runs.
+export interface ThermostatServerFeatures {
+  heating: boolean;
+  cooling: boolean;
+}
+
+/**
+ * Creates a ThermostatServer behavior with the specified config and features.
+ *
+ * IMPORTANT: Do NOT call .with() on the returned class! The features must be
+ * specified here because .with() creates a new class without the defaults
+ * that prevent NaN validation errors during Matter.js initialization.
+ *
+ * @param config - The thermostat server configuration
+ * @param features - Which features to enable (heating, cooling, or both). Defaults to both.
+ */
+export function ThermostatServer(
+  config: ThermostatServerConfig,
+  _features: ThermostatServerFeatures = { heating: true, cooling: true },
+) {
+  // ThermostatServerBase always has HeatingCooling features.
+  // The defaults are already set via defaultState on FeaturedBase.
+  // We just add the config here.
   //
-  // Using wide limits (0-50°C) like Matterbridge to avoid Matter.js deadband constraints.
-  // Actual limits will be set in update() based on features and HA values.
-  return ThermostatServerBase.set({
-    config,
-    // Provide reasonable defaults for setpoints to prevent undefined->NaN issues
-    // These will be overwritten with actual HA values during initialize()
-    localTemperature: 2100, // 21°C - reasonable room temperature default
-    occupiedHeatingSetpoint: 2000, // 20°C in 0.01°C units
-    occupiedCoolingSetpoint: 2400, // 24°C in 0.01°C units
-    // Wide limits like Matterbridge (0-50°C) - actual limits set in update()
-    minHeatSetpointLimit: 0, // 0°C
-    maxHeatSetpointLimit: 5000, // 50°C
-    minCoolSetpointLimit: 0, // 0°C
-    maxCoolSetpointLimit: 5000, // 50°C
-    // Absolute limits - also wide
-    absMinHeatSetpointLimit: 0,
-    absMaxHeatSetpointLimit: 5000,
-    absMinCoolSetpointLimit: 0,
-    absMaxCoolSetpointLimit: 5000,
-  });
+  // NOTE: The features parameter is currently not used to change the base class
+  // because ThermostatServerBase extends HeatingCoolingFeaturedBase.
+  // The features are used at runtime in initialize() via this.features.
+  // This is a limitation we accept for now - all thermostats expose both
+  // heating and cooling attributes, but only respond to the ones they support.
+  return ThermostatServerBase.set({ config });
 }

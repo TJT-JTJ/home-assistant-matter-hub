@@ -4,44 +4,19 @@ import {
   ClimateHvacMode,
 } from "@home-assistant-matter-hub/common";
 import type { ClusterBehavior, EndpointType } from "@matter/main";
-import type { Thermostat } from "@matter/main/clusters";
 import {
   RoomAirConditionerDevice,
   ThermostatDevice,
 } from "@matter/main/devices";
-import type { ClusterType } from "@matter/main/types";
 import { InvalidDeviceError } from "../../../../utils/errors/invalid-device-error.js";
-import type { FeatureSelection } from "../../../../utils/feature-selection.js";
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
-import { thermostatDefaultState } from "../../../behaviors/thermostat-server.js";
 import { ClimateFanControlServer } from "./behaviors/climate-fan-control-server.js";
 import { ClimateHumidityMeasurementServer } from "./behaviors/climate-humidity-measurement-server.js";
 import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
 import { ClimateThermostatServer } from "./behaviors/climate-thermostat-server.js";
-
-function thermostatFeatures(
-  supportsCooling: boolean,
-  supportsHeating: boolean,
-) {
-  const features: FeatureSelection<ClusterType.Of<Thermostat.Complete>> =
-    new Set();
-  if (supportsCooling) {
-    features.add("Cooling");
-  }
-  if (supportsHeating) {
-    features.add("Heating");
-  }
-  // NOTE: AutoMode feature intentionally NOT included.
-  // Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
-  // in post-commit without asLocalActor, causing "Permission denied: Value is read-only" errors.
-  // We still support Auto systemMode - the AutoMode feature only adds thermostatRunningMode
-  // attribute, not the ability to use SystemMode.Auto.
-  // See: https://github.com/matter-js/matter.js/issues/3105
-  return features;
-}
 
 const ClimateDeviceType = (
   supportsCooling: boolean,
@@ -50,8 +25,8 @@ const ClimateDeviceType = (
   supportsHumidity: boolean,
   supportsFanMode: boolean,
 ) => {
-  const features = thermostatFeatures(supportsCooling, supportsHeating);
-  if (features.size === 0) {
+  // Validate that at least one of heating or cooling is supported
+  if (!supportsCooling && !supportsHeating) {
     throw new InvalidDeviceError(
       'Climates have to support either "heating" or "cooling". Just "auto" is not enough.',
     );
@@ -68,15 +43,20 @@ const ClimateDeviceType = (
 
   // Use RoomAirConditionerDevice for climate entities with fan_mode support
   // This exposes both Thermostat and FanControl clusters
-  // CRITICAL: .with() creates a NEW class without the defaults we set in thermostat-server.ts
-  // We MUST re-apply the defaults via .set() after .with() to prevent NaN validation errors
-  // during Matter.js initialization. This affects all feature combinations (HeatOnly, CoolOnly, Heat+Cool).
+  // CRITICAL: Do NOT use .with() on ClimateThermostatServer! It creates a NEW class
+  // without the defaults that prevent NaN validation errors. Instead, pass features
+  // directly to the factory function.
+  const thermostatServer = ClimateThermostatServer({
+    heating: supportsHeating,
+    cooling: supportsCooling,
+  });
+
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
       BasicInformationServer,
       IdentifyServer,
       HomeAssistantEntityBehavior,
-      ClimateThermostatServer.with(...features).set(thermostatDefaultState),
+      thermostatServer,
       ClimateFanControlServer,
       ...additionalClusters,
     );
@@ -86,7 +66,7 @@ const ClimateDeviceType = (
     BasicInformationServer,
     IdentifyServer,
     HomeAssistantEntityBehavior,
-    ClimateThermostatServer.with(...features).set(thermostatDefaultState),
+    thermostatServer,
     ...additionalClusters,
   );
 };
