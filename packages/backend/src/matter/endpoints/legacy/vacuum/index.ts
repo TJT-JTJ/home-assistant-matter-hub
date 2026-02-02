@@ -12,10 +12,8 @@ import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { VacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
-
-// TODO: ServiceArea cluster causes "Behaviors have errors" - needs debugging
-// import { VacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
-// import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
+import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
+import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
 
 const VacuumEndpointType = RoboticVacuumCleanerDevice.with(
   BasicInformationServer,
@@ -49,11 +47,11 @@ export function VacuumDevice(
 
   // Add ServiceArea cluster if rooms/segments are available
   // This enables room selection in Apple Home (Matter 1.4 feature)
-  // TODO: ServiceArea cluster causes "Behaviors have errors" - needs debugging
-  // const rooms = parseVacuumRooms(attributes);
-  // if (rooms.length > 0) {
-  //   device = device.with(VacuumServiceAreaServer);
-  // }
+  const rooms = parseVacuumRooms(attributes);
+  if (rooms.length > 0) {
+    // Create ServiceArea with initial supportedAreas - Matter.js requires this at pairing time
+    device = device.with(createVacuumServiceAreaServer(attributes));
+  }
 
   return device;
 }

@@ -1,6 +1,13 @@
-import type { VacuumDeviceAttributes } from "@home-assistant-matter-hub/common";
+import type {
+  VacuumDeviceAttributes,
+  VacuumRoom,
+} from "@home-assistant-matter-hub/common";
+import type { ServiceArea } from "@matter/main/clusters";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
-import { ServiceAreaServer } from "../../../../behaviors/service-area-server.js";
+import {
+  ServiceAreaServer,
+  type ServiceAreaServerConfig,
+} from "../../../../behaviors/service-area-server.js";
 import { parseVacuumRooms } from "../utils/parse-vacuum-rooms.js";
 
 /**
@@ -21,23 +28,29 @@ function toAreaId(roomId: string | number): number {
   return Math.abs(hash);
 }
 
-export const VacuumServiceAreaServer = ServiceAreaServer({
+/**
+ * Convert VacuumRoom array to Matter ServiceArea.Area array
+ */
+function roomsToAreas(rooms: VacuumRoom[]): ServiceArea.Area[] {
+  return rooms.map((room) => ({
+    areaId: toAreaId(room.id),
+    mapId: null,
+    areaInfo: {
+      locationInfo: {
+        locationName: room.name,
+        floorNumber: null,
+        areaType: null,
+      },
+      landmarkInfo: null,
+    },
+  }));
+}
+
+const vacuumServiceAreaConfig: ServiceAreaServerConfig = {
   getSupportedAreas: (entity) => {
     const attributes = entity.attributes as VacuumDeviceAttributes;
     const rooms = parseVacuumRooms(attributes);
-
-    return rooms.map((room) => ({
-      areaId: toAreaId(room.id),
-      mapId: null,
-      areaInfo: {
-        locationInfo: {
-          locationName: room.name,
-          floorNumber: null,
-          areaType: null,
-        },
-        landmarkInfo: null,
-      },
-    }));
+    return roomsToAreas(rooms);
   },
 
   getSelectedAreas: () => {
@@ -50,7 +63,7 @@ export const VacuumServiceAreaServer = ServiceAreaServer({
     return null;
   },
 
-  cleanAreas: (areaIds: number[], agent) => {
+  cleanAreas: (areaIds, agent) => {
     const entity = agent.get(HomeAssistantEntityBehavior).entity;
     const attributes = entity.state.attributes as VacuumDeviceAttributes;
     const rooms = parseVacuumRooms(attributes);
@@ -78,4 +91,21 @@ export const VacuumServiceAreaServer = ServiceAreaServer({
       },
     };
   },
-});
+};
+
+/**
+ * Create a VacuumServiceAreaServer with initial supportedAreas.
+ * The areas MUST be provided at creation time for Matter.js initialization.
+ */
+export function createVacuumServiceAreaServer(
+  attributes: VacuumDeviceAttributes,
+) {
+  const rooms = parseVacuumRooms(attributes);
+  const supportedAreas = roomsToAreas(rooms);
+
+  return ServiceAreaServer(vacuumServiceAreaConfig, {
+    supportedAreas,
+    selectedAreas: [],
+    currentArea: null,
+  });
+}

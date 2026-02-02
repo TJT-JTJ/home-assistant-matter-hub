@@ -101,6 +101,24 @@ namespace ServiceAreaServerBase {
   }
 }
 
-export function ServiceAreaServer(config: ServiceAreaServerConfig) {
-  return ServiceAreaServerBase.set({ config });
+export interface ServiceAreaServerInitialState {
+  supportedAreas: ServiceArea.Area[];
+  selectedAreas?: number[];
+  currentArea?: number | null;
+}
+
+/**
+ * Create a ServiceArea behavior with initial state.
+ * The initialState MUST include supportedAreas - Matter.js requires this at pairing time.
+ */
+export function ServiceAreaServer(
+  config: ServiceAreaServerConfig,
+  initialState?: ServiceAreaServerInitialState,
+) {
+  return ServiceAreaServerBase.set({
+    config,
+    supportedAreas: initialState?.supportedAreas ?? [],
+    selectedAreas: initialState?.selectedAreas ?? [],
+    currentArea: initialState?.currentArea ?? null,
+  });
 }
