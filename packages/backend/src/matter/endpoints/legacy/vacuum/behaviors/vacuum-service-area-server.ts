@@ -8,7 +8,10 @@ import {
   ServiceAreaServer,
   type ServiceAreaServerConfig,
 } from "../../../../behaviors/service-area-server.js";
-import { parseVacuumRooms } from "../utils/parse-vacuum-rooms.js";
+import {
+  isDreameVacuum,
+  parseVacuumRooms,
+} from "../utils/parse-vacuum-rooms.js";
 
 /**
  * Convert vacuum room ID to a Matter-compatible area ID.
@@ -46,64 +49,68 @@ function roomsToAreas(rooms: VacuumRoom[]): ServiceArea.Area[] {
   }));
 }
 
-const vacuumServiceAreaConfig: ServiceAreaServerConfig = {
-  getSupportedAreas: (entity) => {
-    const attributes = entity.attributes as VacuumDeviceAttributes;
-    const rooms = parseVacuumRooms(attributes);
-    return roomsToAreas(rooms);
-  },
+/**
+ * Create config for ServiceArea - only needs cleanAreas action
+ */
+function createVacuumServiceAreaConfig(
+  _attributes: VacuumDeviceAttributes,
+): ServiceAreaServerConfig {
+  return {
+    cleanAreas: (areaIds, agent) => {
+      const entity = agent.get(HomeAssistantEntityBehavior).entity;
+      const currentAttributes = entity.state
+        .attributes as VacuumDeviceAttributes;
+      const currentRooms = parseVacuumRooms(currentAttributes);
 
-  getSelectedAreas: () => {
-    // Vacuums typically don't report which areas are selected
-    return [];
-  },
-
-  getCurrentArea: () => {
-    // Could be extended to track current cleaning area if HA provides this
-    return null;
-  },
-
-  cleanAreas: (areaIds, agent) => {
-    const entity = agent.get(HomeAssistantEntityBehavior).entity;
-    const attributes = entity.state.attributes as VacuumDeviceAttributes;
-    const rooms = parseVacuumRooms(attributes);
-
-    // Convert Matter area IDs back to HA room IDs
-    const roomIds: (string | number)[] = [];
-    for (const areaId of areaIds) {
-      const room = rooms.find((r) => toAreaId(r.id) === areaId);
-      if (room) {
-        roomIds.push(room.id);
+      // Convert Matter area IDs back to HA room IDs
+      const roomIds: (string | number)[] = [];
+      for (const areaId of areaIds) {
+        const room = currentRooms.find((r) => toAreaId(r.id) === areaId);
+        if (room) {
+          roomIds.push(room.id);
+        }
       }
-    }
 
-    if (roomIds.length === 0) {
-      // No valid rooms, just start regular cleaning
-      return { action: "vacuum.start" };
-    }
+      if (roomIds.length === 0) {
+        // No valid rooms, just start regular cleaning
+        return { action: "vacuum.start" };
+      }
 
-    // Use segment cleaning command
-    return {
-      action: "vacuum.send_command",
-      data: {
-        command: "app_segment_clean",
-        params: roomIds,
-      },
-    };
-  },
-};
+      // Dreame vacuums use their own service
+      if (isDreameVacuum(currentAttributes)) {
+        return {
+          action: "dreame_vacuum.vacuum_clean_segment",
+          data: {
+            segments: roomIds.length === 1 ? roomIds[0] : roomIds,
+          },
+        };
+      }
+
+      // Roborock/Xiaomi vacuums use vacuum.send_command with app_segment_clean
+      return {
+        action: "vacuum.send_command",
+        data: {
+          command: "app_segment_clean",
+          params: roomIds,
+        },
+      };
+    },
+  };
+}
 
 /**
  * Create a VacuumServiceAreaServer with initial supportedAreas.
  * The areas MUST be provided at creation time for Matter.js initialization.
+ * Following Matterbridge pattern: all state is set at creation time.
  */
 export function createVacuumServiceAreaServer(
   attributes: VacuumDeviceAttributes,
 ) {
   const rooms = parseVacuumRooms(attributes);
   const supportedAreas = roomsToAreas(rooms);
+  const config = createVacuumServiceAreaConfig(attributes);
 
-  return ServiceAreaServer(vacuumServiceAreaConfig, {
+  return ServiceAreaServer(config, {
     supportedAreas,
     selectedAreas: [],
     currentArea: null,

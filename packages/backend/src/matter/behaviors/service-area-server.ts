@@ -1,75 +1,24 @@
-import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
-import { ServiceAreaServer as Base } from "@matter/main/behaviors";
+import { ServiceAreaBehavior } from "@matter/main/behaviors";
 import { ServiceArea } from "@matter/main/clusters";
-import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
-import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+import type { ValueSetter } from "./utils/cluster-config.js";
 
 const logger = Logger.get("ServiceAreaServer");
 
 export interface ServiceAreaServerConfig {
-  /** Get the list of supported areas (rooms) */
-  getSupportedAreas: ValueGetter<ServiceArea.Area[]>;
-  /** Get the currently selected areas */
-  getSelectedAreas: ValueGetter<number[]>;
-  /** Get the current area being cleaned (null if not cleaning) */
-  getCurrentArea: ValueGetter<number | null>;
-  /** Clean selected areas */
+  /** Clean selected areas - called when selectAreas command is received */
   cleanAreas: ValueSetter<number[]>;
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
-class ServiceAreaServerBase extends Base {
+/**
+ * ServiceArea server implementation following the Matterbridge pattern:
+ * - No custom initialize() that calls super.initialize()
+ * - Only override command handlers
+ * - State is set via .set() at endpoint creation time
+ */
+class ServiceAreaServerBase extends ServiceAreaBehavior {
   declare state: ServiceAreaServerBase.State;
-
-  override async initialize() {
-    logger.info(
-      `Initializing ServiceAreaServer with ${this.state.supportedAreas?.length ?? 0} areas`,
-    );
-    logger.debug(
-      `ServiceAreaServer state: supportedAreas=${JSON.stringify(this.state.supportedAreas)}, selectedAreas=${JSON.stringify(this.state.selectedAreas)}, currentArea=${this.state.currentArea}`,
-    );
-    if (this.state.supportedAreas && this.state.supportedAreas.length > 0) {
-      logger.debug(
-        `First area: ${JSON.stringify(this.state.supportedAreas[0])}`,
-      );
-    }
-    try {
-      await super.initialize();
-      logger.info("ServiceAreaServer super.initialize() completed");
-    } catch (error) {
-      logger.error(`ServiceAreaServer super.initialize() failed: ${error}`);
-      throw error;
-    }
-    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
-    this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
-  }
-
-  private update(entity: HomeAssistantEntityInformation) {
-    if (!entity.state) {
-      return;
-    }
-    const supportedAreas = this.state.config.getSupportedAreas(
-      entity.state,
-      this.agent,
-    );
-    const selectedAreas = this.state.config.getSelectedAreas(
-      entity.state,
-      this.agent,
-    );
-    const currentArea = this.state.config.getCurrentArea(
-      entity.state,
-      this.agent,
-    );
-
-    applyPatchState(this.state, {
-      supportedAreas,
-      selectedAreas,
-      currentArea,
-    });
-  }
 
   override selectAreas(
     request: ServiceArea.SelectAreasRequest,
@@ -77,13 +26,21 @@ class ServiceAreaServerBase extends Base {
     const { newAreas } = request;
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
 
+    logger.info(
+      `ServiceArea selectAreas called with: ${JSON.stringify(newAreas)}`,
+    );
+
+    // Remove duplicates
+    const uniqueAreas = [...new Set(newAreas)];
+
     // Validate that all requested areas exist in supportedAreas
     const supportedAreaIds = this.state.supportedAreas.map((a) => a.areaId);
-    const invalidAreas = newAreas.filter(
+    const invalidAreas = uniqueAreas.filter(
       (id) => !supportedAreaIds.includes(id),
     );
 
     if (invalidAreas.length > 0) {
+      logger.warn(`Invalid area IDs requested: ${invalidAreas.join(", ")}`);
       return {
         status: ServiceArea.SelectAreasStatus.UnsupportedArea,
         statusText: `Invalid area IDs: ${invalidAreas.join(", ")}`,
@@ -92,12 +49,15 @@ class ServiceAreaServerBase extends Base {
 
     // Call Home Assistant to start cleaning the selected areas
     homeAssistant.callAction(
-      this.state.config.cleanAreas(newAreas, this.agent),
+      this.state.config.cleanAreas(uniqueAreas, this.agent),
     );
 
     // Update selected areas
-    this.state.selectedAreas = newAreas;
+    this.state.selectedAreas = uniqueAreas;
 
+    logger.info(
+      `ServiceArea: Selected ${uniqueAreas.length} areas for cleaning`,
+    );
     return {
       status: ServiceArea.SelectAreasStatus.Success,
       statusText: "Areas selected for cleaning",
@@ -116,7 +76,7 @@ class ServiceAreaServerBase extends Base {
 }
 
 namespace ServiceAreaServerBase {
-  export class State extends Base.State {
+  export class State extends ServiceAreaBehavior.State {
     config!: ServiceAreaServerConfig;
   }
 }
@@ -129,16 +89,20 @@ export interface ServiceAreaServerInitialState {
 
 /**
  * Create a ServiceArea behavior with initial state.
+ * Following Matterbridge pattern: state is set at creation, no custom initialize().
  * The initialState MUST include supportedAreas - Matter.js requires this at pairing time.
  */
 export function ServiceAreaServer(
   config: ServiceAreaServerConfig,
-  initialState?: ServiceAreaServerInitialState,
+  initialState: ServiceAreaServerInitialState,
 ) {
+  logger.info(
+    `Creating ServiceAreaServer with ${initialState.supportedAreas.length} areas`,
+  );
   return ServiceAreaServerBase.set({
     config,
-    supportedAreas: initialState?.supportedAreas ?? [],
-    selectedAreas: initialState?.selectedAreas ?? [],
-    currentArea: initialState?.currentArea ?? null,
+    supportedAreas: initialState.supportedAreas,
+    selectedAreas: initialState.selectedAreas ?? [],
+    currentArea: initialState.currentArea ?? null,
   });
 }
