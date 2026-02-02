@@ -3,6 +3,7 @@ import {
   VacuumDeviceFeature,
   VacuumState,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { RvcRunMode } from "@matter/main/clusters";
 import { testBit } from "../../../../../utils/test-bit.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
@@ -15,6 +16,8 @@ import {
   getRoomModeValue,
   parseVacuumRooms,
 } from "../utils/parse-vacuum-rooms.js";
+
+const logger = Logger.get("VacuumRvcRunModeServer");
 
 /**
  * Build supported modes from vacuum attributes.
@@ -114,7 +117,19 @@ const vacuumRvcRunModeConfig = {
 export function createVacuumRvcRunModeServer(
   attributes: VacuumDeviceAttributes,
 ) {
+  const rooms = parseVacuumRooms(attributes);
   const supportedModes = buildSupportedModes(attributes);
+
+  logger.info(
+    `Creating VacuumRvcRunModeServer with ${rooms.length} rooms, ${supportedModes.length} total modes`,
+  );
+  if (rooms.length > 0) {
+    logger.info(`Rooms found: ${rooms.map((r) => r.name).join(", ")}`);
+  } else {
+    logger.debug(
+      `No rooms found. Attributes: rooms=${JSON.stringify(attributes.rooms)}, segments=${JSON.stringify(attributes.segments)}, room_list=${attributes.room_list}`,
+    );
+  }
 
   return RvcRunModeServer(vacuumRvcRunModeConfig, {
     supportedModes,
