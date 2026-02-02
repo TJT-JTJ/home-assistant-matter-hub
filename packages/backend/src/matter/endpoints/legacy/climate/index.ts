@@ -36,6 +36,7 @@ const ClimateDeviceType = (
   supportsOnOff: boolean,
   supportsHumidity: boolean,
   supportsFanMode: boolean,
+  initialState: InitialThermostatState,
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
 
@@ -46,10 +47,9 @@ const ClimateDeviceType = (
     additionalClusters.push(ClimateHumidityMeasurementServer);
   }
 
-  // NOTE: ClimateThermostatServer() returns ThermostatServerBase which already
-  // has HeatingCooling features and default setpoints. The actual initial values
-  // are passed via .set() on the final device type in ClimateDevice().
-  const thermostatServer = ClimateThermostatServer();
+  // CRITICAL: Pass initial state values to ThermostatServer so they are set
+  // via .set() BEFORE Matter.js validation runs. This prevents NaN errors.
+  const thermostatServer = ClimateThermostatServer(initialState);
 
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
@@ -136,50 +136,37 @@ export function ClimateDevice(
     ClimateDeviceFeature.FAN_MODE,
   );
 
-  // CRITICAL: Extract initial thermostat values from HA entity state.
-  // These are passed DIRECTLY to Matter.js during registration to prevent
-  // NaN validation errors. Pattern from Matterbridge.
+  // WORKAROUND: Due to Matter.js architecture, .set() values on behaviors are lost
+  // when ThermostatDevice.with() is called. This causes the limits from HA to be set
+  // but the setpoints remain undefined, leading to NaN validation errors.
+  //
+  // Until this is fixed upstream or we find a better solution, we DO NOT use custom
+  // limits from HA. Instead, we use the standard limits (0-50°C) which are compatible
+  // with the default setpoints (20°C heating, 24°C cooling) defined in ThermostatServerBase.
+  //
+  // The actual temperature control still works correctly through HA - only the Matter-side
+  // limits are restricted to the safe default range.
   const initialState: InitialThermostatState = {
     localTemperature: toMatterTemp(attributes.current_temperature),
-    // Use target_temperature or target_temp_low/high depending on mode
     occupiedHeatingSetpoint:
       toMatterTemp(attributes.target_temp_low) ??
       toMatterTemp(attributes.temperature) ??
-      2000, // 20°C default
+      2000,
     occupiedCoolingSetpoint:
       toMatterTemp(attributes.target_temp_high) ??
       toMatterTemp(attributes.temperature) ??
-      2400, // 24°C default
-    minHeatSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxHeatSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
-    minCoolSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
+      2400,
+    // Use standard limits (0-50°C) to ensure compatibility with default setpoints
+    minHeatSetpointLimit: 0,
+    maxHeatSetpointLimit: 5000,
+    minCoolSetpointLimit: 0,
+    maxCoolSetpointLimit: 5000,
   };
 
-  // CRITICAL: Pass ALL thermostat attributes in the final .set() call.
-  // Matter.js validates setpoints during initialization BEFORE our initialize() runs.
-  // If we only pass homeAssistantEntity, the thermostat defaults from ThermostatServerBase
-  // get overwritten with undefined values, causing NaN validation errors.
-  // Pattern from Matterbridge: All attributes must be set during registration.
   return ClimateDeviceType(
     supportsOnOff,
     supportsHumidity,
     supportsFanMode,
-  ).set({
-    homeAssistantEntity,
-    // Thermostat cluster attributes - pass directly to prevent NaN errors
-    thermostat: {
-      localTemperature: initialState.localTemperature ?? 2100,
-      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
-      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-    },
-  });
+    initialState,
+  ).set({ homeAssistantEntity });
 }

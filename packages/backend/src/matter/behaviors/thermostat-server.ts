@@ -95,25 +95,38 @@ export class ThermostatServerBase extends FeaturedBase {
   };
 
   override async initialize() {
-    // CRITICAL: Set default setpoints BEFORE anything else, including super.initialize().
+    // CRITICAL: Set default setpoints BEFORE super.initialize() runs.
     // Matter.js's ThermostatServer.initialize() calls #clampSetpointToLimits() which validates
     // these values. If they are undefined, it clamps to NaN and causes "Behaviors have errors".
-    // We MUST set valid defaults unconditionally before super.initialize() runs.
+    //
+    // The defaults must be calculated based on the CURRENT limits (which may come from HA).
+    // We cannot use fixed defaults (2000, 2400) because they might be outside custom limits.
+    const minHeat = this.state.minHeatSetpointLimit ?? 0;
+    const maxHeat = this.state.maxHeatSetpointLimit ?? 5000;
+    const minCool = this.state.minCoolSetpointLimit ?? 0;
+    const maxCool = this.state.maxCoolSetpointLimit ?? 5000;
+
+    // Calculate sensible defaults within the actual limits
+    // Heat: try 20°C, clamp to limits
+    const defaultHeat = Math.max(minHeat, Math.min(maxHeat, 2000));
+    // Cool: try 24°C, clamp to limits
+    const defaultCool = Math.max(minCool, Math.min(maxCool, 2400));
+
     const currentHeating = this.state.occupiedHeatingSetpoint;
     const currentCooling = this.state.occupiedCoolingSetpoint;
 
-    // Always ensure valid setpoints - use existing value if valid, otherwise use default
+    // Always ensure valid setpoints - use existing value if valid, otherwise use calculated default
     if (this.features.heating) {
       this.state.occupiedHeatingSetpoint =
         typeof currentHeating === "number" && !Number.isNaN(currentHeating)
           ? currentHeating
-          : 2000; // 20°C default
+          : defaultHeat;
     }
     if (this.features.cooling) {
       this.state.occupiedCoolingSetpoint =
         typeof currentCooling === "number" && !Number.isNaN(currentCooling)
           ? currentCooling
-          : 2400; // 24°C default
+          : defaultCool;
     }
 
     // Set controlSequenceOfOperation based on enabled features
