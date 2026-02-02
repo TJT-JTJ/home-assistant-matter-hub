@@ -132,6 +132,15 @@ export const bridgeConfigSchema: JSONSchema7 = {
       minLength: 2,
       maxLength: 3,
     },
+    priority: {
+      title: "Startup Priority",
+      type: "number",
+      description:
+        "Startup order priority. Lower values start first. Default is 100.",
+      default: 100,
+      minimum: 1,
+      maximum: 999,
+    },
     filter: homeAssistantFilterSchema,
     featureFlags: featureFlagSchema,
   },

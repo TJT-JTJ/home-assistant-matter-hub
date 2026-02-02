@@ -38,6 +38,8 @@ export interface BridgeConfig {
   readonly featureFlags?: BridgeFeatureFlags;
   readonly countryCode?: string;
   readonly icon?: BridgeIconType;
+  /** Startup priority - lower values start first. Default: 100 */
+  readonly priority?: number;
 }
 
 export interface CreateBridgeRequest extends BridgeConfig {}

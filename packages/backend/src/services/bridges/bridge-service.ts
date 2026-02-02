@@ -90,7 +90,13 @@ export class BridgeService extends Service {
   }
 
   async startAll() {
-    for (const bridge of this.bridges) {
+    // Sort bridges by priority (lower = starts first), default priority is 100
+    const sortedBridges = [...this.bridges].sort((a, b) => {
+      const priorityA = a.data.priority ?? 100;
+      const priorityB = b.data.priority ?? 100;
+      return priorityA - priorityB;
+    });
+    for (const bridge of sortedBridges) {
       await bridge.start();
     }
   }
