@@ -412,7 +412,13 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@linux4life798](https://github.com/linux4life798) | 💎 Thank you for your generous support! |
 | *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
 
-### 🌟 Original Author
+### � UI/UX Contributors
+
+| Contributor | Contribution |
+|-------------|--------------|
+| [@razzietheman](https://github.com/razzietheman) | 💡 Countless ideas for UI/UX improvements - making this project more user-friendly! |
+
+### �🌟 Original Author
 
 - **[@t0bst4r](https://github.com/t0bst4r)** - Creator of the original Home-Assistant-Matter-Hub project
 
