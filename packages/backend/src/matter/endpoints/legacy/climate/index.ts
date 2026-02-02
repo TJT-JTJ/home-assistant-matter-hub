@@ -33,9 +33,12 @@ function thermostatFeatures(
   if (supportsHeating) {
     features.add("Heating");
   }
-  if (supportsHeating && supportsCooling) {
-    features.add("AutoMode");
-  }
+  // NOTE: AutoMode feature intentionally NOT included.
+  // Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
+  // in post-commit without asLocalActor, causing "Permission denied: Value is read-only" errors.
+  // We still support Auto systemMode - the AutoMode feature only adds thermostatRunningMode
+  // attribute, not the ability to use SystemMode.Auto.
+  // See: https://github.com/matter-js/matter.js/issues/3105
   return features;
 }
 
