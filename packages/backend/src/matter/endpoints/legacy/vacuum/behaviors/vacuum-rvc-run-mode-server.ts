@@ -58,10 +58,14 @@ function buildSupportedModes(
 }
 
 const vacuumRvcRunModeConfig = {
-  getCurrentMode: (entity: { state: string }) =>
-    [VacuumState.cleaning].includes(entity.state as VacuumState)
-      ? RvcSupportedRunMode.Cleaning
-      : RvcSupportedRunMode.Idle,
+  getCurrentMode: (entity: { state: string }) => {
+    const state = entity.state as VacuumState;
+    const isCleaning = [VacuumState.cleaning].includes(state);
+    logger.debug(
+      `Vacuum state: "${state}", isCleaning: ${isCleaning}, currentMode: ${isCleaning ? "Cleaning" : "Idle"}`,
+    );
+    return isCleaning ? RvcSupportedRunMode.Cleaning : RvcSupportedRunMode.Idle;
+  },
 
   getSupportedModes: (entity: { attributes: unknown }) => {
     const attributes = entity.attributes as VacuumDeviceAttributes;
