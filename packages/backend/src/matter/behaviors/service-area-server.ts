@@ -21,28 +21,8 @@ class ServiceAreaServerBase extends Base {
   declare state: ServiceAreaServerBase.State;
 
   override async initialize() {
-    // Load HomeAssistantEntityBehavior FIRST to get initial entity data
-    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
-
-    // Set supportedAreas BEFORE super.initialize() so they're available at pairing
-    if (homeAssistant.entity.state) {
-      const supportedAreas = this.state.config.getSupportedAreas(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-      this.state.supportedAreas = supportedAreas;
-      this.state.selectedAreas = this.state.config.getSelectedAreas(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-      const currentArea = this.state.config.getCurrentArea(
-        homeAssistant.entity.state,
-        this.agent,
-      );
-      this.state.currentArea = currentArea;
-    }
-
     await super.initialize();
+    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
   }
