@@ -2,11 +2,14 @@ import type {
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { OnOffServer as Base } from "@matter/main/behaviors";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import { notifyLightTurnedOn } from "./level-control-server.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("OnOffServer");
 
 export interface OnOffConfig {
   isOn?: ValueGetter<boolean>;
@@ -48,11 +51,13 @@ class OnOffServerBase extends FeaturedBase {
       return;
     }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const action = turnOn?.(void 0, this.agent) ?? {
+      action: "homeassistant.turn_on",
+    };
+    logger.info(`[${homeAssistant.entityId}] Turning ON -> ${action.action}`);
     // Notify LevelControlServer about turn-on for Alexa brightness workaround
     notifyLightTurnedOn(homeAssistant.entityId);
-    homeAssistant.callAction(
-      turnOn?.(void 0, this.agent) ?? { action: "homeassistant.turn_on" },
-    );
+    homeAssistant.callAction(action);
   }
 
   override off() {
@@ -62,9 +67,11 @@ class OnOffServerBase extends FeaturedBase {
       return;
     }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      turnOff?.(void 0, this.agent) ?? { action: "homeassistant.turn_off" },
-    );
+    const action = turnOff?.(void 0, this.agent) ?? {
+      action: "homeassistant.turn_off",
+    };
+    logger.info(`[${homeAssistant.entityId}] Turning OFF -> ${action.action}`);
+    homeAssistant.callAction(action);
   }
 
   private autoReset() {
