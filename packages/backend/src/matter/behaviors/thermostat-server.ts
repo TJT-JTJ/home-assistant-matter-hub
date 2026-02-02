@@ -501,6 +501,11 @@ export class ThermostatServerBase extends FeaturedBase {
 export namespace ThermostatServerBase {
   export class State extends FeaturedBase.State {
     config!: ThermostatServerConfig;
+    // CRITICAL: Define defaults directly in State class to ensure they are set
+    // BEFORE Matter.js validates attributes during cluster initialization.
+    // The factory function defaults are applied too late.
+    override occupiedHeatingSetpoint: number = 2000; // 20°C default
+    override occupiedCoolingSetpoint: number = 2400; // 24°C default
   }
 }
 
