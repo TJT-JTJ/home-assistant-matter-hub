@@ -63,6 +63,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
 
   private liftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private tiltDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  // Track when the last command was received to implement two-phase debounce
+  private lastLiftCommandTime = 0;
+  private lastTiltCommandTime = 0;
   // Store everything needed for debounced HA calls - entityId and actions service
   // must be captured before setTimeout because agent context expires after command handler
   private pendingLiftAction: {
@@ -75,7 +78,11 @@ export class WindowCoveringServerBase extends FeaturedBase {
     entityId: string;
     actions: HomeAssistantActions;
   } | null = null;
-  private static readonly DEBOUNCE_MS = 200;
+  // Two-phase debounce: longer for first command (quick swipe sends initial step value),
+  // shorter for subsequent commands during drag
+  private static readonly DEBOUNCE_INITIAL_MS = 400;
+  private static readonly DEBOUNCE_SUBSEQUENT_MS = 150;
+  private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
 
   override async initialize() {
     // Matter.js defaults: all position values = null, which is valid per Matter spec
@@ -250,7 +257,26 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const entityId = homeAssistant.entityId;
     const actions = this.env.get(HomeAssistantActions);
     this.pendingLiftAction = { action, entityId, actions };
-    // Debounce the HA call to handle rapid commands from Google Home during slider drag
+
+    // Two-phase debounce to handle Google Home's quick swipe behavior:
+    // - Quick swipe sends an initial "step" value, then final value after a delay
+    // - If we use short debounce, the step value gets executed before final arrives
+    // - Use longer debounce for first command, shorter for subsequent commands in sequence
+    const now = Date.now();
+    const timeSinceLastCommand = now - this.lastLiftCommandTime;
+    this.lastLiftCommandTime = now;
+
+    const isFirstInSequence =
+      timeSinceLastCommand >
+      WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
+    const debounceMs = isFirstInSequence
+      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+
+    logger.debug(
+      `Lift command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
+    );
+
     if (this.liftDebounceTimer) {
       clearTimeout(this.liftDebounceTimer);
     }
@@ -265,7 +291,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.pendingLiftAction = null;
         act.call(pendingAction, eid);
       }
-    }, WindowCoveringServerBase.DEBOUNCE_MS);
+    }, debounceMs);
   }
 
   private handleTiltOpen() {
@@ -304,7 +330,23 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const entityId = homeAssistant.entityId;
     const actions = this.env.get(HomeAssistantActions);
     this.pendingTiltAction = { action, entityId, actions };
-    // Debounce the HA call to handle rapid commands from Google Home during slider drag
+
+    // Two-phase debounce (same logic as lift)
+    const now = Date.now();
+    const timeSinceLastCommand = now - this.lastTiltCommandTime;
+    this.lastTiltCommandTime = now;
+
+    const isFirstInSequence =
+      timeSinceLastCommand >
+      WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
+    const debounceMs = isFirstInSequence
+      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+
+    logger.debug(
+      `Tilt command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
+    );
+
     if (this.tiltDebounceTimer) {
       clearTimeout(this.tiltDebounceTimer);
     }
@@ -319,7 +361,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.pendingTiltAction = null;
         act.call(pendingAction, eid);
       }
-    }, WindowCoveringServerBase.DEBOUNCE_MS);
+    }, debounceMs);
   }
 }
 
