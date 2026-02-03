@@ -34,6 +34,16 @@ export class ColorControlServerBase extends FeaturedBase {
 
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
+    // colorMode is required and must match the active features
+    if (this.state.colorMode === undefined) {
+      if (this.features.colorTemperature) {
+        this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
+      } else if (this.features.hueSaturation) {
+        this.state.colorMode =
+          ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
+      }
+    }
+
     // Matter.js defaults colorTempPhysicalMinMireds and colorTempPhysicalMaxMireds to 0,
     // but 0 is invalid per Matter spec - these must be > 0 for ColorTemperature feature.
     if (this.features.colorTemperature) {
@@ -56,6 +66,9 @@ export class ColorControlServerBase extends FeaturedBase {
         this.state.colorTempPhysicalMaxMireds = defaultMaxMireds;
       }
       // colorTemperatureMireds: Matter.js defaults to 250, which is valid
+      if (this.state.colorTemperatureMireds == null) {
+        this.state.colorTemperatureMireds = 250;
+      }
       // coupleColorTempToLevelMinMireds must be >= colorTempPhysicalMinMireds
       if (
         this.state.coupleColorTempToLevelMinMireds == null ||
@@ -64,6 +77,11 @@ export class ColorControlServerBase extends FeaturedBase {
       ) {
         this.state.coupleColorTempToLevelMinMireds =
           this.state.colorTempPhysicalMinMireds;
+      }
+      // startUpColorTemperatureMireds is required for ColorTemperature feature
+      if (this.state.startUpColorTemperatureMireds === undefined) {
+        this.state.startUpColorTemperatureMireds =
+          this.state.colorTemperatureMireds;
       }
 
       logger.debug(
