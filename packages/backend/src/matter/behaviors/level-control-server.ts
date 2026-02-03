@@ -46,8 +46,10 @@ export class LevelControlServerBase extends FeaturedBase {
     if (this.state.onLevel == null) {
       this.state.onLevel = 254; // Default on level
     }
+    logger.debug("LevelControlServer: before super.initialize()");
 
     await super.initialize();
+    logger.debug("LevelControlServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

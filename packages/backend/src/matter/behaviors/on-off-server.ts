@@ -28,8 +28,10 @@ class OnOffServerBase extends FeaturedBase {
     if (this.state.onOff === undefined) {
       this.state.onOff = false;
     }
+    logger.debug("OnOffServer: before super.initialize()");
 
     await super.initialize();
+    logger.debug("OnOffServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

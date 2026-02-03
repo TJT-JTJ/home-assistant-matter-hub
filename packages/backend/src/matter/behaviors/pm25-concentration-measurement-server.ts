@@ -1,8 +1,11 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { Pm25ConcentrationMeasurementServer as Base } from "@matter/main/behaviors";
 import { ConcentrationMeasurement } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
+
+const logger = Logger.get("Pm25ConcentrationMeasurementServer");
 
 // Enable both NumericMeasurement and LevelIndication for maximum controller compatibility
 const Pm25ConcentrationMeasurementServerBase = Base.with(
@@ -40,8 +43,14 @@ export class Pm25ConcentrationMeasurementServer extends Pm25ConcentrationMeasure
       this.state.measurementMedium =
         ConcentrationMeasurement.MeasurementMedium.Air;
     }
+    logger.debug(
+      "Pm25ConcentrationMeasurementServer: before super.initialize()",
+    );
 
     await super.initialize();
+    logger.debug(
+      "Pm25ConcentrationMeasurementServer: after super.initialize()",
+    );
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

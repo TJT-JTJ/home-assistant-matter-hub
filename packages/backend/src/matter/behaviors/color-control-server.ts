@@ -100,8 +100,10 @@ export class ColorControlServerBase extends FeaturedBase {
     }
 
     // HueSaturation: Matter.js defaults currentHue=0, currentSaturation=0 - no override needed
+    logger.debug("ColorControlServer: before super.initialize()");
 
     await super.initialize();
+    logger.debug("ColorControlServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
