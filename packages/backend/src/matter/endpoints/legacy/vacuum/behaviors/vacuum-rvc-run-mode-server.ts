@@ -31,9 +31,14 @@ const logger = Logger.get("VacuumRvcRunModeServer");
  * @param includeUnnamedRooms - If true, includes rooms with generic names like "Room 7". Default: false
  */
 function buildSupportedModes(
-  attributes: VacuumDeviceAttributes,
-  includeUnnamedRooms = false,
+  _attributes: VacuumDeviceAttributes,
+  _includeUnnamedRooms = false,
 ): RvcRunMode.ModeOption[] {
+  // Only include base modes (Idle, Cleaning).
+  // Room-specific cleaning is handled via ServiceArea cluster.
+  // Apple Home has issues mapping room-specific modes correctly when both
+  // ServiceArea and RvcRunMode room modes are present - it uses incorrect
+  // index-based mode selection instead of the actual mode values.
   const modes: RvcRunMode.ModeOption[] = [
     {
       label: "Idle",
@@ -46,15 +51,6 @@ function buildSupportedModes(
       modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
     },
   ];
-
-  const rooms = parseVacuumRooms(attributes, includeUnnamedRooms);
-  for (const room of rooms) {
-    modes.push({
-      label: `Clean ${room.name}`,
-      mode: getRoomModeValue(room),
-      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
-    });
-  }
 
   return modes;
 }
