@@ -14,7 +14,7 @@ import {
   RvcSupportedRunMode,
 } from "../../../../behaviors/rvc-run-mode-server.js";
 import {
-  getRoomIndexFromMode,
+  getRoomIdFromMode,
   getRoomModeValue,
   isDreameVacuum,
   parseVacuumRooms,
@@ -48,11 +48,10 @@ function buildSupportedModes(
   ];
 
   const rooms = parseVacuumRooms(attributes, includeUnnamedRooms);
-  for (let i = 0; i < rooms.length; i++) {
-    const room = rooms[i];
+  for (const room of rooms) {
     modes.push({
       label: `Clean ${room.name}`,
-      mode: getRoomModeValue(i),
+      mode: getRoomModeValue(room),
       modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
     });
   }
@@ -168,11 +167,22 @@ const vacuumRvcRunModeConfig = {
     const entity = agent.get(HomeAssistantEntityBehavior).entity;
     const attributes = entity.state.attributes as VacuumDeviceAttributes;
     const rooms = parseVacuumRooms(attributes);
-    const roomIndex = getRoomIndexFromMode(roomMode);
+    const roomId = getRoomIdFromMode(roomMode);
 
-    if (roomIndex >= 0 && roomIndex < rooms.length) {
-      const room = rooms[roomIndex];
+    // Find the room by its ID (not by index)
+    const room = rooms.find((r) => {
+      const id =
+        typeof r.id === "number"
+          ? r.id
+          : Math.abs(
+              r.id
+                .split("")
+                .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0),
+            );
+      return id === roomId;
+    });
 
+    if (room) {
       // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
       if (isDreameVacuum(attributes)) {
         logger.debug(

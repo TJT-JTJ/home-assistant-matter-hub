@@ -117,12 +117,31 @@ export function parseVacuumRooms(
 export const ROOM_MODE_BASE = 100;
 
 /**
+ * Convert a room ID to a numeric mode-compatible value.
+ * This ensures consistency between ServiceArea and RvcRunMode.
+ */
+function roomIdToNumeric(roomId: string | number): number {
+  if (typeof roomId === "number") {
+    return roomId;
+  }
+  // For string IDs, use a simple hash (same logic as toAreaId in service-area-server)
+  let hash = 0;
+  for (let i = 0; i < roomId.length; i++) {
+    const char = roomId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Calculate the mode value for a specific room.
- * @param roomIndex - The index of the room in the rooms array (0-based)
+ * Uses the room's actual ID (not array index) to ensure consistency with ServiceArea.
+ * @param room - The room object
  * @returns The mode value for this room
  */
-export function getRoomModeValue(roomIndex: number): number {
-  return ROOM_MODE_BASE + roomIndex;
+export function getRoomModeValue(room: VacuumRoom): number {
+  return ROOM_MODE_BASE + roomIdToNumeric(room.id);
 }
 
 /**
@@ -135,11 +154,11 @@ export function isRoomMode(mode: number): boolean {
 }
 
 /**
- * Get the room index from a room mode value.
+ * Get the room ID from a room mode value.
  * @param mode - The room mode value
- * @returns The room index (0-based), or -1 if not a room mode
+ * @returns The numeric room ID, or -1 if not a room mode
  */
-export function getRoomIndexFromMode(mode: number): number {
+export function getRoomIdFromMode(mode: number): number {
   if (!isRoomMode(mode)) {
     return -1;
   }
