@@ -91,11 +91,38 @@ function getDreameCleaningModeString(mode: number): string {
  * Derive the cleaning mode select entity ID from the vacuum entity ID.
  * Dreame vacuums typically have a select entity like: select.{vacuum_name}_cleaning_mode
  * e.g., vacuum.r2d2 -> select.r2d2_cleaning_mode
+ *
+ * Note: If the vacuum name contains special characters (e.g., "R2-D2"), the Dreame integration
+ * may create entities with underscores (select.r2_d2_cleaning_mode) while the vacuum entity
+ * has them removed (vacuum.r2d2). In such cases, users can configure the cleaningModeEntity
+ * in the entity mapping settings.
  */
 function deriveCleaningModeSelectEntity(vacuumEntityId: string): string {
   // Extract the vacuum name from entity_id (e.g., "vacuum.r2d2" -> "r2d2")
   const vacuumName = vacuumEntityId.replace("vacuum.", "");
   return `select.${vacuumName}_cleaning_mode`;
+}
+
+/**
+ * Get the cleaning mode select entity ID, using configured value if available.
+ */
+function getCleaningModeSelectEntity(agent: Agent): string {
+  const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+  const vacuumEntityId = homeAssistant.entityId;
+
+  // Check if a custom cleaning mode entity is configured in entity mapping
+  const mapping = homeAssistant.state.mapping;
+  if (mapping?.cleaningModeEntity) {
+    logger.debug(
+      `Using configured cleaning mode entity: ${mapping.cleaningModeEntity}`,
+    );
+    return mapping.cleaningModeEntity;
+  }
+
+  // Fall back to derived entity
+  const derivedEntity = deriveCleaningModeSelectEntity(vacuumEntityId);
+  logger.debug(`Using derived cleaning mode entity: ${derivedEntity}`);
+  return derivedEntity;
 }
 
 const vacuumRvcCleanModeConfig = {
@@ -114,11 +141,7 @@ const vacuumRvcCleanModeConfig = {
 
   setCleanMode: (mode: number, agent: Agent) => {
     const modeString = getDreameCleaningModeString(mode);
-
-    // Get the vacuum entity ID and derive the cleaning mode select entity
-    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
-    const vacuumEntityId = homeAssistant.entityId;
-    const selectEntityId = deriveCleaningModeSelectEntity(vacuumEntityId);
+    const selectEntityId = getCleaningModeSelectEntity(agent);
 
     logger.info(
       `Setting cleaning mode to: ${modeString} (mode=${mode}) via ${selectEntityId}`,
