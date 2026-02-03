@@ -122,10 +122,16 @@ export class ColorControlServerBase extends FeaturedBase {
     const startUpMireds = ColorConverter.temperatureKelvinToMireds(
       currentKelvin ?? maxKelvin,
     );
-    let currentMireds: number | undefined;
+    // Calculate currentMireds - MUST have a valid value, never undefined
+    let currentMireds: number;
     if (currentKelvin != null) {
       currentMireds = ColorConverter.temperatureKelvinToMireds(currentKelvin);
       currentMireds = Math.max(Math.min(currentMireds, maxMireds), minMireds);
+    } else {
+      // Light is off or no temp info - use a safe default within bounds
+      currentMireds =
+        this.state.colorTemperatureMireds ??
+        Math.round((minMireds + maxMireds) / 2);
     }
 
     applyPatchState(this.state, {
