@@ -44,6 +44,7 @@ export function EntityMappingDialog({
   const [customName, setCustomName] = useState("");
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
+  const [cleaningModeEntity, setCleaningModeEntity] = useState("");
 
   const isNewMapping = !entityId;
 
@@ -54,6 +55,7 @@ export function EntityMappingDialog({
       setCustomName(currentMapping?.customName || "");
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
+      setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
     }
   }, [open, entityId, currentMapping]);
 
@@ -67,6 +69,7 @@ export function EntityMappingDialog({
       customName: customName.trim() || undefined,
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
+      cleaningModeEntity: cleaningModeEntity.trim() || undefined,
     });
   }, [
     editEntityId,
@@ -74,6 +77,7 @@ export function EntityMappingDialog({
     customName,
     disabled,
     filterLifeEntity,
+    cleaningModeEntity,
     onSave,
   ]);
 
@@ -81,6 +85,9 @@ export function EntityMappingDialog({
   const showFilterLifeField =
     matterDeviceType === "air_purifier" ||
     (currentDomain === "fan" && !matterDeviceType);
+
+  // Show cleaning mode entity field for vacuums
+  const showCleaningModeField = currentDomain === "vacuum";
 
   const availableTypes = Object.entries(matterDeviceTypeLabels) as [
     MatterDeviceType,
@@ -164,6 +171,18 @@ export function EntityMappingDialog({
             value={filterLifeEntity}
             onChange={(e) => setFilterLifeEntity(e.target.value)}
             helperText="Sensor entity that provides filter life percentage (0-100%) for HEPA filter monitoring"
+          />
+        )}
+
+        {showCleaningModeField && (
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Cleaning Mode Entity (optional)"
+            placeholder="select.vacuum_cleaning_mode"
+            value={cleaningModeEntity}
+            onChange={(e) => setCleaningModeEntity(e.target.value)}
+            helperText="Select entity that controls the vacuum cleaning mode (e.g., select.r2_d2_cleaning_mode for Dreame vacuums)"
           />
         )}
 
