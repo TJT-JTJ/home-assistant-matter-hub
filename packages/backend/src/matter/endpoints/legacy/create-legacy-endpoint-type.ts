@@ -116,7 +116,7 @@ const matterDeviceTypeFactories: Partial<
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   extended_color_light: (ha) =>
-    ExtendedColorLightType(true).set({
+    ExtendedColorLightType(true, true).set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   on_off_plugin_unit: SwitchDevice,

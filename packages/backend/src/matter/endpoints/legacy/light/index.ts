@@ -44,10 +44,9 @@ export function LightDevice(
   // ColorTemperatureLightDevice has issues with Matter.js initialization that cause
   // "Behaviors have errors" during endpoint creation. ExtendedColorLight works correctly
   // with just the ColorTemperature feature enabled (supportsColorControl=false).
-  const deviceType = supportsColorControl
-    ? ExtendedColorLightType(supportsColorTemperature)
-    : supportsColorTemperature
-      ? ExtendedColorLightType(true) // Use ExtendedColorLight instead of ColorTemperatureLightType
+  const deviceType =
+    supportsColorControl || supportsColorTemperature
+      ? ExtendedColorLightType(supportsColorControl, supportsColorTemperature)
       : supportsBrightness
         ? DimmableLightType
         : OnOffLightType;
