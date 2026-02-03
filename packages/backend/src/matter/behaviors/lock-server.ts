@@ -18,6 +18,18 @@ class LockServerBase extends Base {
   declare state: LockServerBase.State;
 
   override async initialize() {
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // DoorLock requires lockState and other attributes to be set.
+    if (this.state.lockState == null) {
+      this.state.lockState = LockState.Locked;
+    }
+    if (this.state.lockType == null) {
+      this.state.lockType = DoorLock.LockType.DeadBolt;
+    }
+    if (this.state.actuatorEnabled == null) {
+      this.state.actuatorEnabled = true;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);

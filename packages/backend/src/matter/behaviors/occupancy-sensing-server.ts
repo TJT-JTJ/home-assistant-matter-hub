@@ -13,6 +13,15 @@ const OccupancySensingServerBase = Base.with(
 
 export class OccupancySensingServer extends OccupancySensingServerBase {
   override async initialize() {
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    if (this.state.occupancy == null) {
+      this.state.occupancy = { occupied: false };
+    }
+    if (this.state.occupancySensorType == null) {
+      this.state.occupancySensorType =
+        OccupancySensing.OccupancySensorType.PhysicalContact;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
