@@ -44,9 +44,8 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     const minLevel = 0;
     const maxLevel = 254;
 
-    const currentLevelPercent =
-      config.getValuePercent(state, this.agent) ??
-      this.state.currentLevelPercent;
+    // Get volume as percentage (0.0-1.0) from Home Assistant
+    const currentLevelPercent = config.getValuePercent(state, this.agent);
 
     // Convert percentage (0.0-1.0) to 0-254 range
     let currentLevel =
@@ -64,11 +63,12 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
       `[${entityId}] Volume update: HA=${currentLevelPercent != null ? Math.round(currentLevelPercent * 100) : "null"}% -> currentLevel=${currentLevel}`,
     );
 
+    // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
+    // as Matter.js might expose them and confuse controllers
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
       currentLevel: currentLevel,
-      currentLevelPercent: currentLevelPercent,
     });
   }
 
@@ -116,7 +116,6 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
 export namespace SpeakerLevelControlServerBase {
   export class State extends FeaturedBase.State {
     config!: SpeakerLevelControlConfig;
-    currentLevelPercent: number | null = null;
   }
 }
 

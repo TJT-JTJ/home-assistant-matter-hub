@@ -45,9 +45,8 @@ export class LevelControlServerBase extends FeaturedBase {
     const maxLevel = 0xfe;
     const levelRange = maxLevel - minLevel;
 
-    const currentLevelPercent =
-      config.getValuePercent(state, this.agent) ??
-      this.state.currentLevelPercent;
+    // Get brightness as percentage (0.0-1.0) from Home Assistant
+    const currentLevelPercent = config.getValuePercent(state, this.agent);
     let currentLevel =
       currentLevelPercent != null
         ? Math.round(currentLevelPercent * levelRange + minLevel)
@@ -78,11 +77,12 @@ export class LevelControlServerBase extends FeaturedBase {
       );
     }
 
+    // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
+    // as Matter.js might expose them and confuse controllers
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
       currentLevel: currentLevel,
-      currentLevelPercent: currentLevelPercent,
       onLevel: newOnLevel,
     });
   }
@@ -148,7 +148,6 @@ export class LevelControlServerBase extends FeaturedBase {
 export namespace LevelControlServerBase {
   export class State extends FeaturedBase.State {
     config!: LevelControlConfig;
-    currentLevelPercent: number | null = null;
   }
 }
 
