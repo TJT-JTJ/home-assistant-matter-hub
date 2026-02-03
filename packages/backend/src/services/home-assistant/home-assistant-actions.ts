@@ -10,6 +10,8 @@ import type { HomeAssistantClient } from "./home-assistant-client.js";
 export interface HomeAssistantAction {
   action: string;
   data?: object | undefined;
+  /** Optional: Override the target entity ID (defaults to the entity associated with the behavior) */
+  target?: string;
 }
 
 interface HomeAssistantActionCall extends HomeAssistantAction {
@@ -57,7 +59,8 @@ export class HomeAssistantActions extends Service {
   }
 
   private processAction(_key: string, calls: HomeAssistantActionCall[]) {
-    const entity_id = calls[0].entityId;
+    // Use custom target if provided, otherwise fall back to entityId
+    const entity_id = calls[0].target ?? calls[0].entityId;
     const action = calls[0].action;
     const data = Object.assign({}, ...calls.map((c) => c.data));
     const [domain, actionName] = action.split(".");

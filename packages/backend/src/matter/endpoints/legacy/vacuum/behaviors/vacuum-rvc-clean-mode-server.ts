@@ -1,6 +1,8 @@
 import type { VacuumDeviceAttributes } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
+import type { Agent } from "@matter/main";
 import { RvcCleanMode } from "@matter/main/clusters";
+import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import {
   RvcCleanModeServer,
   type RvcCleanModeServerInitialState,
@@ -85,6 +87,17 @@ function getDreameCleaningModeString(mode: number): string {
   }
 }
 
+/**
+ * Derive the cleaning mode select entity ID from the vacuum entity ID.
+ * Dreame vacuums typically have a select entity like: select.{vacuum_name}_cleaning_mode
+ * e.g., vacuum.r2d2 -> select.r2d2_cleaning_mode
+ */
+function deriveCleaningModeSelectEntity(vacuumEntityId: string): string {
+  // Extract the vacuum name from entity_id (e.g., "vacuum.r2d2" -> "r2d2")
+  const vacuumName = vacuumEntityId.replace("vacuum.", "");
+  return `select.${vacuumName}_cleaning_mode`;
+}
+
 const vacuumRvcCleanModeConfig = {
   getCurrentMode: (entity: { attributes: unknown }) => {
     const attributes = entity.attributes as VacuumDeviceAttributes & {
@@ -99,19 +112,25 @@ const vacuumRvcCleanModeConfig = {
 
   getSupportedModes: () => buildSupportedCleanModes(),
 
-  setCleanMode: (mode: number) => {
+  setCleanMode: (mode: number, agent: Agent) => {
     const modeString = getDreameCleaningModeString(mode);
-    logger.info(`Setting cleaning mode to: ${modeString} (mode=${mode})`);
 
-    // Dreame vacuums use select entity for cleaning mode
-    // The service is typically select.select_option
+    // Get the vacuum entity ID and derive the cleaning mode select entity
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const vacuumEntityId = homeAssistant.entityId;
+    const selectEntityId = deriveCleaningModeSelectEntity(vacuumEntityId);
+
+    logger.info(
+      `Setting cleaning mode to: ${modeString} (mode=${mode}) via ${selectEntityId}`,
+    );
+
+    // Dreame vacuums use a separate select entity for cleaning mode
     return {
       action: "select.select_option",
       data: {
         option: modeString,
       },
-      // Note: This targets the vacuum entity, but Dreame uses a separate select entity
-      // The user may need to configure this via entity mapping
+      target: selectEntityId,
     };
   },
 };
