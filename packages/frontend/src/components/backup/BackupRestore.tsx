@@ -247,19 +247,28 @@ export function BackupRestore() {
 
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 2, height: "100%" }}>
+            <Paper
+              sx={{
+                p: 2,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <CloudDownloadIcon color="primary" />
                 <Typography variant="subtitle1" fontWeight="bold">
                   Config Backup
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary">
-                Export bridge configurations and entity mappings.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Bridges will need to be re-commissioned after restore.
-              </Typography>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Export bridge configurations and entity mappings.
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Bridges will need to be re-commissioned after restore.
+                </Typography>
+              </Box>
               <Button
                 variant="contained"
                 startIcon={
@@ -272,6 +281,7 @@ export function BackupRestore() {
                 onClick={() => handleDownloadBackup(false)}
                 disabled={loading}
                 fullWidth
+                sx={{ mt: 2 }}
               >
                 Config Backup
               </Button>
@@ -279,19 +289,28 @@ export function BackupRestore() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 2, height: "100%" }}>
+            <Paper
+              sx={{
+                p: 2,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <SecurityIcon color="warning" />
                 <Typography variant="subtitle1" fontWeight="bold">
                   Full Backup (with Identity)
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary">
-                Includes Matter identity files (keypairs, fabric credentials).
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Preserves commissioning state across restores. DONT SHARE!
-              </Typography>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Includes Matter identity files (keypairs, fabric credentials).
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Preserves commissioning state across restores. DONT SHARE!
+                </Typography>
+              </Box>
               <Button
                 variant="contained"
                 color="warning"
@@ -305,6 +324,7 @@ export function BackupRestore() {
                 onClick={() => handleDownloadBackup(true)}
                 disabled={loading}
                 fullWidth
+                sx={{ mt: 2 }}
               >
                 Full Backup (with Identity)
               </Button>
@@ -312,17 +332,26 @@ export function BackupRestore() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 2, height: "100%" }}>
+            <Paper
+              sx={{
+                p: 2,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <RestoreIcon color="info" />
                 <Typography variant="subtitle1" fontWeight="bold">
                   Restore from Backup
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Upload a previously created backup file to restore bridges and
-                configurations.
-              </Typography>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Upload a previously created backup file to restore bridges and
+                  configurations.
+                </Typography>
+              </Box>
               <Button
                 variant="outlined"
                 color="info"
@@ -330,6 +359,7 @@ export function BackupRestore() {
                 component="label"
                 disabled={loading}
                 fullWidth
+                sx={{ mt: 2 }}
               >
                 Restore from Backup
                 <input
