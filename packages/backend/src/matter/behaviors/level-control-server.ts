@@ -33,19 +33,18 @@ export class LevelControlServerBase extends FeaturedBase {
 
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
-    // Lighting feature requires valid level values during initialization.
+    // The Lighting feature requires currentLevel to be in valid range (1-254).
+    // Match alpha.194 defaults that worked correctly.
     if (this.state.currentLevel == null) {
-      this.state.currentLevel = 254; // Default to max brightness
+      this.state.currentLevel = 1; // Minimum valid level for Lighting feature
     }
     if (this.state.minLevel == null) {
-      this.state.minLevel = 1; // Lighting feature: min is 1, not 0
+      this.state.minLevel = 1;
     }
     if (this.state.maxLevel == null) {
-      this.state.maxLevel = 254;
+      this.state.maxLevel = 0xfe; // 254
     }
-    if (this.state.onLevel == null) {
-      this.state.onLevel = 254; // Default on level
-    }
+    // NOTE: Do NOT set onLevel default - alpha.194 didn't have it and worked
     logger.debug("LevelControlServer: before super.initialize()");
 
     await super.initialize();

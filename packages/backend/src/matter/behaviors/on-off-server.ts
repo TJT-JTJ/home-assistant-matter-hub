@@ -24,10 +24,7 @@ class OnOffServerBase extends FeaturedBase {
   declare state: OnOffServerBase.State;
 
   override async initialize() {
-    // Set default value BEFORE super.initialize() to prevent validation errors
-    if (this.state.onOff === undefined) {
-      this.state.onOff = false;
-    }
+    // NOTE: Do NOT set onOff default - alpha.194 didn't have it and worked
     logger.debug("OnOffServer: before super.initialize()");
 
     await super.initialize();

@@ -33,36 +33,15 @@ export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
   override async initialize() {
-    // Set default values BEFORE super.initialize() to prevent validation errors.
-    // colorMode and enhancedColorMode are required and must match the active features
-    if (this.state.colorMode === undefined) {
-      if (this.features.colorTemperature) {
-        this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
-      } else if (this.features.hueSaturation) {
-        this.state.colorMode =
-          ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
-      }
-    }
-    // enhancedColorMode must also be set for controllers to work properly
-    if (this.state.enhancedColorMode === undefined) {
-      if (this.features.colorTemperature) {
-        this.state.enhancedColorMode =
-          ColorControl.EnhancedColorMode.ColorTemperatureMireds;
-      } else {
-        this.state.enhancedColorMode =
-          ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation;
-      }
-    }
-
-    // Matter.js defaults colorTempPhysicalMinMireds and colorTempPhysicalMaxMireds to 0,
-    // but 0 is invalid per Matter spec - these must be > 0 for ColorTemperature feature.
+    // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
+    // Matter.js validates ColorTemperature attributes during initialization.
+    // Match alpha.194 defaults that worked correctly.
     if (this.features.colorTemperature) {
-      // Use reasonable defaults matching common LED color temp ranges
-      // Matter.js defaults: colorTemperatureMireds=250, min/max=0 (invalid)
-      const defaultMinMireds = 153; // ~6500K (cool white)
-      const defaultMaxMireds = 500; // ~2000K (warm white)
+      // Default color temp range: 2000K - 6500K (153-500 mireds)
+      const defaultMinMireds = 153; // ~6500K
+      const defaultMaxMireds = 500; // ~2000K
+      const defaultMireds = 370; // ~2700K (warm white)
 
-      // Only override if Matter.js default (0) is invalid
       if (
         this.state.colorTempPhysicalMinMireds == null ||
         this.state.colorTempPhysicalMinMireds === 0
@@ -75,31 +54,32 @@ export class ColorControlServerBase extends FeaturedBase {
       ) {
         this.state.colorTempPhysicalMaxMireds = defaultMaxMireds;
       }
-      // colorTemperatureMireds: Matter.js defaults to 250, which is valid
       if (this.state.colorTemperatureMireds == null) {
-        this.state.colorTemperatureMireds = 250;
+        this.state.colorTemperatureMireds = defaultMireds;
       }
-      // coupleColorTempToLevelMinMireds must be >= colorTempPhysicalMinMireds
-      if (
-        this.state.coupleColorTempToLevelMinMireds == null ||
-        this.state.coupleColorTempToLevelMinMireds <
-          this.state.colorTempPhysicalMinMireds
-      ) {
-        this.state.coupleColorTempToLevelMinMireds =
-          this.state.colorTempPhysicalMinMireds;
+      if (this.state.coupleColorTempToLevelMinMireds == null) {
+        this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
       }
-      // startUpColorTemperatureMireds is required for ColorTemperature feature
-      if (this.state.startUpColorTemperatureMireds === undefined) {
-        this.state.startUpColorTemperatureMireds =
-          this.state.colorTemperatureMireds;
+      if (this.state.startUpColorTemperatureMireds == null) {
+        this.state.startUpColorTemperatureMireds = defaultMireds;
       }
 
       logger.debug(
-        `initialize: ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
+        `initialize: set ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
       );
     }
 
-    // HueSaturation: Matter.js defaults currentHue=0, currentSaturation=0 - no override needed
+    if (this.features.hueSaturation) {
+      // Default hue/saturation to 0 (red, no saturation = white)
+      if (this.state.currentHue == null) {
+        this.state.currentHue = 0;
+      }
+      if (this.state.currentSaturation == null) {
+        this.state.currentSaturation = 0;
+      }
+    }
+
+    // NOTE: Do NOT set colorMode or enhancedColorMode defaults - alpha.194 didn't have them
     logger.debug("ColorControlServer: before super.initialize()");
 
     await super.initialize();
