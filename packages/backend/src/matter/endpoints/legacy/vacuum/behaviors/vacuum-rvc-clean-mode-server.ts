@@ -2,6 +2,7 @@ import type { VacuumDeviceAttributes } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
 import type { Agent } from "@matter/main";
 import { RvcCleanMode } from "@matter/main/clusters";
+import { EntityStateProvider } from "../../../../../services/bridges/entity-state-provider.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import {
   RvcCleanModeServer,
@@ -71,7 +72,83 @@ function buildSupportedCleanModes(): RvcCleanMode.ModeOption[] {
 }
 
 /**
+ * Possible option names for each cleaning mode.
+ * Different Dreame vacuum models/integrations use different naming conventions.
+ */
+const CLEANING_MODE_ALIASES: Record<DreameCleaningMode, string[]> = {
+  [DreameCleaningMode.Sweeping]: [
+    "Sweeping",
+    "Vacuum",
+    "Vacuuming",
+    "Sweep",
+    "vacuum",
+    "sweeping",
+  ],
+  [DreameCleaningMode.Mopping]: [
+    "Mopping",
+    "Mop",
+    "mopping",
+    "mop",
+  ],
+  [DreameCleaningMode.SweepingAndMopping]: [
+    "Sweeping and mopping",
+    "Vacuum and mop",
+    "Vacuum & Mop",
+    "Vacuum & mop",
+    "vacuum_and_mop",
+    "sweeping_and_mopping",
+  ],
+  [DreameCleaningMode.MoppingAfterSweeping]: [
+    "Mopping after sweeping",
+    "Vacuum then mop",
+    "Mop after vacuum",
+    "vacuum_then_mop",
+    "mop_after_vacuum",
+  ],
+};
+
+/**
+ * Find the best matching option from available options for a given mode.
+ * Returns the first matching option or the first alias as fallback.
+ */
+function findMatchingOption(
+  mode: DreameCleaningMode,
+  availableOptions: string[] | undefined,
+): string {
+  const aliases = CLEANING_MODE_ALIASES[mode];
+
+  if (!availableOptions || availableOptions.length === 0) {
+    return aliases[0]; // Return default alias
+  }
+
+  // Try exact match first
+  for (const alias of aliases) {
+    const match = availableOptions.find(
+      (opt) => opt.toLowerCase() === alias.toLowerCase(),
+    );
+    if (match) return match;
+  }
+
+  // Try partial match
+  for (const alias of aliases) {
+    const match = availableOptions.find((opt) => {
+      const optLower = opt.toLowerCase();
+      const aliasLower = alias.toLowerCase();
+      return optLower.includes(aliasLower) || aliasLower.includes(optLower);
+    });
+    if (match) return match;
+  }
+
+  // No match found, return first alias
+  logger.warn(
+    `No matching option found for mode ${DreameCleaningMode[mode]} in [${availableOptions.join(", ")}]`,
+  );
+  return aliases[0];
+}
+
+/**
  * Get the Dreame cleaning mode string from our internal mode value
+ * @deprecated Use findMatchingOption with available options instead
  */
 function getDreameCleaningModeString(mode: number): string {
   switch (mode) {
@@ -140,11 +217,30 @@ const vacuumRvcCleanModeConfig = {
   getSupportedModes: () => buildSupportedCleanModes(),
 
   setCleanMode: (mode: number, agent: Agent) => {
-    const modeString = getDreameCleaningModeString(mode);
     const selectEntityId = getCleaningModeSelectEntity(agent);
 
+    // Get available options from the select entity state
+    const stateProvider = agent.env.get(EntityStateProvider);
+    const selectState = stateProvider.getState(selectEntityId);
+    const selectAttributes = selectState?.attributes as
+      | { options?: string[] }
+      | undefined;
+    const availableOptions = selectAttributes?.options;
+
+    if (availableOptions) {
+      logger.debug(
+        `Available cleaning mode options for ${selectEntityId}: [${availableOptions.join(", ")}]`,
+      );
+    }
+
+    // Find the best matching option for this mode
+    const optionToUse = findMatchingOption(
+      mode as DreameCleaningMode,
+      availableOptions,
+    );
+
     logger.info(
-      `Setting cleaning mode to: ${modeString} (mode=${mode}) via ${selectEntityId}`,
+      `Setting cleaning mode to: ${optionToUse} (mode=${mode}) via ${selectEntityId}`,
     );
 
     // Dreame vacuums use a separate select entity for cleaning mode
@@ -153,7 +249,7 @@ const vacuumRvcCleanModeConfig = {
     return {
       action: "select.select_option",
       data: {
-        option: modeString,
+        option: optionToUse,
       },
       target: selectEntityId,
     };
