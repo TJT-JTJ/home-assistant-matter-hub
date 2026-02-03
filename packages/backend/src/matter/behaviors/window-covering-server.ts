@@ -85,9 +85,40 @@ export class WindowCoveringServerBase extends FeaturedBase {
   private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
 
   override async initialize() {
-    // Matter.js defaults: all position values = null, which is valid per Matter spec
-    // installedOpenLimitLift/Tilt and installedClosedLimitLift/Tilt are not in defaults
-    // but are set during update() - no overrides needed here
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // WindowCovering with PositionAware features requires valid position values.
+    if (this.features.lift) {
+      if (this.state.installedOpenLimitLift == null) {
+        this.state.installedOpenLimitLift = 0;
+      }
+      if (this.state.installedClosedLimitLift == null) {
+        this.state.installedClosedLimitLift = 10000; // 100.00%
+      }
+    }
+    if (this.features.tilt) {
+      if (this.state.installedOpenLimitTilt == null) {
+        this.state.installedOpenLimitTilt = 0;
+      }
+      if (this.state.installedClosedLimitTilt == null) {
+        this.state.installedClosedLimitTilt = 10000; // 100.00%
+      }
+    }
+    if (this.features.positionAwareLift) {
+      if (this.state.currentPositionLiftPercent100ths === undefined) {
+        this.state.currentPositionLiftPercent100ths = null;
+      }
+      if (this.state.targetPositionLiftPercent100ths === undefined) {
+        this.state.targetPositionLiftPercent100ths = null;
+      }
+    }
+    if (this.features.positionAwareTilt) {
+      if (this.state.currentPositionTiltPercent100ths === undefined) {
+        this.state.currentPositionTiltPercent100ths = null;
+      }
+      if (this.state.targetPositionTiltPercent100ths === undefined) {
+        this.state.targetPositionTiltPercent100ths = null;
+      }
+    }
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);

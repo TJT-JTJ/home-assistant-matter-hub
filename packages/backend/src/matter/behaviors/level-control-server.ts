@@ -32,10 +32,20 @@ export class LevelControlServerBase extends FeaturedBase {
   declare state: LevelControlServerBase.State;
 
   override async initialize() {
-    // Matter.js defaults: currentLevel=null, onLevel=null
-    // For Lighting feature, currentLevel=null is valid per Matter spec (means "unknown")
-    // minLevel/maxLevel are not in Matter.js defaults - they're set during update()
-    // No overrides needed - Matter.js defaults are valid
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // Lighting feature requires valid level values during initialization.
+    if (this.state.currentLevel == null) {
+      this.state.currentLevel = 254; // Default to max brightness
+    }
+    if (this.state.minLevel == null) {
+      this.state.minLevel = 1; // Lighting feature: min is 1, not 0
+    }
+    if (this.state.maxLevel == null) {
+      this.state.maxLevel = 254;
+    }
+    if (this.state.onLevel == null) {
+      this.state.onLevel = 254; // Default on level
+    }
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
