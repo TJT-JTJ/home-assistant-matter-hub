@@ -148,6 +148,8 @@ const vacuumRvcCleanModeConfig = {
     );
 
     // Dreame vacuums use a separate select entity for cleaning mode
+    // Note: If the select entity is unavailable (e.g., vacuum in CleanGenius mode),
+    // the action will fail. User should keep vacuum in "Custom" mode.
     return {
       action: "select.select_option",
       data: {
