@@ -34,7 +34,7 @@ export class LevelControlServerBase extends FeaturedBase {
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
     // The Lighting feature requires currentLevel to be in valid range (1-254).
-    // Match alpha.194 defaults that worked correctly.
+    // If the light is OFF, brightness from HA is null, which could cause issues.
     if (this.state.currentLevel == null) {
       this.state.currentLevel = 1; // Minimum valid level for Lighting feature
     }
@@ -44,11 +44,8 @@ export class LevelControlServerBase extends FeaturedBase {
     if (this.state.maxLevel == null) {
       this.state.maxLevel = 0xfe; // 254
     }
-    // NOTE: Do NOT set onLevel default - alpha.194 didn't have it and worked
-    logger.debug("LevelControlServer: before super.initialize()");
 
     await super.initialize();
-    logger.debug("LevelControlServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

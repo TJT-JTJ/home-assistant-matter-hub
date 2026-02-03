@@ -35,7 +35,8 @@ export class ColorControlServerBase extends FeaturedBase {
   override async initialize() {
     // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
     // Matter.js validates ColorTemperature attributes during initialization.
-    // Match alpha.194 defaults that worked correctly.
+    // If the light is OFF, all color values from HA are null, causing validation to fail
+    // with "Behaviors have errors".
     if (this.features.colorTemperature) {
       // Default color temp range: 2000K - 6500K (153-500 mireds)
       const defaultMinMireds = 153; // ~6500K
@@ -79,11 +80,7 @@ export class ColorControlServerBase extends FeaturedBase {
       }
     }
 
-    // NOTE: Do NOT set colorMode or enhancedColorMode defaults - alpha.194 didn't have them
-    logger.debug("ColorControlServer: before super.initialize()");
-
     await super.initialize();
-    logger.debug("ColorControlServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
@@ -122,16 +119,10 @@ export class ColorControlServerBase extends FeaturedBase {
     const startUpMireds = ColorConverter.temperatureKelvinToMireds(
       currentKelvin ?? maxKelvin,
     );
-    // Calculate currentMireds - MUST have a valid value, never undefined
-    let currentMireds: number;
+    let currentMireds: number | undefined;
     if (currentKelvin != null) {
       currentMireds = ColorConverter.temperatureKelvinToMireds(currentKelvin);
       currentMireds = Math.max(Math.min(currentMireds, maxMireds), minMireds);
-    } else {
-      // Light is off or no temp info - use a safe default within bounds
-      currentMireds =
-        this.state.colorTemperatureMireds ??
-        Math.round((minMireds + maxMireds) / 2);
     }
 
     applyPatchState(this.state, {

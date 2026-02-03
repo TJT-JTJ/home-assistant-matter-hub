@@ -24,11 +24,7 @@ class OnOffServerBase extends FeaturedBase {
   declare state: OnOffServerBase.State;
 
   override async initialize() {
-    // NOTE: Do NOT set onOff default - alpha.194 didn't have it and worked
-    logger.debug("OnOffServer: before super.initialize()");
-
     await super.initialize();
-    logger.debug("OnOffServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
