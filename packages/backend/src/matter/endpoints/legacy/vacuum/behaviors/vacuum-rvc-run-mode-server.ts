@@ -82,6 +82,7 @@ const vacuumRvcRunModeConfig = {
     return buildSupportedModes(attributes);
   },
 
+  // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
   start: (_: void, agent: Agent) => {
     // Check if there are selected areas from ServiceArea
     try {
@@ -138,8 +139,8 @@ const vacuumRvcRunModeConfig = {
     return { action: "vacuum.start" };
   },
   returnToBase: () => ({ action: "vacuum.return_to_base" }),
-  // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
   pause: (
+    // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
     _: void,
     agent: {
       get: (

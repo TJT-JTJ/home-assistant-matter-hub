@@ -153,7 +153,6 @@ function getDreameCleaningModeString(mode: number): string {
       return "Sweeping and mopping";
     case DreameCleaningMode.MoppingAfterSweeping:
       return "Mopping after sweeping";
-    case DreameCleaningMode.Sweeping:
     default:
       return "Sweeping";
   }
@@ -255,7 +254,7 @@ const vacuumRvcCleanModeConfig = {
  * Create a VacuumRvcCleanModeServer with Dreame cleaning modes.
  */
 export function createVacuumRvcCleanModeServer(
-  attributes: VacuumDeviceAttributes,
+  _attributes: VacuumDeviceAttributes,
 ): ReturnType<typeof RvcCleanModeServer> {
   const supportedModes = buildSupportedCleanModes();
 
