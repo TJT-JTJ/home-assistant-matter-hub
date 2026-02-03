@@ -168,20 +168,21 @@ const vacuumRvcRunModeConfig = {
     const entity = agent.get(HomeAssistantEntityBehavior).entity;
     const attributes = entity.state.attributes as VacuumDeviceAttributes;
     const rooms = parseVacuumRooms(attributes);
-    const roomId = getRoomIdFromMode(roomMode);
+    const numericIdFromMode = getRoomIdFromMode(roomMode);
 
-    // Find the room by its ID (not by index)
-    const room = rooms.find((r) => {
-      const id =
-        typeof r.id === "number"
-          ? r.id
-          : Math.abs(
-              r.id
-                .split("")
-                .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0),
-            );
-      return id === roomId;
-    });
+    logger.info(
+      `cleanRoom called: roomMode=${roomMode}, numericIdFromMode=${numericIdFromMode}`,
+    );
+    logger.info(
+      `Available rooms: ${JSON.stringify(rooms.map((r) => ({ id: r.id, name: r.name, modeValue: getRoomModeValue(r) })))}`,
+    );
+
+    // Find the room by matching mode value (ensures consistency)
+    const room = rooms.find((r) => getRoomModeValue(r) === roomMode);
+
+    logger.info(
+      `Found room by mode match: ${room ? `${room.name} (id=${room.id})` : "none"}`,
+    );
 
     if (room) {
       // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
