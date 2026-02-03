@@ -30,17 +30,9 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
   declare state: SpeakerLevelControlServerBase.State;
 
   override async initialize() {
-    // Set default values BEFORE super.initialize() to prevent validation errors.
-    // Speaker uses 0-254 range (no Lighting feature, so 0 is valid).
-    if (this.state.currentLevel == null) {
-      this.state.currentLevel = 0; // Muted by default
-    }
-    if (this.state.minLevel == null) {
-      this.state.minLevel = 0;
-    }
-    if (this.state.maxLevel == null) {
-      this.state.maxLevel = 254;
-    }
+    // Matter.js defaults: currentLevel=null
+    // For Speaker (OnOff feature only, no Lighting), null is valid per Matter spec
+    // No overrides needed - Matter.js defaults are valid
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);

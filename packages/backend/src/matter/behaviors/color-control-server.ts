@@ -33,16 +33,16 @@ export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
   override async initialize() {
-    // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
-    // Matter.js validates ColorTemperature attributes during initialization.
-    // If the light is OFF, all color values from HA are null, causing validation to fail
-    // with "Behaviors have errors".
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // Matter.js defaults colorTempPhysicalMinMireds and colorTempPhysicalMaxMireds to 0,
+    // but 0 is invalid per Matter spec - these must be > 0 for ColorTemperature feature.
     if (this.features.colorTemperature) {
-      // Default color temp range: 2000K - 6500K (153-500 mireds)
-      const defaultMinMireds = 153; // ~6500K
-      const defaultMaxMireds = 500; // ~2000K
-      const defaultMireds = 370; // ~2700K (warm white)
+      // Use reasonable defaults matching common LED color temp ranges
+      // Matter.js defaults: colorTemperatureMireds=250, min/max=0 (invalid)
+      const defaultMinMireds = 153; // ~6500K (cool white)
+      const defaultMaxMireds = 500; // ~2000K (warm white)
 
+      // Only override if Matter.js default (0) is invalid
       if (
         this.state.colorTempPhysicalMinMireds == null ||
         this.state.colorTempPhysicalMinMireds === 0
@@ -55,30 +55,23 @@ export class ColorControlServerBase extends FeaturedBase {
       ) {
         this.state.colorTempPhysicalMaxMireds = defaultMaxMireds;
       }
-      if (this.state.colorTemperatureMireds == null) {
-        this.state.colorTemperatureMireds = defaultMireds;
-      }
-      if (this.state.coupleColorTempToLevelMinMireds == null) {
-        this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
-      }
-      if (this.state.startUpColorTemperatureMireds == null) {
-        this.state.startUpColorTemperatureMireds = defaultMireds;
+      // colorTemperatureMireds: Matter.js defaults to 250, which is valid
+      // coupleColorTempToLevelMinMireds must be >= colorTempPhysicalMinMireds
+      if (
+        this.state.coupleColorTempToLevelMinMireds == null ||
+        this.state.coupleColorTempToLevelMinMireds <
+          this.state.colorTempPhysicalMinMireds
+      ) {
+        this.state.coupleColorTempToLevelMinMireds =
+          this.state.colorTempPhysicalMinMireds;
       }
 
       logger.debug(
-        `initialize: set ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
+        `initialize: ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
       );
     }
 
-    if (this.features.hueSaturation) {
-      // Default hue/saturation to 0 (red, no saturation = white)
-      if (this.state.currentHue == null) {
-        this.state.currentHue = 0;
-      }
-      if (this.state.currentSaturation == null) {
-        this.state.currentSaturation = 0;
-      }
-    }
+    // HueSaturation: Matter.js defaults currentHue=0, currentSaturation=0 - no override needed
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);

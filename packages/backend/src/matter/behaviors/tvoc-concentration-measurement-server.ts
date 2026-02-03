@@ -19,19 +19,11 @@ const TVOC_LEVEL_HIGH = 2200; // Below this is "High", above is "Critical"
 
 export class TvocConcentrationMeasurementServer extends TvocConcentrationMeasurementServerBase {
   override async initialize() {
-    // Set default values BEFORE super.initialize() to prevent validation errors
-    if (this.state.measuredValue === undefined) {
-      this.state.measuredValue = null;
-    }
-    if (this.state.minMeasuredValue === undefined) {
-      this.state.minMeasuredValue = 0;
-    }
-    if (this.state.maxMeasuredValue === undefined) {
-      this.state.maxMeasuredValue = 65535; // Max uint16 for ppb
-    }
-    if (this.state.levelValue === undefined) {
-      this.state.levelValue = ConcentrationMeasurement.LevelValue.Unknown;
-    }
+    // Matter.js defaults: measuredValue=null, minMeasuredValue=null, maxMeasuredValue=null
+    // These are valid per Matter spec - we set actual values in update()
+    // levelValue defaults to undefined but is required for LevelIndication feature
+    // measurementUnit and measurementMedium default to undefined but are required
+    // No pre-init overrides needed - we set all required values in update()
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);

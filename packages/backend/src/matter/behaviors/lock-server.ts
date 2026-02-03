@@ -18,17 +18,10 @@ class LockServerBase extends Base {
   declare state: LockServerBase.State;
 
   override async initialize() {
-    // Set default values BEFORE super.initialize() to prevent validation errors.
-    // DoorLock requires lockState and other attributes to be set.
-    if (this.state.lockState == null) {
-      this.state.lockState = LockState.Locked;
-    }
-    if (this.state.lockType == null) {
-      this.state.lockType = DoorLock.LockType.DeadBolt;
-    }
-    if (this.state.actuatorEnabled == null) {
-      this.state.actuatorEnabled = true;
-    }
+    // Matter.js defaults: lockState=null, actuatorEnabled=false
+    // lockState=null is valid per Matter spec (means "unknown")
+    // actuatorEnabled=false is the Matter.js default - we override to true in update()
+    // No overrides needed here - Matter.js defaults are valid
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
