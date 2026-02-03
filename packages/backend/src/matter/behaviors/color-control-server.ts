@@ -34,13 +34,23 @@ export class ColorControlServerBase extends FeaturedBase {
 
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
-    // colorMode is required and must match the active features
+    // colorMode and enhancedColorMode are required and must match the active features
     if (this.state.colorMode === undefined) {
       if (this.features.colorTemperature) {
         this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
       } else if (this.features.hueSaturation) {
         this.state.colorMode =
           ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
+      }
+    }
+    // enhancedColorMode must also be set for controllers to work properly
+    if (this.state.enhancedColorMode === undefined) {
+      if (this.features.colorTemperature) {
+        this.state.enhancedColorMode =
+          ColorControl.EnhancedColorMode.ColorTemperatureMireds;
+      } else {
+        this.state.enhancedColorMode =
+          ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation;
       }
     }
 

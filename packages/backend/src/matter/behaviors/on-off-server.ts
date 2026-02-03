@@ -24,6 +24,11 @@ class OnOffServerBase extends FeaturedBase {
   declare state: OnOffServerBase.State;
 
   override async initialize() {
+    // Set default value BEFORE super.initialize() to prevent validation errors
+    if (this.state.onOff === undefined) {
+      this.state.onOff = false;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
