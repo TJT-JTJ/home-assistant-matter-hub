@@ -3,15 +3,8 @@ import type {
   VacuumRoom,
 } from "@home-assistant-matter-hub/common";
 import type { ServiceArea } from "@matter/main/clusters";
-import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
-import {
-  ServiceAreaServer,
-  type ServiceAreaServerConfig,
-} from "../../../../behaviors/service-area-server.js";
-import {
-  isDreameVacuum,
-  parseVacuumRooms,
-} from "../utils/parse-vacuum-rooms.js";
+import { ServiceAreaServer } from "../../../../behaviors/service-area-server.js";
+import { parseVacuumRooms } from "../utils/parse-vacuum-rooms.js";
 
 /**
  * Convert vacuum room ID to a Matter-compatible area ID.
@@ -50,58 +43,14 @@ function roomsToAreas(rooms: VacuumRoom[]): ServiceArea.Area[] {
 }
 
 /**
- * Create config for ServiceArea - only needs cleanAreas action
- */
-function createVacuumServiceAreaConfig(
-  _attributes: VacuumDeviceAttributes,
-): ServiceAreaServerConfig {
-  return {
-    cleanAreas: (areaIds, agent) => {
-      const entity = agent.get(HomeAssistantEntityBehavior).entity;
-      const currentAttributes = entity.state
-        .attributes as VacuumDeviceAttributes;
-      const currentRooms = parseVacuumRooms(currentAttributes);
-
-      // Convert Matter area IDs back to HA room IDs
-      const roomIds: (string | number)[] = [];
-      for (const areaId of areaIds) {
-        const room = currentRooms.find((r) => toAreaId(r.id) === areaId);
-        if (room) {
-          roomIds.push(room.id);
-        }
-      }
-
-      if (roomIds.length === 0) {
-        // No valid rooms, just start regular cleaning
-        return { action: "vacuum.start" };
-      }
-
-      // Dreame vacuums use their own service
-      if (isDreameVacuum(currentAttributes)) {
-        return {
-          action: "dreame_vacuum.vacuum_clean_segment",
-          data: {
-            segments: roomIds.length === 1 ? roomIds[0] : roomIds,
-          },
-        };
-      }
-
-      // Roborock/Xiaomi vacuums use vacuum.send_command with app_segment_clean
-      return {
-        action: "vacuum.send_command",
-        data: {
-          command: "app_segment_clean",
-          params: roomIds,
-        },
-      };
-    },
-  };
-}
-
-/**
  * Create a VacuumServiceAreaServer with initial supportedAreas.
  * The areas MUST be provided at creation time for Matter.js initialization.
  * Following Matterbridge pattern: all state is set at creation time.
+ *
+ * Note: selectAreas only stores selected areas. Actual cleaning starts when
+ * RvcRunMode.changeToMode(Cleaning) is called - the RvcRunModeServer reads
+ * the selectedAreas from ServiceArea state and triggers the appropriate
+ * vacuum service (dreame_vacuum.vacuum_clean_segment or vacuum.send_command).
  *
  * @param attributes - Vacuum device attributes
  * @param includeUnnamedRooms - If true, includes rooms with generic names like "Room 7". Default: false
@@ -112,11 +61,15 @@ export function createVacuumServiceAreaServer(
 ) {
   const rooms = parseVacuumRooms(attributes, includeUnnamedRooms);
   const supportedAreas = roomsToAreas(rooms);
-  const config = createVacuumServiceAreaConfig(attributes);
 
-  return ServiceAreaServer(config, {
+  return ServiceAreaServer({
     supportedAreas,
     selectedAreas: [],
     currentArea: null,
   });
 }
+
+/**
+ * Export toAreaId for use by RvcRunModeServer to convert area IDs back to room IDs
+ */
+export { toAreaId };

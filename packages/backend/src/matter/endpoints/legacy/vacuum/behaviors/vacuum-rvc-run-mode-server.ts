@@ -4,6 +4,8 @@ import {
   VacuumState,
 } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
+import type { Agent } from "@matter/main";
+import { ServiceAreaBehavior } from "@matter/main/behaviors";
 import { RvcRunMode } from "@matter/main/clusters";
 import { testBit } from "../../../../../utils/test-bit.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
@@ -17,6 +19,7 @@ import {
   isDreameVacuum,
   parseVacuumRooms,
 } from "../utils/parse-vacuum-rooms.js";
+import { toAreaId } from "./vacuum-service-area-server.js";
 
 const logger = Logger.get("VacuumRvcRunModeServer");
 
@@ -80,7 +83,61 @@ const vacuumRvcRunModeConfig = {
     return buildSupportedModes(attributes);
   },
 
-  start: () => ({ action: "vacuum.start" }),
+  start: (_: void, agent: Agent) => {
+    // Check if there are selected areas from ServiceArea
+    try {
+      const serviceArea = agent.get(ServiceAreaBehavior);
+      const selectedAreas = serviceArea.state.selectedAreas;
+
+      if (selectedAreas && selectedAreas.length > 0) {
+        const entity = agent.get(HomeAssistantEntityBehavior).entity;
+        const attributes = entity.state.attributes as VacuumDeviceAttributes;
+        const rooms = parseVacuumRooms(attributes);
+
+        // Convert area IDs back to room IDs
+        const roomIds: (string | number)[] = [];
+        for (const areaId of selectedAreas) {
+          const room = rooms.find((r) => toAreaId(r.id) === areaId);
+          if (room) {
+            roomIds.push(room.id);
+          }
+        }
+
+        if (roomIds.length > 0) {
+          logger.info(
+            `Starting cleaning with selected areas: ${roomIds.join(", ")}`,
+          );
+
+          // Clear selected areas after use
+          serviceArea.state.selectedAreas = [];
+
+          // Dreame vacuums use their own service
+          if (isDreameVacuum(attributes)) {
+            return {
+              action: "dreame_vacuum.vacuum_clean_segment",
+              data: {
+                segments: roomIds.length === 1 ? roomIds[0] : roomIds,
+              },
+            };
+          }
+
+          // Roborock/Xiaomi vacuums use vacuum.send_command
+          return {
+            action: "vacuum.send_command",
+            data: {
+              command: "app_segment_clean",
+              params: roomIds,
+            },
+          };
+        }
+      }
+    } catch {
+      // ServiceArea not available, fall through to regular start
+    }
+
+    logger.info("Starting regular cleaning (no areas selected)");
+    return { action: "vacuum.start" };
+  },
   returnToBase: () => ({ action: "vacuum.return_to_base" }),
   // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
   pause: (

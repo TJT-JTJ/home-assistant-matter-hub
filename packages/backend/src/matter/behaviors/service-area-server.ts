@@ -1,15 +1,8 @@
 import { Logger } from "@matter/general";
 import { ServiceAreaBehavior } from "@matter/main/behaviors";
 import { ServiceArea } from "@matter/main/clusters";
-import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
-import type { ValueSetter } from "./utils/cluster-config.js";
 
 const logger = Logger.get("ServiceAreaServer");
-
-export interface ServiceAreaServerConfig {
-  /** Clean selected areas - called when selectAreas command is received */
-  cleanAreas: ValueSetter<number[]>;
-}
 
 /**
  * ServiceArea server implementation following the Matterbridge pattern:
@@ -24,7 +17,6 @@ class ServiceAreaServerBase extends ServiceAreaBehavior {
     request: ServiceArea.SelectAreasRequest,
   ): ServiceArea.SelectAreasResponse {
     const { newAreas } = request;
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
 
     logger.info(
       `ServiceArea selectAreas called with: ${JSON.stringify(newAreas)}`,
@@ -47,16 +39,11 @@ class ServiceAreaServerBase extends ServiceAreaBehavior {
       };
     }
 
-    // Call Home Assistant to start cleaning the selected areas
-    homeAssistant.callAction(
-      this.state.config.cleanAreas(uniqueAreas, this.agent),
-    );
-
-    // Update selected areas
+    // Store selected areas - actual cleaning starts when RvcRunMode.changeToMode(Cleaning) is called
     this.state.selectedAreas = uniqueAreas;
 
     logger.info(
-      `ServiceArea: Selected ${uniqueAreas.length} areas for cleaning`,
+      `ServiceArea: Stored ${uniqueAreas.length} areas for cleaning: ${uniqueAreas.join(", ")}`,
     );
     return {
       status: ServiceArea.SelectAreasStatus.Success,
@@ -76,9 +63,7 @@ class ServiceAreaServerBase extends ServiceAreaBehavior {
 }
 
 namespace ServiceAreaServerBase {
-  export class State extends ServiceAreaBehavior.State {
-    config!: ServiceAreaServerConfig;
-  }
+  export class State extends ServiceAreaBehavior.State {}
 }
 
 export interface ServiceAreaServerInitialState {
@@ -91,16 +76,16 @@ export interface ServiceAreaServerInitialState {
  * Create a ServiceArea behavior with initial state.
  * Following Matterbridge pattern: state is set at creation, no custom initialize().
  * The initialState MUST include supportedAreas - Matter.js requires this at pairing time.
+ *
+ * Note: selectAreas only stores the selected areas. Actual cleaning starts when
+ * RvcRunMode.changeToMode(Cleaning) is called - the RvcRunModeServer reads
+ * the selectedAreas from this behavior's state.
  */
-export function ServiceAreaServer(
-  config: ServiceAreaServerConfig,
-  initialState: ServiceAreaServerInitialState,
-) {
+export function ServiceAreaServer(initialState: ServiceAreaServerInitialState) {
   logger.info(
     `Creating ServiceAreaServer with ${initialState.supportedAreas.length} areas`,
   );
   return ServiceAreaServerBase.set({
-    config,
     supportedAreas: initialState.supportedAreas,
     selectedAreas: initialState.selectedAreas ?? [],
     currentArea: initialState.currentArea ?? null,
