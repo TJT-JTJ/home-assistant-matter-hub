@@ -4,7 +4,6 @@ import {
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
-import { ColorTemperatureLightType } from "./devices/color-temperature-light.js";
 import { DimmableLightType } from "./devices/dimmable-light.js";
 import { ExtendedColorLightType } from "./devices/extended-color-light.js";
 import { OnOffLightType } from "./devices/on-off-light-device.js";
@@ -41,10 +40,14 @@ export function LightDevice(
     LightDeviceColorMode.COLOR_TEMP,
   );
 
+  // Use ExtendedColorLight for all color-capable lights, including ColorTemperature-only lights.
+  // ColorTemperatureLightDevice has issues with Matter.js initialization that cause
+  // "Behaviors have errors" during endpoint creation. ExtendedColorLight works correctly
+  // with just the ColorTemperature feature enabled (supportsColorControl=false).
   const deviceType = supportsColorControl
     ? ExtendedColorLightType(supportsColorTemperature)
     : supportsColorTemperature
-      ? ColorTemperatureLightType
+      ? ExtendedColorLightType(true) // Use ExtendedColorLight instead of ColorTemperatureLightType
       : supportsBrightness
         ? DimmableLightType
         : OnOffLightType;
