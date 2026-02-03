@@ -2,12 +2,15 @@ import {
   ColorConverter,
   type HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { ColorControlServer as Base } from "@matter/main/behaviors/color-control";
 import { ColorControl } from "@matter/main/clusters";
 import type { ColorInstance } from "color";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("ColorControlServer");
 
 export type ColorControlMode =
   | ColorControl.ColorMode.CurrentHueAndCurrentSaturation
@@ -30,6 +33,53 @@ export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
   override async initialize() {
+    // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
+    // Matter.js validates ColorTemperature attributes during initialization.
+    // If the light is OFF, all color values from HA are null, causing validation to fail
+    // with "Behaviors have errors".
+    if (this.features.colorTemperature) {
+      // Default color temp range: 2000K - 6500K (153-500 mireds)
+      const defaultMinMireds = 153; // ~6500K
+      const defaultMaxMireds = 500; // ~2000K
+      const defaultMireds = 370; // ~2700K (warm white)
+
+      if (
+        this.state.colorTempPhysicalMinMireds == null ||
+        this.state.colorTempPhysicalMinMireds === 0
+      ) {
+        this.state.colorTempPhysicalMinMireds = defaultMinMireds;
+      }
+      if (
+        this.state.colorTempPhysicalMaxMireds == null ||
+        this.state.colorTempPhysicalMaxMireds === 0
+      ) {
+        this.state.colorTempPhysicalMaxMireds = defaultMaxMireds;
+      }
+      if (this.state.colorTemperatureMireds == null) {
+        this.state.colorTemperatureMireds = defaultMireds;
+      }
+      if (this.state.coupleColorTempToLevelMinMireds == null) {
+        this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
+      }
+      if (this.state.startUpColorTemperatureMireds == null) {
+        this.state.startUpColorTemperatureMireds = defaultMireds;
+      }
+
+      logger.debug(
+        `initialize: set ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
+      );
+    }
+
+    if (this.features.hueSaturation) {
+      // Default hue/saturation to 0 (red, no saturation = white)
+      if (this.state.currentHue == null) {
+        this.state.currentHue = 0;
+      }
+      if (this.state.currentSaturation == null) {
+        this.state.currentSaturation = 0;
+      }
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
