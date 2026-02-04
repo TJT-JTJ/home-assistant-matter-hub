@@ -37,8 +37,8 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.4 | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
+| **Stable** | `main` | v2.0.0 | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
@@ -165,51 +165,53 @@ All previous features plus:
 - **Icon API** - Fixed leading slash in bridge-icons API for Ingress compatibility
 - **Icon Preservation** - Icon field now preserved when saving bridge config
 
-### Alpha Features (v2.0.0-alpha) 🧪
+### Stable Features (v2.0.0) - NEW! 🎉
 
-> [!WARNING]
-> Alpha versions are for early adopters and may contain bugs!
+**💡 Light Entity Fixes**
+- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
+- **Boundary Order Fix** - Color temperature boundaries are now set before values to prevent validation errors
+- **LevelControlServer** - Fixed validation errors during initialization
 
-All stable features plus:
+**🌡️ Concentration Sensors**
+- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors" for all concentration measurement sensors
+- **Feature Configuration** - Corrected to use `NumericMeasurement` only (not `LevelIndication`)
+- **Apple Home Compatibility** - Proper default values for seamless Apple Home integration
 
 **🌡️ New Device Support**
 - **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
 
 **🤖 Vacuum Enhancements**
+- **Apple Home Room Selection** - Matter 1.4 Service Area cluster for native room selection
+- **Dreame Vacuum Support** - Full support for nested room format (`rooms: { "Map Name": [...] }`)
 - **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
 
 **🏷️ Entity Mapping**
-- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types (Temperature, Humidity, Pressure, etc.) ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
+- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
 
 **🖼️ Backup & Restore**
 - **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
-- **Icon Restore** - Icons are automatically restored during backup import
-
-**🔧 Binary Sensor**
-- **Update Device Class** - New `update` device class mapping for binary sensors
-
-### Alpha Features & Fixes 🧪
-
-> [!TIP]
-> These features and fixes are available in alpha and will be included in the next stable release.
 
 **🌬️ Air Purifier**
-- **HEPA Filter Life Monitoring** - Air Purifiers now show filter life remaining via Matter's HepaFilterMonitoring cluster. Supports `filter_life`, `filter_life_remaining`, and `filter_life_level` attributes.
-- **Filter Life Sensor Mapping** - Map a separate sensor entity (e.g., `sensor.air_purifier_filter_life`) to your Air Purifier via Entity Mapping UI. See [Air Purifier Documentation](docs/Devices/Air%20Purifier.md) for details.
-
-**🤖 Vacuum**
-- **Apple Home Room Selection** - Added Matter 1.4 Service Area cluster for native room selection in Apple Home. See [Robot Vacuum Documentation](docs/Devices/Robot%20Vacuum.md) for details. ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
-- **Dreame Room Format Fix** - Room selection now supports nested Dreame format (`rooms: { "Map Name": [...] }`) and properly falls back to `segments` attribute
+- **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
+- **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
 
 **🚪 Cover/Blinds**
-- **Binary Cover Fix** - Garage doors and other binary covers (open/close only) now show Open/Close buttons instead of only a percentage slider in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
-- **WindowCover Position** - Set target position immediately to prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
-
-**🔊 Media**
-- **Speaker Volume Debug** - Added debug logging for volume conversion (Matter 1-254 spec confirmed) ([#79](https://github.com/RiDDiX/home-assistant-matter-hub/issues/79))
+- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
+- **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
 
 **🎨 UI/UX**
-- **Bridge Sorting** - Added sort dropdown (Name/Created, Asc/Desc) to Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
+- **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
+
+**📖 Documentation**
+- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
+- New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
+
+### Alpha Features (v2.1.0-alpha) 🧪
+
+> [!WARNING]
+> Alpha versions are for early adopters and may contain bugs!
+
+All stable features plus experimental changes being actively developed.
 
 ### Testing Features (v4.1.0-testing) ⚠️
 
