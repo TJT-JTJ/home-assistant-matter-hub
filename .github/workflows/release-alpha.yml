@@ -135,6 +135,20 @@ jobs:
           else
             COMMITS=$(git log --pretty=format:"- %s (%h)" -10)
           fi
+          
+          # Create CHANGELOG.md file for release asset
+          echo "# v$VERSION" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Changes" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "$COMMITS" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "⚠️ **This is an alpha release** - use at your own risk!" >> CHANGELOG.md
+          
+          # Create CHANGELOG_FULL.md (same content for alpha)
+          cp CHANGELOG.md CHANGELOG_FULL.md
+          
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo "$COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -153,7 +167,9 @@ jobs:
           ---
           ⚠️ **This is an alpha release** - use at your own risk!
           " \
-            --prerelease
+            --prerelease \
+            CHANGELOG.md \
+            CHANGELOG_FULL.md
 
       - name: Package Artifact
         uses: actions/upload-artifact@v5
