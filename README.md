@@ -78,7 +78,7 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 **🏷️ Entity Mapping**
 - **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
 
-**🖼️ Backup & Restore**
+**�️ Backup & Restore**
 - **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
 
 **🌬️ Air Purifier**
@@ -92,7 +92,7 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 **🎨 UI/UX**
 - **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
 
-**📖 Documentation**
+**� Documentation**
 - New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
 - New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
 
@@ -104,9 +104,15 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Matter Bridge** - Expose Home Assistant entities to Matter controllers
 - **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
 - **Graceful Error Handling** - Skips problematic entities without crashing
+- **Failed Entity Reporting** - Shows which entities couldn't be loaded and why
 - **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
+- **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
+- **Bridge Wizard** - Guided setup for creating multiple bridges with automatic port assignment
 - **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
+- **Improved Fan Control** - Better speed control compatibility with Matter controllers
 - **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
+- **Node.js 24** - Latest LTS runtime
+- **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
 
 ### Stable Features (v1.7.x)
 
@@ -117,24 +123,34 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 
 - **Graceful Crash Handler** - Failed entities no longer crash the bridge
 - **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
+- **Access Control Fix** - Fixed attribute write issues using `asLocalActor`
 - **Water Valve Support** - Control water valves via Matter
 - **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms
+- **Pressure Sensor** - Atmospheric pressure measurements
+- **Flow Sensor** - Volume flow rate measurements
+- **Air Purifier** - Map fans to Air Purifier device type
+- **Pump Device** - Map switches/valves to Pump device type
 
 ### Stable Features (v1.9.0)
 
 - **Custom Bridge Icons** - Upload your own icons
+- **Domain-based Icons** - Automatic icon assignment
 - **Basic Video Player** - TV and media player support for Apple Home
+- **Alexa Deduplication** - UniqueId prevents duplicate devices
+- **Auto-only Thermostat Support** - Thermostats with only "auto" mode work correctly
 - **Health Check API** - System status and Kubernetes-ready probes
 - **WebSocket Live Updates** - Real-time bridge status
 - **Full Backup/Restore** - Complete backups including entity mappings
 
 ### Stable Features (v1.10.4)
 
-- **Climate/Thermostat Fixes** - Humidity sensor, HVAC auto mode mapping
+- **Climate/Thermostat Fixes** - Humidity sensor, HVAC auto mode mapping, thermostat limits
 - **Cover/Blinds Fixes** - Position fix, percentage consistency
 - **Vacuum Battery Support** - Battery level for vacuums
+- **Humidifier Improvements** - Humidity sensor, auto mode, FanDevice type
 - **Entity Mapping** - Custom name support, auto-refresh
 - **Alexa Brightness Preserve** - Prevent brightness reset on turn on
+- **UI Improvements** - Icon selection, button state fixes
 
 </details>
 

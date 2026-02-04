@@ -13,10 +13,25 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
 import { ClimateFanControlServer } from "./behaviors/climate-fan-control-server.js";
 import { ClimateHumidityMeasurementServer } from "./behaviors/climate-humidity-measurement-server.js";
 import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
 import { ClimateThermostatServer } from "./behaviors/climate-thermostat-server.js";
+
+const ClimatePowerSourceServer = PowerSourceServer({
+  getBatteryPercent: (entity) => {
+    const attrs = entity.attributes as {
+      battery?: number;
+      battery_level?: number;
+    };
+    const level = attrs.battery_level ?? attrs.battery;
+    if (level == null || Number.isNaN(Number(level))) {
+      return null;
+    }
+    return Number(level);
+  },
+});
 
 /**
  * Initial thermostat state extracted from Home Assistant entity.
@@ -36,6 +51,7 @@ const ClimateDeviceType = (
   supportsOnOff: boolean,
   supportsHumidity: boolean,
   supportsFanMode: boolean,
+  hasBattery: boolean,
   initialState: InitialThermostatState,
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
@@ -45,6 +61,9 @@ const ClimateDeviceType = (
   }
   if (supportsHumidity) {
     additionalClusters.push(ClimateHumidityMeasurementServer);
+  }
+  if (hasBattery) {
+    additionalClusters.push(ClimatePowerSourceServer);
   }
 
   // CRITICAL: Pass initial state values to ThermostatServer so they are set
@@ -99,8 +118,13 @@ export function ClimateDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const attributes = homeAssistantEntity.entity.state
-    .attributes as ClimateDeviceAttributes;
+    .attributes as ClimateDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
   const supportedFeatures = attributes.supported_features ?? 0;
+  const hasBattery =
+    attributes.battery_level != null || attributes.battery != null;
 
   const supportsCooling = coolingModes.some((mode) =>
     attributes.hvac_modes.includes(mode),
@@ -167,6 +191,7 @@ export function ClimateDevice(
     supportsOnOff,
     supportsHumidity,
     supportsFanMode,
+    hasBattery,
     initialState,
   ).set({ homeAssistantEntity });
 }

@@ -4,9 +4,18 @@ import {
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
-import { ContactSensorType } from "./contact-sensor.js";
-import { OccupancySensorType } from "./occupancy-sensor.js";
-import { OnOffSensorType } from "./on-off-sensor.js";
+import {
+  ContactSensorType,
+  ContactSensorWithBatteryType,
+} from "./contact-sensor.js";
+import {
+  OccupancySensorType,
+  OccupancySensorWithBatteryType,
+} from "./occupancy-sensor.js";
+import {
+  OnOffSensorType,
+  OnOffSensorWithBatteryType,
+} from "./on-off-sensor.js";
 import { CoAlarmType, SmokeAlarmType } from "./smoke-co-alarm.js";
 import { WaterLeakDetectorType } from "./water-leak-detector.js";
 
@@ -53,17 +62,36 @@ const deviceClasses: Partial<Record<BinarySensorDeviceClass, CombinedType>> = {
   [BinarySensorDeviceClass.Moisture]: WaterLeakDetectorType,
 };
 
+// Mapping from normal type to battery type
+const batteryTypes = new Map<CombinedType, CombinedType>([
+  [ContactSensorType, ContactSensorWithBatteryType],
+  [OccupancySensorType, OccupancySensorWithBatteryType],
+  [OnOffSensorType, OnOffSensorWithBatteryType],
+]);
+
 export function BinarySensorDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const defaultDeviceType = OnOffSensorType;
 
   const attributes = homeAssistantEntity.entity.state
-    .attributes as BinarySensorDeviceAttributes;
+    .attributes as BinarySensorDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
   const deviceClass = attributes.device_class;
-  const type =
+  const hasBattery =
+    attributes.battery_level != null || attributes.battery != null;
+
+  let type: CombinedType =
     deviceClass && deviceClasses[deviceClass]
       ? deviceClasses[deviceClass]
       : defaultDeviceType;
+
+  // Use battery variant if available
+  if (hasBattery && batteryTypes.has(type)) {
+    type = batteryTypes.get(type)!;
+  }
+
   return type.set({ homeAssistantEntity });
 }

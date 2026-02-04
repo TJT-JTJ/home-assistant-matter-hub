@@ -5,6 +5,7 @@ import {
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "./devices/air-quality-sensor.js";
+import { BatterySensorType } from "./devices/battery-sensor.js";
 import { Co2SensorType } from "./devices/co2-sensor.js";
 import { FlowSensorType } from "./devices/flow-sensor.js";
 import { HumiditySensorType } from "./devices/humidity-sensor.js";
@@ -12,6 +13,10 @@ import { IlluminanceSensorType } from "./devices/illuminance-sensor.js";
 import { Pm10SensorType } from "./devices/pm10-sensor.js";
 import { Pm25SensorType } from "./devices/pm25-sensor.js";
 import { PressureSensorType } from "./devices/pressure-sensor.js";
+import {
+  TemperatureHumiditySensorType,
+  TemperatureHumiditySensorWithBatteryType,
+} from "./devices/temperature-humidity-sensor.js";
 import { TemperatureSensorType } from "./devices/temperature-sensor.js";
 import { TvocSensorType } from "./devices/tvoc-sensor.js";
 
@@ -21,8 +26,20 @@ export function SensorDevice(
   const attributes = homeAssistantEntity.entity.state
     .attributes as SensorDeviceAttributes;
   const deviceClass = attributes.device_class;
+  const mapping = homeAssistantEntity.mapping;
 
   if (deviceClass === SensorDeviceClass.temperature) {
+    const hasHumidity = !!mapping?.humidityEntity;
+    const hasBattery = !!mapping?.batteryEntity;
+
+    if (hasHumidity && hasBattery) {
+      return TemperatureHumiditySensorWithBatteryType.set({
+        homeAssistantEntity,
+      });
+    }
+    if (hasHumidity) {
+      return TemperatureHumiditySensorType.set({ homeAssistantEntity });
+    }
     return TemperatureSensorType.set({ homeAssistantEntity });
   }
   if (deviceClass === SensorDeviceClass.humidity) {
@@ -57,6 +74,9 @@ export function SensorDevice(
   }
   if (deviceClass === SensorDeviceClass.aqi) {
     return AirQualitySensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.battery) {
+    return BatterySensorType.set({ homeAssistantEntity });
   }
   return undefined;
 }

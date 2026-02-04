@@ -10,9 +10,25 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
 import { CoverWindowCoveringServer } from "./behaviors/cover-window-covering-server.js";
 
-const CoverDeviceType = (supportedFeatures: number) => {
+// PowerSource configuration for battery-powered covers
+const CoverPowerSourceServer = PowerSourceServer({
+  getBatteryPercent: (entity) => {
+    const attrs = entity.attributes as {
+      battery?: number;
+      battery_level?: number;
+    };
+    const level = attrs.battery_level ?? attrs.battery;
+    if (level == null || Number.isNaN(Number(level))) {
+      return null;
+    }
+    return Number(level);
+  },
+});
+
+const CoverDeviceType = (supportedFeatures: number, hasBattery: boolean) => {
   const features: FeatureSelection<WindowCovering.Complete> = new Set();
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open)) {
     features.add("Lift");
@@ -42,20 +58,30 @@ const CoverDeviceType = (supportedFeatures: number) => {
     }
   }
 
-  return WindowCoveringDevice.with(
+  const baseBehaviors = [
     BasicInformationServer,
     IdentifyServer,
     HomeAssistantEntityBehavior,
     CoverWindowCoveringServer.with(...features),
-  );
+  ] as const;
+
+  if (hasBattery) {
+    return WindowCoveringDevice.with(...baseBehaviors, CoverPowerSourceServer);
+  }
+  return WindowCoveringDevice.with(...baseBehaviors);
 };
 
 export function CoverDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const attributes = homeAssistantEntity.entity.state
-    .attributes as CoverDeviceAttributes;
-  return CoverDeviceType(attributes.supported_features ?? 0).set({
+    .attributes as CoverDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
+  const hasBattery =
+    attributes.battery_level != null || attributes.battery != null;
+  return CoverDeviceType(attributes.supported_features ?? 0, hasBattery).set({
     homeAssistantEntity,
   });
 }

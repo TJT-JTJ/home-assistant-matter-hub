@@ -4,6 +4,7 @@ export type MatterDeviceType =
   | "air_purifier"
   | "air_quality_sensor"
   | "basic_video_player"
+  | "battery_storage"
   | "color_dimmer_switch"
   | "color_temperature_light"
   | "contact_sensor"
@@ -52,6 +53,18 @@ export interface EntityMappingConfig {
    * Example: "select.r2_d2_cleaning_mode"
    */
   readonly cleaningModeEntity?: string;
+  /**
+   * Optional: Entity ID of a humidity sensor to combine with a temperature sensor.
+   * Creates a combined Temperature+Humidity sensor in Matter instead of separate devices.
+   * Example: "sensor.h_t_bad_humidity"
+   */
+  readonly humidityEntity?: string;
+  /**
+   * Optional: Entity ID of a battery sensor to include with any sensor.
+   * Adds PowerSource cluster to show battery level in Matter controllers.
+   * Example: "sensor.h_t_bad_battery"
+   */
+  readonly batteryEntity?: string;
 }
 
 export interface EntityMappingRequest {
@@ -62,6 +75,8 @@ export interface EntityMappingRequest {
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
+  readonly humidityEntity?: string;
+  readonly batteryEntity?: string;
 }
 
 export interface EntityMappingResponse {
@@ -73,6 +88,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   air_purifier: "Air Purifier",
   air_quality_sensor: "Air Quality Sensor",
   basic_video_player: "Basic Video Player (TV)",
+  battery_storage: "Battery Sensor",
   color_dimmer_switch: "Color Dimmer Switch",
   color_temperature_light: "Color Temperature Light",
   contact_sensor: "Contact Sensor",
@@ -128,6 +144,7 @@ export const domainToDefaultMatterTypes: Partial<
   script: ["on_off_switch"],
   sensor: [
     "air_quality_sensor",
+    "battery_storage",
     "humidity_sensor",
     "light_sensor",
     "pressure_sensor",

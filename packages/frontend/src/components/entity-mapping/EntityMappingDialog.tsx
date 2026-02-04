@@ -45,6 +45,8 @@ export function EntityMappingDialog({
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
+  const [humidityEntity, setHumidityEntity] = useState("");
+  const [batteryEntity, setBatteryEntity] = useState("");
 
   const isNewMapping = !entityId;
 
@@ -56,6 +58,8 @@ export function EntityMappingDialog({
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
+      setHumidityEntity(currentMapping?.humidityEntity || "");
+      setBatteryEntity(currentMapping?.batteryEntity || "");
     }
   }, [open, entityId, currentMapping]);
 
@@ -70,6 +74,8 @@ export function EntityMappingDialog({
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
+      humidityEntity: humidityEntity.trim() || undefined,
+      batteryEntity: batteryEntity.trim() || undefined,
     });
   }, [
     editEntityId,
@@ -78,6 +84,8 @@ export function EntityMappingDialog({
     disabled,
     filterLifeEntity,
     cleaningModeEntity,
+    humidityEntity,
+    batteryEntity,
     onSave,
   ]);
 
@@ -88,6 +96,11 @@ export function EntityMappingDialog({
 
   // Show cleaning mode entity field for vacuums
   const showCleaningModeField = currentDomain === "vacuum";
+
+  // Show humidity/battery entity fields for temperature sensors
+  const showHumidityBatteryFields =
+    matterDeviceType === "temperature_sensor" ||
+    (currentDomain === "sensor" && !matterDeviceType);
 
   const availableTypes = Object.entries(matterDeviceTypeLabels) as [
     MatterDeviceType,
@@ -184,6 +197,29 @@ export function EntityMappingDialog({
             onChange={(e) => setCleaningModeEntity(e.target.value)}
             helperText="Select entity that controls the vacuum cleaning mode (e.g., select.r2_d2_cleaning_mode for Dreame vacuums)"
           />
+        )}
+
+        {showHumidityBatteryFields && (
+          <>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Humidity Sensor (optional)"
+              placeholder="sensor.h_t_bad_humidity"
+              value={humidityEntity}
+              onChange={(e) => setHumidityEntity(e.target.value)}
+              helperText="Combine with a humidity sensor to create a single Temperature+Humidity device"
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Battery Sensor (optional)"
+              placeholder="sensor.h_t_bad_battery"
+              value={batteryEntity}
+              onChange={(e) => setBatteryEntity(e.target.value)}
+              helperText="Include battery level from a separate sensor entity"
+            />
+          </>
         )}
 
         <FormControlLabel
