@@ -13,6 +13,13 @@ interface AllBridgeFeatureFlags {
    * Multiple devices in server mode will cause errors.
    */
   readonly serverMode: boolean;
+  /**
+   * Auto Battery Mapping: Automatically assign battery sensors from the same Home Assistant device
+   * to the main entity. When enabled, battery sensors will be merged into their parent devices
+   * instead of appearing as separate devices in Matter controllers.
+   * Default: false (disabled)
+   */
+  readonly autoBatteryMapping: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

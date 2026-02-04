@@ -33,17 +33,53 @@ export class LegacyEndpoint extends EntityEndpoint {
     if (!state) {
       return;
     }
+
+    // Auto-battery mapping: Skip battery sensors that have been auto-assigned to another device
+    // Only applies when autoBatteryMapping feature flag is enabled
+    if (
+      registry.isAutoBatteryMappingEnabled() &&
+      registry.isBatteryEntityUsed(entityId)
+    ) {
+      logger.debug(
+        `Skipping ${entityId} - already auto-assigned as battery to another device`,
+      );
+      return;
+    }
+
+    // Auto-assign battery entity if not manually set and device has one
+    // Only applies when autoBatteryMapping feature flag is enabled
+    let effectiveMapping = mapping;
+    if (
+      registry.isAutoBatteryMappingEnabled() &&
+      !mapping?.batteryEntity &&
+      entity.device_id
+    ) {
+      const batteryEntityId = registry.findBatteryEntityForDevice(
+        entity.device_id,
+      );
+      // Don't auto-assign battery to itself
+      if (batteryEntityId && batteryEntityId !== entityId) {
+        effectiveMapping = {
+          ...mapping,
+          entityId: mapping?.entityId ?? entityId,
+          batteryEntity: batteryEntityId,
+        };
+        registry.markBatteryEntityUsed(batteryEntityId);
+        logger.debug(`Auto-assigned battery ${batteryEntityId} to ${entityId}`);
+      }
+    }
+
     const payload = {
       entity_id: entityId,
       state,
       registry: entity,
       deviceRegistry,
     };
-    const type = createLegacyEndpointType(payload, mapping);
+    const type = createLegacyEndpointType(payload, effectiveMapping);
     if (!type) {
       return;
     }
-    const customName = mapping?.customName;
+    const customName = effectiveMapping?.customName;
     return new LegacyEndpoint(type, entityId, customName);
   }
 

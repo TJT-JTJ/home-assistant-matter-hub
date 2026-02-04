@@ -1,5 +1,6 @@
 import type { ColorControl } from "@matter/main/clusters";
 import { ExtendedColorLightDevice as Device } from "@matter/main/devices";
+import { EntityStateProvider } from "../../../../../services/bridges/entity-state-provider.js";
 import type { FeatureSelection } from "../../../../../utils/feature-selection.js";
 import { BasicInformationServer } from "../../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
@@ -10,7 +11,19 @@ import { LightLevelControlServer } from "../behaviors/light-level-control-server
 import { LightOnOffServer } from "../behaviors/light-on-off-server.js";
 
 const LightPowerSourceServer = PowerSourceServer({
-  getBatteryPercent: (entity) => {
+  getBatteryPercent: (entity, agent) => {
+    // First check for battery entity from mapping (auto-assigned or manual)
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const battery = stateProvider.getNumericState(batteryEntity);
+      if (battery != null) {
+        return Math.max(0, Math.min(100, battery));
+      }
+    }
+
+    // Fallback to entity's own battery attribute
     const attrs = entity.attributes as {
       battery?: number;
       battery_level?: number;

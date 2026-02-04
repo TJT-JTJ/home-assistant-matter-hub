@@ -2,7 +2,9 @@ import type {
   HomeAssistantDeviceRegistry,
   HomeAssistantEntityRegistry,
   HomeAssistantFilter,
+  SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
+import { SensorDeviceClass } from "@home-assistant-matter-hub/common";
 import { keys, pickBy, values } from "lodash-es";
 import type {
   HomeAssistantDevices,
@@ -27,6 +29,9 @@ export class BridgeRegistry {
   private _entities: HomeAssistantEntities = {};
   private _states: HomeAssistantStates = {};
 
+  // Track battery entities that have been auto-assigned to other devices
+  private _usedBatteryEntities: Set<string> = new Set();
+
   deviceOf(entityId: string): HomeAssistantDeviceRegistry {
     const entity = this._entities[entityId];
     return this._devices[entity.device_id];
@@ -38,6 +43,48 @@ export class BridgeRegistry {
     return this._states[entityId];
   }
 
+  /**
+   * Find a battery sensor entity that belongs to the same HA device.
+   * Returns the entity_id of the battery sensor, or undefined if none found.
+   */
+  findBatteryEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this._entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this._states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.battery) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Mark a battery entity as used (auto-assigned to another device).
+   */
+  markBatteryEntityUsed(entityId: string): void {
+    this._usedBatteryEntities.add(entityId);
+  }
+
+  /**
+   * Check if a battery entity has been auto-assigned to another device.
+   */
+  isBatteryEntityUsed(entityId: string): boolean {
+    return this._usedBatteryEntities.has(entityId);
+  }
+
+  /**
+   * Check if auto battery mapping is enabled for this bridge.
+   */
+  isAutoBatteryMappingEnabled(): boolean {
+    return this.dataProvider.featureFlags?.autoBatteryMapping === true;
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
@@ -46,6 +93,9 @@ export class BridgeRegistry {
   }
 
   refresh() {
+    // Clear used battery entities on refresh to allow re-assignment
+    this._usedBatteryEntities.clear();
+
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];
       const filter = this.dataProvider.filter;

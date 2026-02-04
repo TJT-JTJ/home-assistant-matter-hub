@@ -48,8 +48,10 @@ export function LightDevice(
   const supportsColorTemperature = supportedColorModes.includes(
     LightDeviceColorMode.COLOR_TEMP,
   );
-  const hasBattery =
+  const hasBatteryAttr =
     attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
 
   // Use ExtendedColorLight for all color-capable lights, including ColorTemperature-only lights.
   // ColorTemperatureLightDevice has issues with Matter.js initialization that cause

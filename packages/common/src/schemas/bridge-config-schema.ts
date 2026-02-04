@@ -96,6 +96,15 @@ const featureFlagSchema: JSONSchema7 = {
       type: "boolean",
       default: false,
     },
+
+    autoBatteryMapping: {
+      title: "Auto Battery Mapping",
+      description:
+        "Automatically assign battery sensors from the same Home Assistant device to the main entity. " +
+        "When enabled, battery sensors will be merged into their parent devices instead of appearing as separate devices.",
+      type: "boolean",
+      default: false,
+    },
   },
   additionalProperties: false,
 };

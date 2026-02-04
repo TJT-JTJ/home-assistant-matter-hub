@@ -5,6 +5,7 @@ import {
 import type { EndpointType } from "@matter/main";
 import type { WindowCovering } from "@matter/main/clusters";
 import { WindowCoveringDevice } from "@matter/main/devices";
+import { EntityStateProvider } from "../../../../services/bridges/entity-state-provider.js";
 import type { FeatureSelection } from "../../../../utils/feature-selection.js";
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
@@ -15,7 +16,19 @@ import { CoverWindowCoveringServer } from "./behaviors/cover-window-covering-ser
 
 // PowerSource configuration for battery-powered covers
 const CoverPowerSourceServer = PowerSourceServer({
-  getBatteryPercent: (entity) => {
+  getBatteryPercent: (entity, agent) => {
+    // First check for battery entity from mapping (auto-assigned or manual)
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const battery = stateProvider.getNumericState(batteryEntity);
+      if (battery != null) {
+        return Math.max(0, Math.min(100, battery));
+      }
+    }
+
+    // Fallback to entity's own battery attribute
     const attrs = entity.attributes as {
       battery?: number;
       battery_level?: number;
@@ -79,8 +92,10 @@ export function CoverDevice(
     battery?: number;
     battery_level?: number;
   };
-  const hasBattery =
+  const hasBatteryAttr =
     attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
   return CoverDeviceType(attributes.supported_features ?? 0, hasBattery).set({
     homeAssistantEntity,
   });
