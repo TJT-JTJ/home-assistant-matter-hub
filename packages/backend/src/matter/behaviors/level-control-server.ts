@@ -98,11 +98,13 @@ export class LevelControlServerBase extends FeaturedBase {
     }
 
     // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
-    // as Matter.js might expose them and confuse controllers
+    // as Matter.js might expose them and confuse controllers.
+    // Only update currentLevel if we have a valid value to prevent overwriting
+    // the default set in initialize() when the light is OFF.
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
-      currentLevel: currentLevel,
+      ...(currentLevel != null ? { currentLevel: currentLevel } : {}),
       onLevel: newOnLevel,
     });
   }
