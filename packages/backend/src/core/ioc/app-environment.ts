@@ -9,6 +9,7 @@ import { HomeAssistantRegistry } from "../../services/home-assistant/home-assist
 import { AppStorage } from "../../services/storage/app-storage.js";
 import { BridgeStorage } from "../../services/storage/bridge-storage.js";
 import { EntityMappingStorage } from "../../services/storage/entity-mapping-storage.js";
+import { LockCredentialStorage } from "../../services/storage/lock-credential-storage.js";
 import { LoggerService } from "../app/logger.js";
 import type { Options } from "../app/options.js";
 import { BridgeEnvironmentFactory } from "./bridge-environment.js";
@@ -46,6 +47,10 @@ export class AppEnvironment extends EnvironmentBase {
     this.set(
       EntityMappingStorage,
       new EntityMappingStorage(await this.load(AppStorage)),
+    );
+    this.set(
+      LockCredentialStorage,
+      new LockCredentialStorage(await this.load(AppStorage)),
     );
 
     this.set(
@@ -87,6 +92,7 @@ export class AppEnvironment extends EnvironmentBase {
         await this.load(HomeAssistantRegistry),
         await this.load(BridgeStorage),
         await this.load(EntityMappingStorage),
+        await this.load(LockCredentialStorage),
         this.options.webApi,
       ),
     );

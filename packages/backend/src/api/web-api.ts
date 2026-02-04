@@ -10,6 +10,7 @@ import type { HomeAssistantClient } from "../services/home-assistant/home-assist
 import type { HomeAssistantRegistry } from "../services/home-assistant/home-assistant-registry.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
+import type { LockCredentialStorage } from "../services/storage/lock-credential-storage.js";
 import { accessLogger } from "./access-log.js";
 import { backupApi } from "./backup-api.js";
 import { bridgeExportApi } from "./bridge-export-api.js";
@@ -17,6 +18,7 @@ import { bridgeIconApi } from "./bridge-icon-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
 import { healthApi } from "./health-api.js";
 import { homeAssistantApi } from "./home-assistant-api.js";
+import { lockCredentialApi } from "./lock-credential-api.js";
 import { logsApi } from "./logs-api.js";
 import { matterApi } from "./matter-api.js";
 import { metricsApi } from "./metrics-api.js";
@@ -54,6 +56,7 @@ export class WebApi extends Service {
     private readonly haRegistry: HomeAssistantRegistry,
     private readonly bridgeStorage: BridgeStorage,
     private readonly mappingStorage: EntityMappingStorage,
+    private readonly lockCredentialStorage: LockCredentialStorage,
     private readonly props: WebApiProps,
   ) {
     super("WebApi");
@@ -89,6 +92,7 @@ export class WebApi extends Service {
       .use("/bridges", bridgeExportApi(this.bridgeStorage))
       .use("/bridge-icons", bridgeIconApi(this.props.storageLocation))
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
+      .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
       .use(
         "/backup",
         backupApi(

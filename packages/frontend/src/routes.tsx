@@ -6,6 +6,7 @@ import { DevicesPage } from "./pages/devices/DevicesPage.tsx";
 import { CreateBridgePage } from "./pages/edit-bridge/CreateBridgePage.tsx";
 import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
 import { HealthPage } from "./pages/health/HealthPage.tsx";
+import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
 import { StartupPage } from "./pages/startup/StartupPage.tsx";
 
 const documentationUrl = "https://riddix.github.io/home-assistant-matter-hub";
@@ -16,6 +17,7 @@ export const navigation = {
   editBridge: (bridgeId: string) => `/bridges/${bridgeId}/edit`,
   devices: "/devices",
   health: "/health",
+  lockCredentials: "/lock-credentials",
   startup: "/startup",
 
   githubRepository: "https://github.com/riddix/home-assistant-matter-hub/",
@@ -41,6 +43,7 @@ export const routes: RouteObject[] = [
       { path: navigation.editBridge(":bridgeId"), element: <EditBridgePage /> },
       { path: navigation.devices, element: <DevicesPage /> },
       { path: navigation.health, element: <HealthPage /> },
+      { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
       { path: navigation.startup, element: <StartupPage /> },
     ],
   },

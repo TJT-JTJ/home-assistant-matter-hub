@@ -10,6 +10,7 @@ export * from "./home-assistant-entity-information.js";
 export * from "./home-assistant-entity-registry.js";
 export * from "./home-assistant-entity-state.js";
 export * from "./home-assistant-filter.js";
+export * from "./lock-credential.js";
 export * from "./schemas/index.js";
 export * from "./utils/index.js";
 export * from "./websocket-message.js";
