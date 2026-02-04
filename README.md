@@ -37,8 +37,8 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.11 | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.1-alpha.x | Pre-release with new features, for early adopters |
+| **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.0.x-alpha | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
@@ -55,7 +55,7 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Stable Features (v1.10.11) - Current 🎉
+### Stable Features (v2.0.x) - Current 🎉
 
 **💡 Light Entity Fixes**
 - **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
@@ -143,7 +143,7 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-Currently synced with Stable v1.10.11 - same features and fixes.
+Currently synced with Stable v2.0.x - same features and fixes.
 
 ### Testing Features (v4.1.0-testing) ⚠️
 
