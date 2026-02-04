@@ -45,7 +45,14 @@ export class LevelControlServerBase extends FeaturedBase {
       this.state.maxLevel = 0xfe; // 254
     }
 
-    await super.initialize();
+    logger.debug(`initialize: calling super.initialize()`);
+    try {
+      await super.initialize();
+      logger.debug(`initialize: super.initialize() completed successfully`);
+    } catch (error) {
+      logger.error(`initialize: super.initialize() FAILED:`, error);
+      throw error;
+    }
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
