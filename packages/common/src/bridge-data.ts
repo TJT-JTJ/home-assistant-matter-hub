@@ -6,6 +6,13 @@ interface AllBridgeFeatureFlags {
   readonly includeHiddenEntities: boolean;
   readonly alexaPreserveBrightnessOnTurnOn: boolean;
   readonly vacuumIncludeUnnamedRooms: boolean;
+  /**
+   * Server Mode: Expose devices directly as standalone Matter devices instead of bridged devices.
+   * This is required for Apple Home to properly support Siri voice commands for Robot Vacuums (RVC).
+   * When enabled, only ONE device should be in this bridge - it will be exposed as the root device.
+   * Multiple devices in server mode will cause errors.
+   */
+  readonly serverMode: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;
