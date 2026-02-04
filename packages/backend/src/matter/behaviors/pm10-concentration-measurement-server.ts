@@ -4,7 +4,7 @@ import { ConcentrationMeasurement } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 
-// Use only NumericMeasurement feature as per matterbridge implementation.
+// Use only NumericMeasurement feature.
 // Using both NumericMeasurement and LevelIndication together causes "Behaviors have errors".
 // Apple Home requires Ugm3 for Pm10ConcentrationMeasurement cluster.
 const Pm10ConcentrationMeasurementServerBase = Base.with(
@@ -14,18 +14,18 @@ const Pm10ConcentrationMeasurementServerBase = Base.with(
 export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasurementServerBase {
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
-    // Based on matterbridge implementation - use only NumericMeasurement attributes.
+    // Use only NumericMeasurement attributes.
     if (this.state.measuredValue === undefined) {
       this.state.measuredValue = null;
     }
     if (this.state.minMeasuredValue === undefined) {
-      this.state.minMeasuredValue = null; // null as per matterbridge
+      this.state.minMeasuredValue = null;
     }
     if (this.state.maxMeasuredValue === undefined) {
-      this.state.maxMeasuredValue = null; // null as per matterbridge
+      this.state.maxMeasuredValue = null;
     }
     if (this.state.uncertainty === undefined) {
-      this.state.uncertainty = 0; // Required by matterbridge
+      this.state.uncertainty = 0;
     }
     if (this.state.measurementUnit === undefined) {
       this.state.measurementUnit =

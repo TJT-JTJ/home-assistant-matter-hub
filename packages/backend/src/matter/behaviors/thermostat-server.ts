@@ -32,7 +32,7 @@ const defaultState = {
   localTemperature: 2100, // 21°C
   occupiedHeatingSetpoint: 2000, // 20°C
   occupiedCoolingSetpoint: 2400, // 24°C
-  // Wide limits like Matterbridge (0-50°C)
+  // Wide limits (0-50°C)
   minHeatSetpointLimit: 0,
   maxHeatSetpointLimit: 5000,
   minCoolSetpointLimit: 0,
@@ -222,9 +222,9 @@ export class ThermostatServerBase extends FeaturedBase {
       ? config.getRunningMode(entity.state, this.agent)
       : Thermostat.ThermostatRunningMode.Off;
 
-    // Temperature limit handling based on Matterbridge approach:
+    // Temperature limit handling:
     // - For SINGLE-MODE (heat-only or cool-only): Use HA's actual min/max limits directly
-    // - For DUAL-MODE (heat + cool): Use wide limits (like Matterbridge: 0-50°C) to avoid
+    // - For DUAL-MODE (heat + cool): Use wide limits (0-50°C) to avoid
     //   Matter.js deadband constraint issues. HA will validate actual values.
     //
     // This ensures Apple Home shows the correct temperature range for single-mode thermostats
@@ -240,7 +240,7 @@ export class ThermostatServerBase extends FeaturedBase {
     let maxCoolLimit: number | undefined;
 
     if (this.features.heating && this.features.cooling) {
-      // DUAL-MODE: Use wide limits like Matterbridge
+      // DUAL-MODE: Use wide limits
       // This avoids Matter.js deadband constraints and lets HA do the validation
       minHeatLimit = WIDE_MIN;
       maxHeatLimit = WIDE_MAX;
@@ -622,8 +622,7 @@ export interface ThermostatServerInitialState {
  * registration. This is the ONLY way to prevent NaN validation errors, because
  * Matter.js validates setpoints BEFORE our initialize() method runs.
  *
- * Pattern copied from Matterbridge (https://github.com/Luligu/matterbridge):
- * They pass ALL thermostat attributes directly to behaviors.require() call.
+ * Pass ALL thermostat attributes directly to behaviors.require() call.
  *
  * @param config - The thermostat server configuration (getters/setters for HA)
  * @param initialState - Initial attribute values. MUST include valid setpoints!

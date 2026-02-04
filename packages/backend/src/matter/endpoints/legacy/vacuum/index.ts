@@ -54,7 +54,7 @@ export function VacuumDevice(
   }
 
   // ServiceArea cluster for native room selection in Apple Home
-  // Re-enabled using Matterbridge pattern (no custom initialize())
+  // All state is set at creation time (no custom initialize())
   const rooms = parseVacuumRooms(attributes);
   if (rooms.length > 0) {
     device = device.with(createVacuumServiceAreaServer(attributes));

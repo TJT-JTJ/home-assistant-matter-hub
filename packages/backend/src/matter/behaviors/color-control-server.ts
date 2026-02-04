@@ -34,8 +34,8 @@ export class ColorControlServerBase extends FeaturedBase {
 
   override async initialize() {
     // CRITICAL: Set ALL required default values BEFORE super.initialize().
-    // Based on matterbridge implementation, Matter.js requires these attributes
-    // to be set before initialization to prevent "Behaviors have errors".
+    // Matter.js requires these attributes to be set before initialization
+    // to prevent "Behaviors have errors".
 
     // Set colorCapabilities based on features (required by Matter.js)
     this.state.colorCapabilities = {
@@ -73,10 +73,10 @@ export class ColorControlServerBase extends FeaturedBase {
     }
 
     if (this.features.colorTemperature) {
-      // Default color temp range: 2000K - 6500K (147-500 mireds, matching matterbridge)
+      // Default color temp range: 2000K - 6500K (147-500 mireds)
       const defaultMinMireds = 147; // ~6800K
       const defaultMaxMireds = 500; // ~2000K
-      const defaultMireds = 250; // ~4000K (neutral white, matching matterbridge)
+      const defaultMireds = 250; // ~4000K (neutral white)
 
       if (
         this.state.colorTempPhysicalMinMireds == null ||
@@ -97,7 +97,7 @@ export class ColorControlServerBase extends FeaturedBase {
         this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
       }
       if (this.state.startUpColorTemperatureMireds == null) {
-        this.state.startUpColorTemperatureMireds = null; // null = previous value, matching matterbridge
+        this.state.startUpColorTemperatureMireds = null; // null = previous value
       }
 
       logger.debug(

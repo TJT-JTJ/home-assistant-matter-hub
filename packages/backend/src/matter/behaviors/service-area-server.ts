@@ -5,7 +5,7 @@ import { ServiceArea } from "@matter/main/clusters";
 const logger = Logger.get("ServiceAreaServer");
 
 /**
- * ServiceArea server implementation following the Matterbridge pattern:
+ * ServiceArea server implementation:
  * - No custom initialize() that calls super.initialize()
  * - Only override command handlers
  * - State is set via .set() at endpoint creation time
@@ -74,7 +74,7 @@ export interface ServiceAreaServerInitialState {
 
 /**
  * Create a ServiceArea behavior with initial state.
- * Following Matterbridge pattern: state is set at creation, no custom initialize().
+ * State is set at creation, no custom initialize().
  * The initialState MUST include supportedAreas - Matter.js requires this at pairing time.
  *
  * Note: selectAreas only stores the selected areas. Actual cleaning starts when

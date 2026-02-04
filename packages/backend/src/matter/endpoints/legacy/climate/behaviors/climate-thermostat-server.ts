@@ -149,7 +149,7 @@ const config: ThermostatServerConfig = {
  * behavior registration. This prevents NaN validation errors because Matter.js
  * validates setpoints BEFORE our initialize() method runs.
  *
- * Pattern from Matterbridge: Pass ALL thermostat attributes during registration.
+ * Pass ALL thermostat attributes during registration.
  *
  * @param initialState - Initial attribute values (temperature, setpoints, limits)
  */

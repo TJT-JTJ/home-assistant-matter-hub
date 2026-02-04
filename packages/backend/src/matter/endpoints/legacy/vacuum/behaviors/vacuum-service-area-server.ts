@@ -45,7 +45,7 @@ function roomsToAreas(rooms: VacuumRoom[]): ServiceArea.Area[] {
 /**
  * Create a VacuumServiceAreaServer with initial supportedAreas.
  * The areas MUST be provided at creation time for Matter.js initialization.
- * Following Matterbridge pattern: all state is set at creation time.
+ * All state is set at creation time.
  *
  * Note: selectAreas only stores selected areas. Actual cleaning starts when
  * RvcRunMode.changeToMode(Cleaning) is called - the RvcRunModeServer reads
