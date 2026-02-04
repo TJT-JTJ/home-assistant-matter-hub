@@ -76,36 +76,16 @@ export class LevelControlServerBase extends FeaturedBase {
       currentLevel = Math.min(Math.max(minLevel, currentLevel), maxLevel);
     }
 
-    // Only update onLevel when the entity is ON and has a valid brightness above minimum.
-    // This preserves the last known brightness level when the light is turned off,
-    // so controllers like Alexa can restore it on the next turn-on.
-    const isEntityOn = state.state !== "off" && state.state !== "unavailable";
-    const hasValidBrightness = currentLevel != null && currentLevel > minLevel;
-    const previousOnLevel = this.state.onLevel;
-    const newOnLevel =
-      isEntityOn && hasValidBrightness
-        ? currentLevel
-        : (this.state.onLevel ?? currentLevel);
-
-    // Debug logging to help investigate brightness persistence issues
-    if (previousOnLevel !== newOnLevel) {
-      const entityId = this.agent.get(HomeAssistantEntityBehavior).entity
-        .entity_id;
-      logger.debug(
-        `[${entityId}] onLevel changed: ${previousOnLevel} -> ${newOnLevel} ` +
-          `(state=${state.state}, currentLevel=${currentLevel}, isOn=${isEntityOn})`,
-      );
-    }
-
     // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
     // as Matter.js might expose them and confuse controllers.
     // Only update currentLevel if we have a valid value to prevent overwriting
     // the default set in initialize() when the light is OFF.
+    // NOTE: Do NOT set onLevel here - it causes "Behaviors have errors" during initialization.
+    // Let Matter.js/controllers manage onLevel.
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
       ...(currentLevel != null ? { currentLevel: currentLevel } : {}),
-      onLevel: newOnLevel,
     });
   }
 
