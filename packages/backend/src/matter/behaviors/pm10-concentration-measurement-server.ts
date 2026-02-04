@@ -4,33 +4,28 @@ import { ConcentrationMeasurement } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 
-// Enable both NumericMeasurement and LevelIndication for maximum controller compatibility
+// Use only NumericMeasurement feature as per matterbridge implementation.
+// Using both NumericMeasurement and LevelIndication together causes "Behaviors have errors".
+// Apple Home requires Ugm3 for Pm10ConcentrationMeasurement cluster.
 const Pm10ConcentrationMeasurementServerBase = Base.with(
   ConcentrationMeasurement.Feature.NumericMeasurement,
-  ConcentrationMeasurement.Feature.LevelIndication,
 );
-
-// PM10 level thresholds in µg/m³ (based on WHO and EPA guidelines)
-// Good: 0-54, Moderate: 54-154, Unhealthy for Sensitive: 154-254, Unhealthy: 254-354, Very Unhealthy: >354
-const PM10_LEVEL_LOW = 54; // Below this is "Low" (good air quality)
-const PM10_LEVEL_MEDIUM = 154; // Below this is "Medium"
-const PM10_LEVEL_HIGH = 254; // Below this is "High", above is "Critical"
 
 export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasurementServerBase {
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
-    // LevelIndication feature requires levelValue to be set before initialization.
+    // Based on matterbridge implementation - use only NumericMeasurement attributes.
     if (this.state.measuredValue === undefined) {
       this.state.measuredValue = null;
     }
     if (this.state.minMeasuredValue === undefined) {
-      this.state.minMeasuredValue = 0;
+      this.state.minMeasuredValue = null; // null as per matterbridge
     }
     if (this.state.maxMeasuredValue === undefined) {
-      this.state.maxMeasuredValue = 65535; // Max uint16 for µg/m³
+      this.state.maxMeasuredValue = null; // null as per matterbridge
     }
-    if (this.state.levelValue === undefined) {
-      this.state.levelValue = ConcentrationMeasurement.LevelValue.Unknown;
+    if (this.state.uncertainty === undefined) {
+      this.state.uncertainty = 0; // Required by matterbridge
     }
     if (this.state.measurementUnit === undefined) {
       this.state.measurementUnit =
@@ -53,30 +48,13 @@ export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasure
     }
     const state = entity.state.state;
     let measuredValue: number | null = null;
-    let levelValue = ConcentrationMeasurement.LevelValue.Unknown;
 
     if (state != null && !Number.isNaN(+state)) {
       measuredValue = +state;
-
-      // Calculate level based on PM10 value
-      if (measuredValue < PM10_LEVEL_LOW) {
-        levelValue = ConcentrationMeasurement.LevelValue.Low;
-      } else if (measuredValue < PM10_LEVEL_MEDIUM) {
-        levelValue = ConcentrationMeasurement.LevelValue.Medium;
-      } else if (measuredValue < PM10_LEVEL_HIGH) {
-        levelValue = ConcentrationMeasurement.LevelValue.High;
-      } else {
-        levelValue = ConcentrationMeasurement.LevelValue.Critical;
-      }
     }
 
     applyPatchState(this.state, {
       measuredValue,
-      minMeasuredValue: 0,
-      maxMeasuredValue: 65535,
-      levelValue,
-      measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
-      measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
     });
   }
 }

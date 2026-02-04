@@ -33,15 +33,50 @@ export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
   override async initialize() {
-    // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
-    // Matter.js validates ColorTemperature attributes during initialization.
-    // If the light is OFF, all color values from HA are null, causing validation to fail
-    // with "Behaviors have errors".
+    // CRITICAL: Set ALL required default values BEFORE super.initialize().
+    // Based on matterbridge implementation, Matter.js requires these attributes
+    // to be set before initialization to prevent "Behaviors have errors".
+
+    // Set colorCapabilities based on features (required by Matter.js)
+    this.state.colorCapabilities = {
+      hueSaturation: this.features.hueSaturation ?? false,
+      enhancedHue: false,
+      colorLoop: false,
+      xy: false,
+      colorTemperature: this.features.colorTemperature ?? false,
+    };
+
+    // Set numberOfPrimaries (required by Matter.js, null = not defined)
+    this.state.numberOfPrimaries = null;
+
+    // Set remainingTime (required by Matter.js)
+    this.state.remainingTime = 0;
+
+    // Determine colorMode and enhancedColorMode based on features
+    if (this.features.colorTemperature && this.features.hueSaturation) {
+      // Both features: default to HueSaturation mode
+      this.state.colorMode =
+        ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
+      this.state.enhancedColorMode =
+        ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation;
+    } else if (this.features.colorTemperature) {
+      // ColorTemperature only
+      this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
+      this.state.enhancedColorMode =
+        ColorControl.EnhancedColorMode.ColorTemperatureMireds;
+    } else if (this.features.hueSaturation) {
+      // HueSaturation only
+      this.state.colorMode =
+        ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
+      this.state.enhancedColorMode =
+        ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation;
+    }
+
     if (this.features.colorTemperature) {
-      // Default color temp range: 2000K - 6500K (153-500 mireds)
-      const defaultMinMireds = 153; // ~6500K
+      // Default color temp range: 2000K - 6500K (147-500 mireds, matching matterbridge)
+      const defaultMinMireds = 147; // ~6800K
       const defaultMaxMireds = 500; // ~2000K
-      const defaultMireds = 370; // ~2700K (warm white)
+      const defaultMireds = 250; // ~4000K (neutral white, matching matterbridge)
 
       if (
         this.state.colorTempPhysicalMinMireds == null ||
@@ -62,13 +97,7 @@ export class ColorControlServerBase extends FeaturedBase {
         this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
       }
       if (this.state.startUpColorTemperatureMireds == null) {
-        this.state.startUpColorTemperatureMireds = defaultMireds;
-      }
-
-      // For ColorTemperature-only lights, set colorMode to ColorTemperatureMireds
-      // This is required because Matter.js may validate colorMode during initialization
-      if (!this.features.hueSaturation) {
-        this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
+        this.state.startUpColorTemperatureMireds = null; // null = previous value, matching matterbridge
       }
 
       logger.debug(
@@ -131,19 +160,21 @@ export class ColorControlServerBase extends FeaturedBase {
     const maxMireds = Math.ceil(
       ColorConverter.temperatureKelvinToMireds(minKelvin),
     );
-    const startUpMireds = ColorConverter.temperatureKelvinToMireds(
-      currentKelvin ?? maxKelvin,
-    );
     let currentMireds: number | undefined;
     if (currentKelvin != null) {
       currentMireds = ColorConverter.temperatureKelvinToMireds(currentKelvin);
       currentMireds = Math.max(Math.min(currentMireds, maxMireds), minMireds);
     }
 
+    const newColorMode = this.getColorModeFromFeatures(
+      config.getCurrentMode(entity.state, this.agent),
+    );
+
     applyPatchState(this.state, {
-      colorMode: this.getColorModeFromFeatures(
-        config.getCurrentMode(entity.state, this.agent),
-      ),
+      colorMode: newColorMode,
+      // enhancedColorMode must match colorMode for proper operation
+      enhancedColorMode:
+        newColorMode as unknown as ColorControl.EnhancedColorMode,
       ...(this.features.hueSaturation
         ? {
             currentHue: hue,
@@ -155,7 +186,6 @@ export class ColorControlServerBase extends FeaturedBase {
             coupleColorTempToLevelMinMireds: minMireds,
             colorTempPhysicalMinMireds: minMireds,
             colorTempPhysicalMaxMireds: maxMireds,
-            startUpColorTemperatureMireds: startUpMireds,
             // Only update colorTemperatureMireds if we have a valid value.
             // When the light is OFF, currentKelvin is null, so we keep the existing value
             // to prevent overwriting the default set in initialize().
