@@ -1,6 +1,7 @@
 import type {
   EntityMappingConfig,
   FailedEntity,
+  HomeAssistantDomain,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
@@ -8,6 +9,7 @@ import { Service } from "../../core/ioc/service.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import type { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
+import { ServerModeVacuumEndpoint } from "../../matter/endpoints/server-mode-vacuum-endpoint.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
@@ -112,6 +114,32 @@ export class ServerModeEndpointManager extends Service {
     }
 
     try {
+      const domain = entityId.split(".")[0] as HomeAssistantDomain;
+
+      // For vacuum entities, use ServerModeVacuumDevice (without bridgedDeviceBasicInformation)
+      // This makes the vacuum appear as a standalone device, not bridged
+      if (domain === "vacuum") {
+        const endpoint = await this.createServerModeVacuumEndpoint(
+          entityId,
+          mapping,
+        );
+        if (!endpoint) {
+          this._failedEntities.push({
+            entityId,
+            reason: "Failed to create vacuum endpoint - unsupported device",
+          });
+          return;
+        }
+        await this.serverNode.addDevice(endpoint);
+        this.deviceEndpoint = endpoint;
+        this.log.info(
+          `Server mode: Added vacuum ${entityId} as standalone device`,
+        );
+        return;
+      }
+
+      // For other entity types, fall back to LegacyEndpoint (bridged)
+      // Note: Server mode is primarily designed for vacuums
       const endpoint = await LegacyEndpoint.create(
         this.registry,
         entityId,
@@ -129,7 +157,7 @@ export class ServerModeEndpointManager extends Service {
       // Add directly to the server node (not to an aggregator)
       await this.serverNode.addDevice(endpoint);
       this.deviceEndpoint = endpoint;
-      this.log.info(`Server mode: Added device ${entityId} as root endpoint`);
+      this.log.info(`Server mode: Added device ${entityId}`);
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       this.log.error(`Failed to create server mode device ${entityId}:`, e);
@@ -145,5 +173,17 @@ export class ServerModeEndpointManager extends Service {
     if (this.deviceEndpoint) {
       await this.deviceEndpoint.updateStates(states);
     }
+  }
+
+  /**
+   * Creates a Server Mode Vacuum endpoint without BridgedDeviceBasicInformation.
+   * This makes the vacuum appear as a standalone Matter device, which is required
+   * for Apple Home Siri voice commands and Alexa discovery.
+   */
+  private async createServerModeVacuumEndpoint(
+    entityId: string,
+    mapping?: EntityMappingConfig,
+  ): Promise<EntityEndpoint | undefined> {
+    return ServerModeVacuumEndpoint.create(this.registry, entityId, mapping);
   }
 }
