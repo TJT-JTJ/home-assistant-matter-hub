@@ -170,6 +170,70 @@ export class BridgeRegistry {
         .map((e) => e.device_id)
         .some((id) => d.id === id),
     );
+
+    // Pre-calculate auto-assignments BEFORE endpoints are created
+    // This ensures entities are marked as "used" regardless of processing order
+    this.preCalculateAutoAssignments();
+  }
+
+  /**
+   * Pre-calculate which entities will be auto-assigned to other devices.
+   * This must run BEFORE endpoint creation to ensure correct "used" marking
+   * regardless of the order entities are processed.
+   */
+  private preCalculateAutoAssignments(): void {
+    const entities = values(this._entities);
+
+    // First pass: Find all temperature sensors and mark their humidity entities
+    if (this.isAutoHumidityMappingEnabled()) {
+      for (const entity of entities) {
+        if (!entity.device_id) continue;
+        if (!entity.entity_id.startsWith("sensor.")) continue;
+
+        const state = this._states[entity.entity_id];
+        if (!state) continue;
+
+        const attrs = state.attributes as SensorDeviceAttributes;
+        if (attrs.device_class === SensorDeviceClass.temperature) {
+          const humidityEntityId = this.findHumidityEntityForDevice(
+            entity.device_id,
+          );
+          if (humidityEntityId && humidityEntityId !== entity.entity_id) {
+            this._usedHumidityEntities.add(humidityEntityId);
+          }
+        }
+      }
+    }
+
+    // Second pass: Find all "main" entities and mark their battery entities
+    // A "main" entity is any entity that is NOT already marked as used
+    if (this.isAutoBatteryMappingEnabled()) {
+      for (const entity of entities) {
+        if (!entity.device_id) continue;
+
+        // Skip entities that are already marked as used (e.g., humidity sensors)
+        if (this._usedHumidityEntities.has(entity.entity_id)) continue;
+
+        // Skip battery sensors themselves
+        if (entity.entity_id.startsWith("sensor.")) {
+          const state = this._states[entity.entity_id];
+          if (state) {
+            const attrs = state.attributes as SensorDeviceAttributes;
+            if (attrs.device_class === SensorDeviceClass.battery) continue;
+          }
+        }
+
+        const batteryEntityId = this.findBatteryEntityForDevice(
+          entity.device_id,
+        );
+        if (batteryEntityId && batteryEntityId !== entity.entity_id) {
+          // Only mark if not already marked (first entity wins)
+          if (!this._usedBatteryEntities.has(batteryEntityId)) {
+            this._usedBatteryEntities.add(batteryEntityId);
+          }
+        }
+      }
+    }
   }
 
   private matchesFilter(
