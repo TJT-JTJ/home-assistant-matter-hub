@@ -38,7 +38,7 @@ of port forwarding etc.
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
 | **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.x-alpha | Pre-release with new features, for early adopters |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
@@ -159,12 +159,24 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 
 </details>
 
-### Alpha Features (v2.0.1-alpha) 🧪
+### Alpha Features (v2.1.0-alpha.x) 🧪
 
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-Currently synced with Stable v2.0.x - same features and fixes.
+**All Stable v2.0.x features plus:**
+
+**🧹 Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+- **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" selecting wrong mode (was "sweeping" instead of "sweeping_and_mopping")
+- **Partial Match Logic** - Corrected option matching to prevent false positives
+
+**🌡️ Combined Sensors** - [Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)
+- **Temperature + Humidity + Battery** - Combine multiple entities into one Matter device
+- **Entity Mapping UI** - Configure `humidityEntity` and `batteryEntity` in the UI
+- **Single Device UX** - One device in Apple Home/Google Home instead of 3 separate sensors
+
+**🔋 PowerSource Cluster**
+- **Battery Support** - Climate, Fan devices now show battery level if available
 
 ### Testing Features (v4.1.0-testing) ⚠️
 
