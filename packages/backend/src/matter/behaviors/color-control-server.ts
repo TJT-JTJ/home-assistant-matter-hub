@@ -129,6 +129,15 @@ export class ColorControlServerBase extends FeaturedBase {
       config.getCurrentMode(entity.state, this.agent),
     );
 
+    logger.debug(
+      `update: entity=${entity.entity_id}, state=${entity.state.state}, ` +
+        `currentKelvin=${currentKelvin}, minKelvin=${minKelvin}, maxKelvin=${maxKelvin}, ` +
+        `minMireds=${minMireds}, maxMireds=${maxMireds}, currentMireds=${currentMireds}, ` +
+        `startUpMireds=${startUpMireds}, colorMode=${newColorMode}, ` +
+        `hue=${hue}, saturation=${saturation}, ` +
+        `features: CT=${this.features.colorTemperature}, HS=${this.features.hueSaturation}`,
+    );
+
     applyPatchState(this.state, {
       colorMode: newColorMode,
       ...(this.features.hueSaturation
@@ -152,6 +161,10 @@ export class ColorControlServerBase extends FeaturedBase {
           }
         : {}),
     });
+
+    logger.debug(
+      `update: after patch - colorTemperatureMireds=${this.state.colorTemperatureMireds}`,
+    );
   }
 
   override moveToColorTemperatureLogic(targetMireds: number) {
