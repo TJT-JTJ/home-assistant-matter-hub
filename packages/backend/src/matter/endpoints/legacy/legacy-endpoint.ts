@@ -55,28 +55,11 @@ export class LegacyEndpoint extends EntityEndpoint {
 
     // Auto-assign related entities if not manually set and device has them
     // Only applies when autoBatteryMapping feature flag is enabled
+    // Order matters: Humidity first, then Battery - so battery only goes to the
+    // combined TemperatureHumiditySensor, not to both Temperature AND Humidity
     let effectiveMapping = mapping;
     if (registry.isAutoBatteryMappingEnabled() && entity.device_id) {
-      // Auto-assign battery entity
-      if (!mapping?.batteryEntity) {
-        const batteryEntityId = registry.findBatteryEntityForDevice(
-          entity.device_id,
-        );
-        // Don't auto-assign battery to itself
-        if (batteryEntityId && batteryEntityId !== entityId) {
-          effectiveMapping = {
-            ...effectiveMapping,
-            entityId: effectiveMapping?.entityId ?? entityId,
-            batteryEntity: batteryEntityId,
-          };
-          registry.markBatteryEntityUsed(batteryEntityId);
-          logger.debug(
-            `Auto-assigned battery ${batteryEntityId} to ${entityId}`,
-          );
-        }
-      }
-
-      // Auto-assign humidity entity to temperature sensors
+      // 1. Auto-assign humidity entity to temperature sensors FIRST
       const attrs = state.attributes as SensorDeviceAttributes;
       if (
         !mapping?.humidityEntity &&
@@ -95,6 +78,26 @@ export class LegacyEndpoint extends EntityEndpoint {
           registry.markHumidityEntityUsed(humidityEntityId);
           logger.debug(
             `Auto-assigned humidity ${humidityEntityId} to ${entityId}`,
+          );
+        }
+      }
+
+      // 2. Auto-assign battery entity AFTER humidity
+      // This ensures battery goes to the combined T+H sensor, not separately
+      if (!mapping?.batteryEntity) {
+        const batteryEntityId = registry.findBatteryEntityForDevice(
+          entity.device_id,
+        );
+        // Don't auto-assign battery to itself
+        if (batteryEntityId && batteryEntityId !== entityId) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            batteryEntity: batteryEntityId,
+          };
+          registry.markBatteryEntityUsed(batteryEntityId);
+          logger.debug(
+            `Auto-assigned battery ${batteryEntityId} to ${entityId}`,
           );
         }
       }
