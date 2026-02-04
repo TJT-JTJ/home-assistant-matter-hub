@@ -301,12 +301,17 @@ Mapped to **RoboticVacuumCleaner**.
 **Supported Features:**
 - Start/Stop cleaning
 - Return to dock
-- Operating mode
+- Operating mode (Idle, Cleaning)
+- Room selection (if supported by vacuum)
 
 **Important Limitations:**
-- | **Apple Home only** - Not supported by Google or Alexa yet
-- | **Must be the ONLY device** in its bridge
-- | Requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
+- **Server Mode recommended** - For full voice command support (Siri, Alexa), enable the `serverMode` feature flag
+- **Server Mode = one device per bridge** - The vacuum must be the only device in its bridge
+- **Apple Home** requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
+- **Google Home** does not support RVC device types yet
+
+**Server Mode:**
+Robotic vacuums exposed as bridged devices may not work correctly with voice assistants (Siri, Alexa). To fix this, create a separate bridge containing only your vacuum and enable the **"Server Mode"** feature flag. This exposes the vacuum as a standalone Matter device instead of a bridged device.
 
 ---
 
