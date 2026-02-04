@@ -8,6 +8,7 @@ import type { EndpointType } from "@matter/main";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "../legacy/sensor/devices/air-quality-sensor.js";
+import { BatterySensorType } from "../legacy/sensor/devices/battery-sensor.js";
 import { FlowSensorType } from "../legacy/sensor/devices/flow-sensor.js";
 import { HumiditySensorType } from "../legacy/sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "../legacy/sensor/devices/illuminance-sensor.js";
@@ -33,6 +34,8 @@ function getDeviceType(
       return PressureSensorType.set({ homeAssistantEntity });
     case SensorDeviceClass.volume_flow_rate:
       return FlowSensorType.set({ homeAssistantEntity });
+    case SensorDeviceClass.battery:
+      return BatterySensorType.set({ homeAssistantEntity });
     case SensorDeviceClass.pm25:
       return Pm25SensorType.set({ homeAssistantEntity });
     case SensorDeviceClass.pm10:

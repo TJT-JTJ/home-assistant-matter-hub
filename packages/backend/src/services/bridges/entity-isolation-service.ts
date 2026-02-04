@@ -1,0 +1,128 @@
+import type { FailedEntity } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
+
+const logger = Logger.get("EntityIsolation");
+
+/**
+ * Service to track and isolate entities that cause runtime errors.
+ * This allows the bridge to continue functioning even when individual
+ * entities have issues (e.g., Invalid intervalMs from subscription timing).
+ */
+class EntityIsolationServiceImpl {
+  private isolatedEntities: Map<string, FailedEntity> = new Map();
+  private isolationCallbacks: Map<string, (entityId: string) => Promise<void>> =
+    new Map();
+
+  /**
+   * Register a callback to be called when an entity needs to be isolated.
+   * The callback should remove the entity from the bridge's aggregator.
+   */
+  registerIsolationCallback(
+    bridgeId: string,
+    callback: (entityId: string) => Promise<void>,
+  ) {
+    this.isolationCallbacks.set(bridgeId, callback);
+  }
+
+  unregisterIsolationCallback(bridgeId: string) {
+    this.isolationCallbacks.delete(bridgeId);
+  }
+
+  /**
+   * Parse the endpoint path from a Matter.js error message and extract the entity name.
+   * Example path: "ed5b4f8d042e4599b833f21da4ededba.aggregator.Küchenlicht.onOff.on"
+   * Returns: { bridgeId: "ed5b4f8d...", entityName: "Küchenlicht" }
+   */
+  parseEndpointPath(errorMessage: string): {
+    bridgeId: string;
+    entityName: string;
+  } | null {
+    // Match pattern: bridgeId.aggregator.entityName.cluster.attribute/command
+    const match = errorMessage.match(/([a-f0-9]{32})\.aggregator\.([^.]+)\./i);
+    if (match) {
+      return {
+        bridgeId: match[1],
+        entityName: match[2],
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Attempt to isolate an entity based on an error.
+   * Returns true if the entity was successfully identified and isolation was triggered.
+   */
+  async isolateFromError(error: unknown): Promise<boolean> {
+    const msg = error instanceof Error ? error.message : String(error);
+
+    // Only handle specific subscription timing errors
+    if (!msg.includes("Invalid intervalMs")) {
+      return false;
+    }
+
+    const parsed = this.parseEndpointPath(msg);
+    if (!parsed) {
+      logger.warn("Could not parse entity from error:", msg);
+      return false;
+    }
+
+    const { bridgeId, entityName } = parsed;
+
+    // Check if we have a callback registered for this bridge
+    const callback = this.isolationCallbacks.get(bridgeId);
+    if (!callback) {
+      logger.warn(
+        `No isolation callback registered for bridge ${bridgeId}, entity: ${entityName}`,
+      );
+      return false;
+    }
+
+    // Check if already isolated
+    const key = `${bridgeId}:${entityName}`;
+    if (this.isolatedEntities.has(key)) {
+      return true; // Already isolated
+    }
+
+    const reason = `Subscription timing error (Invalid intervalMs). Entity isolated to protect bridge stability.`;
+    this.isolatedEntities.set(key, { entityId: entityName, reason });
+
+    logger.warn(
+      `Isolating entity "${entityName}" from bridge ${bridgeId} due to: ${reason}`,
+    );
+
+    try {
+      await callback(entityName);
+      return true;
+    } catch (e) {
+      logger.error(`Failed to isolate entity ${entityName}:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Get all isolated entities for a specific bridge.
+   */
+  getIsolatedEntities(bridgeId: string): FailedEntity[] {
+    const result: FailedEntity[] = [];
+    for (const [key, entity] of this.isolatedEntities) {
+      if (key.startsWith(`${bridgeId}:`)) {
+        result.push(entity);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Clear isolated entities for a bridge (e.g., on restart).
+   */
+  clearIsolatedEntities(bridgeId: string) {
+    for (const key of this.isolatedEntities.keys()) {
+      if (key.startsWith(`${bridgeId}:`)) {
+        this.isolatedEntities.delete(key);
+      }
+    }
+  }
+}
+
+// Singleton instance
+export const EntityIsolationService = new EntityIsolationServiceImpl();

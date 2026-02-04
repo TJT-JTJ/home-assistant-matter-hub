@@ -4,6 +4,7 @@ export type MatterDeviceType =
   | "air_purifier"
   | "air_quality_sensor"
   | "basic_video_player"
+  | "battery_storage"
   | "color_dimmer_switch"
   | "color_temperature_light"
   | "contact_sensor"
@@ -57,6 +58,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   air_purifier: "Air Purifier",
   air_quality_sensor: "Air Quality Sensor",
   basic_video_player: "Basic Video Player (TV)",
+  battery_storage: "Battery Sensor",
   color_dimmer_switch: "Color Dimmer Switch",
   color_temperature_light: "Color Temperature Light",
   contact_sensor: "Contact Sensor",
@@ -111,6 +113,7 @@ export const domainToDefaultMatterTypes: Partial<
   script: ["on_off_switch"],
   sensor: [
     "air_quality_sensor",
+    "battery_storage",
     "humidity_sensor",
     "light_sensor",
     "pressure_sensor",

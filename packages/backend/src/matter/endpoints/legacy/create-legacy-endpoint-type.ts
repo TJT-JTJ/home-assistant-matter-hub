@@ -29,6 +29,7 @@ import { RemoteDevice } from "./remote/index.js";
 import { SceneDevice } from "./scene/index.js";
 import { ScriptDevice } from "./script/index.js";
 import { AirQualitySensorType } from "./sensor/devices/air-quality-sensor.js";
+import { BatterySensorType } from "./sensor/devices/battery-sensor.js";
 import { FlowSensorType } from "./sensor/devices/flow-sensor.js";
 import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
@@ -152,6 +153,10 @@ const matterDeviceTypeFactories: Partial<
     }),
   air_quality_sensor: (ha) =>
     AirQualitySensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  battery_storage: (ha) =>
+    BatterySensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   water_valve: ValveDevice,

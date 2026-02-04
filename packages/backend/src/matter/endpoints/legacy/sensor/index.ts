@@ -5,6 +5,7 @@ import {
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "./devices/air-quality-sensor.js";
+import { BatterySensorType } from "./devices/battery-sensor.js";
 import { Co2SensorType } from "./devices/co2-sensor.js";
 import { FlowSensorType } from "./devices/flow-sensor.js";
 import { HumiditySensorType } from "./devices/humidity-sensor.js";
@@ -57,6 +58,9 @@ export function SensorDevice(
   }
   if (deviceClass === SensorDeviceClass.aqi) {
     return AirQualitySensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.battery) {
+    return BatterySensorType.set({ homeAssistantEntity });
   }
   return undefined;
 }

@@ -27,10 +27,34 @@ type EndpointFactory = (
 ) => Promise<EntityEndpoint | undefined>;
 
 /**
- * Vision 1 Domain Endpoint Factories.
- * Maps HA domains to their Vision 1 endpoint implementations.
+ * Vision 1 Domain Endpoint Factory.
+ *
+ * Creates the appropriate Vision 1 endpoint for an entity.
+ * Falls back to LegacyEndpoint for domains that don't have a Vision 1 implementation yet.
  */
-const _domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = {
+export async function createDomainEndpoint(
+  registry: BridgeRegistry,
+  entityId: string,
+  mapping?: EntityMappingConfig,
+): Promise<EntityEndpoint | undefined> {
+  const domain = entityId.split(".")[0] as HomeAssistantDomain;
+  const factory = domainFactories[domain];
+
+  if (factory) {
+    const endpoint = await factory(registry, entityId, mapping);
+    if (endpoint) {
+      return endpoint;
+    }
+  }
+
+  // Fallback to LegacyEndpoint for unsupported domains
+  return LegacyEndpoint.create(registry, entityId, mapping);
+}
+
+/**
+ * Exported Vision 1 factories for domains with full Vision 1 support.
+ */
+const domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = {
   light: LightEndpoint.create,
   climate: ThermostatEndpoint.create,
   switch: SwitchEndpoint.create,
@@ -48,19 +72,3 @@ const _domainFactories: Partial<Record<HomeAssistantDomain, EndpointFactory>> = 
   vacuum: VacuumEndpoint.create,
   valve: ValveEndpoint.create,
 };
-
-/**
- * Creates the appropriate endpoint for an entity.
- *
- * NOTE: Vision 1 architecture is disabled for now - using proven LegacyEndpoint
- * until Vision 1 endpoints are properly tested with real hardware.
- * The Vision 1 factories are kept in domainFactories for future use.
- */
-export async function createDomainEndpoint(
-  registry: BridgeRegistry,
-  entityId: string,
-  mapping?: EntityMappingConfig,
-): Promise<EntityEndpoint | undefined> {
-  // Use proven LegacyEndpoint architecture for all domains
-  return LegacyEndpoint.create(registry, entityId, mapping);
-}
