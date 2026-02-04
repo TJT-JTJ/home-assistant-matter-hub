@@ -88,6 +88,14 @@ export class BridgeRegistry {
   }
 
   /**
+   * Check if auto humidity mapping is enabled for this bridge.
+   * Default: true (enabled by default)
+   */
+  isAutoHumidityMappingEnabled(): boolean {
+    return this.dataProvider.featureFlags?.autoHumidityMapping !== false;
+  }
+
+  /**
    * Find a humidity sensor entity that belongs to the same HA device.
    * Returns the entity_id of the humidity sensor, or undefined if none found.
    */
