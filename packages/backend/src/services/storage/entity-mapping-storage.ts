@@ -107,6 +107,8 @@ export class EntityMappingStorage extends Service {
       disabled: request.disabled,
       filterLifeEntity: request.filterLifeEntity?.trim() || undefined,
       cleaningModeEntity: request.cleaningModeEntity?.trim() || undefined,
+      humidityEntity: request.humidityEntity?.trim() || undefined,
+      batteryEntity: request.batteryEntity?.trim() || undefined,
     };
 
     if (
@@ -114,7 +116,9 @@ export class EntityMappingStorage extends Service {
       !config.customName &&
       config.disabled !== true &&
       !config.filterLifeEntity &&
-      !config.cleaningModeEntity
+      !config.cleaningModeEntity &&
+      !config.humidityEntity &&
+      !config.batteryEntity
     ) {
       bridgeMap.delete(request.entityId);
     } else {

@@ -53,6 +53,18 @@ export interface EntityMappingConfig {
    * Example: "select.r2_d2_cleaning_mode"
    */
   readonly cleaningModeEntity?: string;
+  /**
+   * Optional: Entity ID of a humidity sensor to combine with a temperature sensor.
+   * Creates a combined Temperature+Humidity sensor in Matter instead of separate devices.
+   * Example: "sensor.h_t_bad_humidity"
+   */
+  readonly humidityEntity?: string;
+  /**
+   * Optional: Entity ID of a battery sensor to include with any sensor.
+   * Adds PowerSource cluster to show battery level in Matter controllers.
+   * Example: "sensor.h_t_bad_battery"
+   */
+  readonly batteryEntity?: string;
 }
 
 export interface EntityMappingRequest {
@@ -63,6 +75,8 @@ export interface EntityMappingRequest {
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
+  readonly humidityEntity?: string;
+  readonly batteryEntity?: string;
 }
 
 export interface EntityMappingResponse {

@@ -204,6 +204,8 @@ export function backupApi(
                     disabled: config.disabled,
                     filterLifeEntity: config.filterLifeEntity,
                     cleaningModeEntity: config.cleaningModeEntity,
+                    humidityEntity: config.humidityEntity,
+                    batteryEntity: config.batteryEntity,
                   });
                   mappingsRestored++;
                 }
