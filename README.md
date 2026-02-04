@@ -166,13 +166,29 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 
 **All Stable v2.0.x features plus:**
 
-**� Server Mode for Robot Vacuums** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49), [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102), [#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103))
+**🔋 Auto Entity Grouping** ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) - NEW!
+- **Auto Battery Mapping** - Automatically assign battery sensors to their parent devices
+- **Auto Humidity Mapping** - Automatically combine Temperature + Humidity sensors from the same device
+- **Bridge Feature Flag** - Enable via "Auto Battery Mapping" in Bridge settings
+- **Reduced Device Clutter** - One combined device instead of 3 separate sensors in Apple Home/Google Home
+
+Example: A climate sensor with `sensor.temp`, `sensor.humidity`, and `sensor.battery` becomes **one** `TemperatureHumiditySensorWithBattery` device.
+
+**🔢 All Devices Sorting** ([#100](https://github.com/RiDDiX/home-assistant-matter-hub/issues/100)) - NEW!
+- **Sort Direction Toggle** - Click column headers to toggle ascending/descending
+- **Persistent Sorting** - Sort preference is remembered
+
+**🌡️ Water Heater High Temperature Fix** - NEW!
+- **Kettles & Boilers** - Now supports temperatures up to 100°C (was limited to 50°C)
+- **Electric Water Heaters** - Proper support for 70-100°C range
+
+**🤖 Server Mode for Robot Vacuums** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49), [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102), [#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103))
 - **Standalone Device Mode** - Expose vacuums as native Matter devices (not bridged)
 - **Apple Home Siri Support** - Voice commands now work with Server Mode
 - **Alexa Discovery Fix** - Alexa now discovers vacuums properly
 - **"Updating" Fix** - No more stuck "Updating" status in Apple Home
 
-**� Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+**🧹 Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
 - **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" selecting wrong mode (was "sweeping" instead of "sweeping_and_mopping")
 - **Partial Match Logic** - Corrected option matching to prevent false positives
 
