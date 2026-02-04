@@ -31,6 +31,8 @@ export class BridgeRegistry {
 
   // Track battery entities that have been auto-assigned to other devices
   private _usedBatteryEntities: Set<string> = new Set();
+  // Track humidity entities that have been auto-assigned to temperature sensors
+  private _usedHumidityEntities: Set<string> = new Set();
 
   deviceOf(entityId: string): HomeAssistantDeviceRegistry {
     const entity = this._entities[entityId];
@@ -85,6 +87,41 @@ export class BridgeRegistry {
     return this.dataProvider.featureFlags?.autoBatteryMapping === true;
   }
 
+  /**
+   * Find a humidity sensor entity that belongs to the same HA device.
+   * Returns the entity_id of the humidity sensor, or undefined if none found.
+   */
+  findHumidityEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this._entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this._states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.humidity) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Mark a humidity entity as used (auto-assigned to a temperature sensor).
+   */
+  markHumidityEntityUsed(entityId: string): void {
+    this._usedHumidityEntities.add(entityId);
+  }
+
+  /**
+   * Check if a humidity entity has been auto-assigned to a temperature sensor.
+   */
+  isHumidityEntityUsed(entityId: string): boolean {
+    return this._usedHumidityEntities.has(entityId);
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
@@ -93,8 +130,9 @@ export class BridgeRegistry {
   }
 
   refresh() {
-    // Clear used battery entities on refresh to allow re-assignment
+    // Clear used entities on refresh to allow re-assignment
     this._usedBatteryEntities.clear();
+    this._usedHumidityEntities.clear();
 
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];

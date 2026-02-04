@@ -1,7 +1,9 @@
 import type {
   EntityMappingConfig,
   HomeAssistantEntityState,
+  SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
+import { SensorDeviceClass } from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
   Logger,
@@ -34,38 +36,67 @@ export class LegacyEndpoint extends EntityEndpoint {
       return;
     }
 
-    // Auto-battery mapping: Skip battery sensors that have been auto-assigned to another device
+    // Auto-mapping: Skip entities that have been auto-assigned to another device
     // Only applies when autoBatteryMapping feature flag is enabled
-    if (
-      registry.isAutoBatteryMappingEnabled() &&
-      registry.isBatteryEntityUsed(entityId)
-    ) {
-      logger.debug(
-        `Skipping ${entityId} - already auto-assigned as battery to another device`,
-      );
-      return;
+    if (registry.isAutoBatteryMappingEnabled()) {
+      if (registry.isBatteryEntityUsed(entityId)) {
+        logger.debug(
+          `Skipping ${entityId} - already auto-assigned as battery to another device`,
+        );
+        return;
+      }
+      if (registry.isHumidityEntityUsed(entityId)) {
+        logger.debug(
+          `Skipping ${entityId} - already auto-assigned as humidity to a temperature sensor`,
+        );
+        return;
+      }
     }
 
-    // Auto-assign battery entity if not manually set and device has one
+    // Auto-assign related entities if not manually set and device has them
     // Only applies when autoBatteryMapping feature flag is enabled
     let effectiveMapping = mapping;
-    if (
-      registry.isAutoBatteryMappingEnabled() &&
-      !mapping?.batteryEntity &&
-      entity.device_id
-    ) {
-      const batteryEntityId = registry.findBatteryEntityForDevice(
-        entity.device_id,
-      );
-      // Don't auto-assign battery to itself
-      if (batteryEntityId && batteryEntityId !== entityId) {
-        effectiveMapping = {
-          ...mapping,
-          entityId: mapping?.entityId ?? entityId,
-          batteryEntity: batteryEntityId,
-        };
-        registry.markBatteryEntityUsed(batteryEntityId);
-        logger.debug(`Auto-assigned battery ${batteryEntityId} to ${entityId}`);
+    if (registry.isAutoBatteryMappingEnabled() && entity.device_id) {
+      // Auto-assign battery entity
+      if (!mapping?.batteryEntity) {
+        const batteryEntityId = registry.findBatteryEntityForDevice(
+          entity.device_id,
+        );
+        // Don't auto-assign battery to itself
+        if (batteryEntityId && batteryEntityId !== entityId) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            batteryEntity: batteryEntityId,
+          };
+          registry.markBatteryEntityUsed(batteryEntityId);
+          logger.debug(
+            `Auto-assigned battery ${batteryEntityId} to ${entityId}`,
+          );
+        }
+      }
+
+      // Auto-assign humidity entity to temperature sensors
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (
+        !mapping?.humidityEntity &&
+        entityId.startsWith("sensor.") &&
+        attrs.device_class === SensorDeviceClass.temperature
+      ) {
+        const humidityEntityId = registry.findHumidityEntityForDevice(
+          entity.device_id,
+        );
+        if (humidityEntityId && humidityEntityId !== entityId) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            humidityEntity: humidityEntityId,
+          };
+          registry.markHumidityEntityUsed(humidityEntityId);
+          logger.debug(
+            `Auto-assigned humidity ${humidityEntityId} to ${entityId}`,
+          );
+        }
       }
     }
 
