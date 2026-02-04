@@ -75,6 +75,10 @@ export class LockCredentialStorage extends Service {
     return this.credentials.get(entityId);
   }
 
+  getCredentialForEntity(entityId: string): LockCredential | undefined {
+    return this.getCredential(entityId);
+  }
+
   async setCredential(request: LockCredentialRequest): Promise<LockCredential> {
     const now = Date.now();
     const existing = this.credentials.get(request.entityId);

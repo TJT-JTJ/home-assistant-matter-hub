@@ -1,6 +1,7 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import { DoorLockServer as Base } from "@matter/main/behaviors";
 import { DoorLock } from "@matter/main/clusters";
+import { LockCredentialStorage } from "../../services/storage/lock-credential-storage.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -50,12 +51,35 @@ class LockServerBase extends Base {
 
   override lockDoor() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(this.state.config.lock(void 0, this.agent));
+    const pinCode = this.getPinCode(homeAssistant.entityId);
+    const action = this.state.config.lock(void 0, this.agent);
+    if (pinCode) {
+      action.data = { ...action.data, code: pinCode };
+    }
+    homeAssistant.callAction(action);
   }
 
   override unlockDoor() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(this.state.config.unlock(void 0, this.agent));
+    const pinCode = this.getPinCode(homeAssistant.entityId);
+    const action = this.state.config.unlock(void 0, this.agent);
+    if (pinCode) {
+      action.data = { ...action.data, code: pinCode };
+    }
+    homeAssistant.callAction(action);
+  }
+
+  private getPinCode(entityId: string): string | undefined {
+    try {
+      const storage = this.env.get(LockCredentialStorage);
+      const credential = storage.getCredentialForEntity(entityId);
+      if (credential?.enabled && credential.pinCode) {
+        return credential.pinCode;
+      }
+    } catch {
+      // Storage not available or no credential found
+    }
+    return undefined;
   }
 }
 
