@@ -244,5 +244,5 @@ jobs:
               "project": "hamh",
               "channel": "alpha",
               "version": "${{needs.release.outputs.release-version}}",
-              "changelogUrl": "https://github.com/${{github.repository}}/releases/tag/v${{needs.release.outputs.release-version}}"
+              "changelogUrl": "https://github.com/${{github.repository}}/releases/download/v${{needs.release.outputs.release-version}}/CHANGELOG_FULL.md"
             }
