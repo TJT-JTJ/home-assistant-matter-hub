@@ -166,9 +166,18 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 
 **All Stable v2.0.x features plus:**
 
-**🧹 Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+**� Server Mode for Robot Vacuums** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49), [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102), [#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103))
+- **Standalone Device Mode** - Expose vacuums as native Matter devices (not bridged)
+- **Apple Home Siri Support** - Voice commands now work with Server Mode
+- **Alexa Discovery Fix** - Alexa now discovers vacuums properly
+- **"Updating" Fix** - No more stuck "Updating" status in Apple Home
+
+**� Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
 - **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" selecting wrong mode (was "sweeping" instead of "sweeping_and_mopping")
 - **Partial Match Logic** - Corrected option matching to prevent false positives
+
+**🖼️ Bridge Icons Backup Fix** ([#101](https://github.com/RiDDiX/home-assistant-matter-hub/issues/101))
+- **Icons Now Restore** - Bridge icons are now correctly restored from full backups
 
 **🌡️ Combined Sensors** - [Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)
 - **Temperature + Humidity + Battery** - Combine multiple entities into one Matter device
@@ -240,9 +249,50 @@ Experimental features being actively developed before promotion to alpha.
 | `button`, `input_button` | Generic Switch |
 | `media_player` | Speaker, Basic Video Player (TV) |
 | `valve` | Water Valve |
-| `vacuum` | Robot Vacuum Cleaner |
+| `vacuum` | Robot Vacuum Cleaner ⚠️ [Server Mode recommended](#-robot-vacuum-server-mode) |
 | `humidifier` | Humidifier/Dehumidifier |
 | `automation`, `script`, `scene` | On/Off Switch |
+
+---
+
+## 🤖 Robot Vacuum Server Mode
+
+<details>
+<summary><strong>⚠️ Important: Apple Home & Alexa require Server Mode for Robot Vacuums</strong> (click to expand)</summary>
+
+### The Problem
+
+Apple Home and Alexa **do not properly support bridged robot vacuums**. When your vacuum is exposed through a standard Matter bridge, you may experience:
+
+- **Apple Home**: "Updating" status, Siri commands don't work, room selection fails
+- **Alexa**: Vacuum is not discovered at all
+
+This is because these platforms expect robot vacuums to be **standalone Matter devices**, not bridged devices.
+
+### The Solution: Server Mode
+
+**Server Mode** exposes your vacuum as a standalone Matter device without the bridge wrapper. This makes it fully compatible with Apple Home and Alexa.
+
+### Setup Instructions
+
+1. **Create a new bridge** in the Matter Hub web interface
+2. **Enable "Server Mode"** checkbox in the bridge creation wizard
+3. Add **only your vacuum** to this bridge
+4. **Pair the new Server Mode bridge** with Apple Home or Alexa
+5. Your other devices stay on your regular bridge(s)
+
+### Important Notes
+
+- Server Mode bridges support **exactly one device**
+- Your vacuum needs its own dedicated Server Mode bridge
+- Other device types (lights, switches, sensors) work fine on regular bridges
+- After switching to Server Mode, Siri commands like "Hey Siri, start the vacuum" will work
+
+### Documentation
+
+For more details, see the [Robot Vacuum Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Robot%20Vacuum/).
+
+</details>
 
 ---
 
