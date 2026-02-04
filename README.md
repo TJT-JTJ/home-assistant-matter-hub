@@ -85,6 +85,11 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
 - **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
 
+**🌡️ Combined Temperature & Humidity Sensors** - [Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)
+- **Unified Device** - Combine separate temperature, humidity, and battery entities into one Matter device
+- **Manual Mapping** - Link humidity and battery sensors via Entity Mapping UI
+- **Better UX** - Single device in Apple Home, Google Home, Alexa instead of 3 separate ones
+
 **🚪 Cover/Blinds**
 - **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
 - **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
