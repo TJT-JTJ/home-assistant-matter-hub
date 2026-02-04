@@ -100,7 +100,7 @@ export class HomeAssistantClient extends Service {
           onRetry: (attempt, error) => {
             this.log.debugCtx("Retrying Home Assistant state check", {
               attempt,
-              error: error.message,
+              error: error instanceof Error ? error.message : String(error),
             });
           },
         },

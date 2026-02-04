@@ -18,6 +18,11 @@ class LockServerBase extends Base {
   declare state: LockServerBase.State;
 
   override async initialize() {
+    // Matter.js defaults: lockState=null, actuatorEnabled=false
+    // lockState=null is valid per Matter spec (means "unknown")
+    // actuatorEnabled=false is the Matter.js default - we override to true in update()
+    // No overrides needed here - Matter.js defaults are valid
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);

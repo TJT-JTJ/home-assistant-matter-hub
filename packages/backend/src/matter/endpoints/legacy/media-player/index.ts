@@ -7,7 +7,6 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
-import type { LevelControlFeatures } from "../../../behaviors/level-control-server.js";
 import { MediaPlayerLevelControlServer } from "./behaviors/media-player-level-control-server.js";
 import { MediaPlayerMediaInputServer } from "./behaviors/media-player-media-input-server.js";
 import { MediaPlayerMediaPlaybackServer } from "./behaviors/media-player-media-playback-server.js";
@@ -48,11 +47,8 @@ export function MediaPlayerDevice(
   }
 
   if (supportsVolume) {
-    const volumeFeatures: LevelControlFeatures = [];
-    if (supportsPower || supportsMute) {
-      volumeFeatures.push("OnOff");
-    }
-    device = device.with(MediaPlayerLevelControlServer.with(...volumeFeatures));
+    // SpeakerLevelControlServer uses 0-100 range for Google Home compatibility
+    device = device.with(MediaPlayerLevelControlServer);
   }
 
   if (testBit(supportedFeatures, MediaPlayerDeviceFeature.SELECT_SOURCE)) {

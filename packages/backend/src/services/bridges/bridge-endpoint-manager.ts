@@ -1,20 +1,19 @@
 import type {
   EntityMappingConfig,
   FailedEntity,
-  HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
-import { DomainEndpoint } from "../../matter/endpoints/domain/domain-endpoint.js";
-import { createDomainEndpoint } from "../../matter/endpoints/domain/domain-endpoint-factory.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
+import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
 import type { EntityMappingStorage } from "../storage/entity-mapping-storage.js";
 import type { BridgeRegistry } from "./bridge-registry.js";
+import { EntityIsolationService } from "./entity-isolation-service.js";
 
 const MAX_ENTITY_ID_LENGTH = 150;
 
@@ -25,7 +24,9 @@ export class BridgeEndpointManager extends Service {
   private _failedEntities: FailedEntity[] = [];
 
   get failedEntities(): FailedEntity[] {
-    return this._failedEntities;
+    // Combine static failed entities with dynamically isolated entities
+    const isolated = EntityIsolationService.getIsolatedEntities(this.bridgeId);
+    return [...this._failedEntities, ...isolated];
   }
 
   constructor(
@@ -37,6 +38,34 @@ export class BridgeEndpointManager extends Service {
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
+
+    // Register callback to isolate problematic entities at runtime
+    EntityIsolationService.registerIsolationCallback(
+      bridgeId,
+      this.isolateEntity.bind(this),
+    );
+  }
+
+  /**
+   * Isolate an entity by removing it from the aggregator.
+   * Called by EntityIsolationService when a runtime error is detected.
+   */
+  async isolateEntity(entityName: string): Promise<void> {
+    const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    const endpoint = endpoints.find(
+      (e) => e.id === entityName || e.entityId === entityName,
+    );
+
+    if (endpoint) {
+      this.log.warn(
+        `Isolating entity ${endpoint.entityId} due to runtime error`,
+      );
+      try {
+        await endpoint.delete();
+      } catch (e) {
+        this.log.error(`Failed to delete isolated endpoint:`, e);
+      }
+    }
   }
 
   private getEntityMapping(entityId: string): EntityMappingConfig | undefined {
@@ -45,6 +74,8 @@ export class BridgeEndpointManager extends Service {
 
   override async dispose(): Promise<void> {
     this.stopObserving();
+    EntityIsolationService.unregisterIsolationCallback(this.bridgeId);
+    EntityIsolationService.clearIsolatedEntities(this.bridgeId);
   }
 
   async startObserving() {
@@ -100,7 +131,7 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
-          endpoint = await createDomainEndpoint(
+          endpoint = await LegacyEndpoint.create(
             this.registry,
             entityId,
             mapping,
@@ -115,10 +146,6 @@ export class BridgeEndpointManager extends Service {
 
         if (endpoint) {
           try {
-            // Register neighbor entities for DomainEndpoints
-            if (endpoint instanceof DomainEndpoint) {
-              this.registerNeighborEntities(endpoint, entityId);
-            }
             await this.root.add(endpoint);
           } catch (e) {
             const errorMessage = e instanceof Error ? e.message : String(e);
@@ -140,56 +167,13 @@ export class BridgeEndpointManager extends Service {
     }
   }
 
-  /**
-   * Register neighbor entities for a DomainEndpoint.
-   * This allows endpoints to access other entities from the same HA device.
-   */
-  private registerNeighborEntities(
-    endpoint: DomainEndpoint,
-    entityId: string,
-  ): void {
-    const neighborInfo = this.registry.neighborInfoOf(entityId);
-    const neighbors = new Map<string, HomeAssistantEntityInformation>();
-
-    for (const [id, info] of neighborInfo) {
-      neighbors.set(id, {
-        entity_id: id,
-        state: info.state,
-        registry: info.entity,
-        deviceRegistry: this.registry.deviceOf(entityId),
-      } as HomeAssistantEntityInformation);
-    }
-
-    endpoint.registerNeighborEntities(neighbors);
-  }
-
   async updateStates(states: HomeAssistantStates) {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     // Process state updates in parallel for faster response times
     // This significantly reduces latency for Alexa/Google Home
     await Promise.all(
-      endpoints.map((endpoint) => {
-        // Update neighbor entity states for DomainEndpoints
-        if (endpoint instanceof DomainEndpoint) {
-          this.updateNeighborStates(endpoint, states);
-        }
-        return endpoint.updateStates(states);
-      }),
+      endpoints.map((endpoint) => endpoint.updateStates(states)),
     );
-  }
-
-  /**
-   * Update neighbor entity states for a DomainEndpoint.
-   */
-  private updateNeighborStates(
-    endpoint: DomainEndpoint,
-    states: HomeAssistantStates,
-  ): void {
-    for (const [entityId, state] of Object.entries(states)) {
-      if (entityId !== endpoint.entityId) {
-        endpoint.updateNeighborState(entityId, state);
-      }
-    }
   }
 
   private extractErrorReason(error: unknown): string {

@@ -202,6 +202,8 @@ export function backupApi(
                     matterDeviceType: config.matterDeviceType,
                     customName: config.customName,
                     disabled: config.disabled,
+                    filterLifeEntity: config.filterLifeEntity,
+                    cleaningModeEntity: config.cleaningModeEntity,
                   });
                   mappingsRestored++;
                 }

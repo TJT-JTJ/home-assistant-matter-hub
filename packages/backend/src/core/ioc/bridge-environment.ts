@@ -5,6 +5,7 @@ import { BridgeDataProvider } from "../../services/bridges/bridge-data-provider.
 import { BridgeEndpointManager } from "../../services/bridges/bridge-endpoint-manager.js";
 import { BridgeFactory } from "../../services/bridges/bridge-factory.js";
 import { BridgeRegistry } from "../../services/bridges/bridge-registry.js";
+import { EntityStateProvider } from "../../services/bridges/entity-state-provider.js";
 import { HomeAssistantClient } from "../../services/home-assistant/home-assistant-client.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
 import { EntityMappingStorage } from "../../services/storage/entity-mapping-storage.js";
@@ -34,13 +35,13 @@ export class BridgeEnvironment extends EnvironmentBase {
   }
 
   private async init() {
+    const haRegistry = await this.load(HomeAssistantRegistry);
+
     this.set(
       BridgeRegistry,
-      new BridgeRegistry(
-        await this.load(HomeAssistantRegistry),
-        this.get(BridgeDataProvider),
-      ),
+      new BridgeRegistry(haRegistry, this.get(BridgeDataProvider)),
     );
+    this.set(EntityStateProvider, new EntityStateProvider(haRegistry));
     this.set(
       BridgeEndpointManager,
       new BridgeEndpointManager(

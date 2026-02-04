@@ -1,5 +1,6 @@
 import {
   ClusterId,
+  type EntityMappingConfig,
   type HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
 import { Behavior, EventEmitter } from "@matter/main";
@@ -44,6 +45,8 @@ export namespace HomeAssistantEntityBehavior {
   export class State {
     entity!: HomeAssistantEntityInformation;
     customName?: string;
+    /** Entity mapping configuration (optional, used for advanced features like filter life sensor) */
+    mapping?: EntityMappingConfig;
   }
 
   export class Events extends EventEmitter {

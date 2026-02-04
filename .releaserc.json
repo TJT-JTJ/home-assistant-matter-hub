@@ -1,16 +1,11 @@
 {
-  "branches": [
-    "main",
-    { "name": "alpha", "prerelease": true },
-    { "name": "testing", "prerelease": "testing" }
-  ],
+  "branches": ["main", { "name": "alpha", "prerelease": true }],
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
       {
         "preset": "conventionalcommits",
         "releaseRules": [
-          { "breaking": true, "release": "minor" },
           { "type": "feat", "release": "patch" },
           { "type": "fix", "release": "patch" },
           { "type": "perf", "release": "patch" },

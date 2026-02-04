@@ -17,6 +17,11 @@ const TvocAirQualityServerBase = AirQualityServer.with(
 
 class TvocAirQualityServer extends TvocAirQualityServerBase {
   override async initialize() {
+    // Set default value BEFORE super.initialize() to prevent validation errors
+    if (this.state.airQuality === undefined) {
+      this.state.airQuality = AirQuality.AirQualityEnum.Unknown;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);

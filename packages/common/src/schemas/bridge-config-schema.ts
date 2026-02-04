@@ -34,6 +34,14 @@ const homeAssistantFilterSchema: JSONSchema7 = {
       type: "array",
       items: homeAssistantMatcherSchema,
     },
+    includeMode: {
+      title: "Include Mode",
+      type: "string",
+      description:
+        "How to combine include rules: 'any' matches if ANY rule matches (OR), 'all' matches only if ALL rules match (AND). Default: 'any'",
+      enum: ["any", "all"],
+      default: "any",
+    },
   },
   required: ["include", "exclude"],
   additionalProperties: false,
@@ -131,6 +139,15 @@ export const bridgeConfigSchema: JSONSchema7 = {
         "An ISO 3166-1 alpha-2 code to represent the country in which the Node is located. Only needed if the commissioning fails due to missing country code.",
       minLength: 2,
       maxLength: 3,
+    },
+    priority: {
+      title: "Startup Priority",
+      type: "number",
+      description:
+        "Startup order priority. Lower values start first. Default is 100.",
+      default: 100,
+      minimum: 1,
+      maximum: 999,
     },
     filter: homeAssistantFilterSchema,
     featureFlags: featureFlagSchema,

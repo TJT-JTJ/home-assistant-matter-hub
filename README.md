@@ -37,9 +37,9 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
-| **Testing** | `testing` | v4.0.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
+| **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.0.x-alpha | Pre-release with new features, for early adopters |
+| **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
 
@@ -54,6 +54,50 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Most users**: Use **Stable** (`main` branch) - thoroughly tested
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
+
+### Stable Features (v2.0.x) - Current 🎉
+
+**💡 Light Entity Fixes**
+- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
+- **Boundary Order Fix** - Color temperature boundaries are now set before values to prevent validation errors
+- **LevelControlServer** - Fixed validation errors during initialization
+
+**🌡️ Concentration Sensors**
+- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors" for all concentration measurement sensors
+- **Feature Configuration** - Corrected to use `NumericMeasurement` only (not `LevelIndication`)
+- **Apple Home Compatibility** - Proper default values for seamless Apple Home integration
+
+**🌡️ New Device Support**
+- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
+
+**🤖 Vacuum Enhancements**
+- **Apple Home Room Selection** - Matter 1.4 Service Area cluster for native room selection
+- **Dreame Vacuum Support** - Full support for nested room format (`rooms: { "Map Name": [...] }`)
+- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+
+**🏷️ Entity Mapping**
+- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
+
+**�️ Backup & Restore**
+- **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
+
+**🌬️ Air Purifier**
+- **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
+- **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
+
+**🚪 Cover/Blinds**
+- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
+- **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
+
+**🎨 UI/UX**
+- **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
+
+**� Documentation**
+- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
+- New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
+
+<details>
+<summary><strong>📦 Previous Stable Versions</strong> (click to expand)</summary>
 
 ### Stable Features (v1.5.x)
 
@@ -75,72 +119,47 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Dark Mode Toggle** - Switch between light and dark theme
 - **Device List Sorting** - Sort endpoints by name, type, or ID
 
-### Stable Features (v1.8.x) - NEW! 🎉
+### Stable Features (v1.8.x)
 
 - **Graceful Crash Handler** - Failed entities no longer crash the bridge
-  - Problematic entities are automatically skipped during boot
-  - Failed entities are displayed in the UI with detailed error messages
-  - Bridge continues to run with remaining healthy entities
-- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³ (not just quality levels)
-- **Access Control Fix** - Fixed attribute write issues using `asLocalActor` ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
+- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
+- **Access Control Fix** - Fixed attribute write issues using `asLocalActor`
 - **Water Valve Support** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms (separate device types)
+- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms
 - **Pressure Sensor** - Atmospheric pressure measurements
 - **Flow Sensor** - Volume flow rate measurements
-- **Air Purifier** - Map fans to Air Purifier device type via entity mapping
-- **Pump Device** - Map switches/valves to Pump device type via entity mapping
+- **Air Purifier** - Map fans to Air Purifier device type
+- **Pump Device** - Map switches/valves to Pump device type
 
-### Stable Features (v1.9.0) - NEW! 🎉
+### Stable Features (v1.9.0)
 
-All previous features plus:
+- **Custom Bridge Icons** - Upload your own icons
+- **Domain-based Icons** - Automatic icon assignment
+- **Basic Video Player** - TV and media player support for Apple Home
+- **Alexa Deduplication** - UniqueId prevents duplicate devices
+- **Auto-only Thermostat Support** - Thermostats with only "auto" mode work correctly
+- **Health Check API** - System status and Kubernetes-ready probes
+- **WebSocket Live Updates** - Real-time bridge status
+- **Full Backup/Restore** - Complete backups including entity mappings
 
-**🎨 Bridge Icons & UI**
-- **Custom Bridge Icons** - Upload your own PNG, JPG, GIF, WebP, or SVG icons (max 5MB)
-- **Domain-based Icons** - Automatic icon assignment based on bridge domain (light, climate, etc.)
-- **Name-based Icon Fallback** - Icons derived from bridge names ("Lamps" → 💡)
-- **20 Preset Icons** - Quick selection dropdown in bridge editor
-- **Entity Mapping Button** - Quick access to entity mapping from bridge card view
-- **Improved Status Labels** - Cleaner spacing and layout
+### Stable Features (v1.10.4)
 
-**📺 Media & Devices**
-- **Basic Video Player** - TV and media player support for Apple Home ([#45](https://github.com/RiDDiX/home-assistant-matter-hub/issues/45))
-- **Alexa Deduplication** - UniqueId in BridgedDeviceBasicInformation prevents duplicate devices ([#53](https://github.com/RiDDiX/home-assistant-matter-hub/issues/53))
+- **Climate/Thermostat Fixes** - Humidity sensor, HVAC auto mode mapping, thermostat limits
+- **Cover/Blinds Fixes** - Position fix, percentage consistency
+- **Vacuum Battery Support** - Battery level for vacuums
+- **Humidifier Improvements** - Humidity sensor, auto mode, FanDevice type
+- **Entity Mapping** - Custom name support, auto-refresh
+- **Alexa Brightness Preserve** - Prevent brightness reset on turn on
+- **UI Improvements** - Icon selection, button state fixes
 
-**🌡️ Thermostat Improvements**
-- **Auto-only Thermostat Support** - Thermostats with only "auto" mode now work correctly ([#54](https://github.com/RiDDiX/home-assistant-matter-hub/issues/54))
-- **Heating+Cooling Constraint Fixes** - Proper handling of Matter.js deadband requirements
-- **Google Home Fix** - Handle null transitionTime from Google Home ([#41](https://github.com/RiDDiX/home-assistant-matter-hub/issues/41))
-- **Temperature Range Detection** - Check HVAC mode for range support ([#9](https://github.com/RiDDiX/home-assistant-matter-hub/issues/9))
+</details>
 
-**🔧 Infrastructure**
-- **Health Check API** (`api/health`) - System status and Kubernetes-ready probes
-- **WebSocket Live Updates** (`api/ws`) - Real-time bridge status, no polling
-- **Ingress Compatibility** - Fixed WebSocket and API routing for Home Assistant Ingress
-- **Full Backup/Restore** - Complete backups including entity mappings and Matter identity
-- **Filter Preview** - Preview entity matches before saving
-
-### Alpha Features (v2.0.0-alpha) 🧪
+### Alpha Features (v2.0.1-alpha) 🧪
 
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-All stable features plus:
-
-**🌡️ New Device Support**
-- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
-
-**🤖 Vacuum Enhancements**
-- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
-
-**🏷️ Entity Mapping**
-- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types (Temperature, Humidity, Pressure, etc.) ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
-
-**🖼️ Backup & Restore**
-- **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
-- **Icon Restore** - Icons are automatically restored during backup import
-
-**🔧 Binary Sensor**
-- **Update Device Class** - New `update` device class mapping for binary sensors
+Currently synced with Stable v2.0.x - same features and fixes.
 
 ### Testing Features (v4.1.0-testing) ⚠️
 
@@ -347,7 +366,13 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@linux4life798](https://github.com/linux4life798) | 💎 Thank you for your generous support! |
 | *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
 
-### 🌟 Original Author
+### � UI/UX Contributors
+
+| Contributor | Contribution |
+|-------------|--------------|
+| [@razzietheman](https://github.com/razzietheman) | 💡 Countless ideas for UI/UX improvements - making this project more user-friendly! |
+
+### �🌟 Original Author
 
 - **[@t0bst4r](https://github.com/t0bst4r)** - Creator of the original Home-Assistant-Matter-Hub project
 

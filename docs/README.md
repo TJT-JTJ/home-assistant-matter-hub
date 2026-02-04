@@ -100,9 +100,24 @@ All previous features plus:
 - **Entity Mapping** - Override Matter device types per entity
 - **Filter Preview** - Preview entity matches before saving
 
-### Alpha (v1.10.0-alpha)
+### Stable (v2.0.x) - Current 🎉
 
-All stable features plus experimental changes being actively developed.
+**Major Fixes:**
+- **Light Entity Fixes** - Fixed "Behaviors have errors" for lights with ColorTemperature + HueSaturation
+  - Proper initialization order for color temperature boundaries
+  - Fixed LevelControlServer validation errors during initialization
+- **Concentration Sensors** - Fixed PM2.5, PM10, CO2, and TVOC sensors
+  - Correct feature configuration (NumericMeasurement only)
+  - Proper default values for Apple Home compatibility
+- **Dreame Vacuum Support** - Full support for Dreame robot vacuums with nested room format
+
+**Device Documentation:**
+- New [Robot Vacuum](./Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
+- New [Air Purifier](./Devices/Air%20Purifier.md) guide
+
+### Alpha (v2.0.x-alpha)
+
+Currently synced with Stable v2.0.x - same features and fixes.
 
 See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for detailed documentation.
 

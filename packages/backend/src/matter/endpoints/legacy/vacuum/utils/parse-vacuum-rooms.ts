@@ -4,25 +4,18 @@ import type {
 } from "@home-assistant-matter-hub/common";
 
 /**
- * Parse vacuum rooms from various attribute formats.
- * Different integrations store rooms in different formats:
- * - Array of VacuumRoom objects: [{ id: 1, name: "Kitchen" }, ...]
- * - Record/Object: { 1: "Kitchen", 2: "Living Room", ... }
- * - May be in 'rooms', 'segments', or 'room_list' attribute
- *
- * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
+ * Parse a single room data source into VacuumRoom array.
+ * Handles multiple formats:
+ * - Direct array: [{ id: 1, name: "Kitchen" }, ...]
+ * - Simple object: { 1: "Kitchen", 2: "Living Room", ... }
+ * - Nested/Dreame format: { "Map Name": [{ id: 1, name: "Kitchen" }, ...] }
  */
-export function parseVacuumRooms(
-  attributes: VacuumDeviceAttributes,
-): VacuumRoom[] {
-  const roomsData =
-    attributes.rooms ?? attributes.segments ?? attributes.room_list;
-
+function parseRoomData(roomsData: unknown): VacuumRoom[] {
   if (!roomsData) {
     return [];
   }
 
-  // Handle array format
+  // Handle direct array format
   if (Array.isArray(roomsData)) {
     return roomsData
       .filter((room): room is VacuumRoom => {
@@ -42,20 +35,76 @@ export function parseVacuumRooms(
       }));
   }
 
-  // Handle Record/Object format: { id: name, ... }
-  if (typeof roomsData === "object") {
+  // Handle object formats
+  if (typeof roomsData === "object" && roomsData !== null) {
     const rooms: VacuumRoom[] = [];
     for (const [key, value] of Object.entries(roomsData)) {
+      // Format 1: Simple object { id: name, ... }
       if (typeof value === "string") {
-        // Key could be numeric string or actual string
         const id = /^\d+$/.test(key) ? Number.parseInt(key, 10) : key;
-        rooms.push({
-          id,
-          name: value,
-        });
+        rooms.push({ id, name: value });
+      }
+      // Format 2: Nested/Dreame format { "Map Name": [rooms...] }
+      // The key is the map name, value is an array of room objects
+      else if (Array.isArray(value)) {
+        const nestedRooms = parseRoomData(value);
+        rooms.push(...nestedRooms);
       }
     }
     return rooms;
+  }
+
+  return [];
+}
+
+/**
+ * Regular expression to match generic/unnamed room names.
+ * Matches patterns like "Room 1", "Room 7", "Raum 3", etc.
+ * These are typically auto-generated names for unmapped/hidden rooms.
+ */
+const UNNAMED_ROOM_PATTERN =
+  /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
+
+/**
+ * Check if a room name appears to be a generic/unnamed room.
+ * Generic rooms typically have names like "Room 7" which are auto-generated
+ * by vacuum integrations for unmapped or hidden rooms.
+ */
+export function isUnnamedRoom(roomName: string): boolean {
+  return UNNAMED_ROOM_PATTERN.test(roomName.trim());
+}
+
+/**
+ * Parse vacuum rooms from various attribute formats.
+ * Different integrations store rooms in different formats:
+ * - Array of VacuumRoom objects: [{ id: 1, name: "Kitchen" }, ...]
+ * - Record/Object: { 1: "Kitchen", 2: "Living Room", ... }
+ * - Nested/Dreame: { "Map Name": [{ id: 1, name: "Room" }, ...] }
+ * - May be in 'rooms', 'segments', or 'room_list' attribute
+ *
+ * Tries each attribute in order and returns the first one with valid rooms.
+ *
+ * @param attributes - Vacuum device attributes
+ * @param includeUnnamedRooms - If false (default), filters out rooms with generic names like "Room 7"
+ * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
+ */
+export function parseVacuumRooms(
+  attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
+): VacuumRoom[] {
+  // Try each attribute source in order, return first one with valid rooms
+  // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
+  const sources = [attributes.rooms, attributes.segments, attributes.room_list];
+
+  for (const source of sources) {
+    let rooms = parseRoomData(source);
+    if (rooms.length > 0) {
+      // Filter out unnamed/generic rooms unless explicitly included
+      if (!includeUnnamedRooms) {
+        rooms = rooms.filter((room) => !isUnnamedRoom(room.name));
+      }
+      return rooms;
+    }
   }
 
   return [];
@@ -68,12 +117,31 @@ export function parseVacuumRooms(
 export const ROOM_MODE_BASE = 100;
 
 /**
+ * Convert a room ID to a numeric mode-compatible value.
+ * This ensures consistency between ServiceArea and RvcRunMode.
+ */
+function roomIdToNumeric(roomId: string | number): number {
+  if (typeof roomId === "number") {
+    return roomId;
+  }
+  // For string IDs, use a simple hash (same logic as toAreaId in service-area-server)
+  let hash = 0;
+  for (let i = 0; i < roomId.length; i++) {
+    const char = roomId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Calculate the mode value for a specific room.
- * @param roomIndex - The index of the room in the rooms array (0-based)
+ * Uses the room's actual ID (not array index) to ensure consistency with ServiceArea.
+ * @param room - The room object
  * @returns The mode value for this room
  */
-export function getRoomModeValue(roomIndex: number): number {
-  return ROOM_MODE_BASE + roomIndex;
+export function getRoomModeValue(room: VacuumRoom): number {
+  return ROOM_MODE_BASE + roomIdToNumeric(room.id);
 }
 
 /**
@@ -86,13 +154,33 @@ export function isRoomMode(mode: number): boolean {
 }
 
 /**
- * Get the room index from a room mode value.
+ * Get the room ID from a room mode value.
  * @param mode - The room mode value
- * @returns The room index (0-based), or -1 if not a room mode
+ * @returns The numeric room ID, or -1 if not a room mode
  */
-export function getRoomIndexFromMode(mode: number): number {
+export function getRoomIdFromMode(mode: number): number {
   if (!isRoomMode(mode)) {
     return -1;
   }
   return mode - ROOM_MODE_BASE;
+}
+
+/**
+ * Detect if the vacuum uses Dreame integration format.
+ * Dreame vacuums have rooms nested under a map name key: { "Map Name": [rooms...] }
+ * This is different from Roborock/Xiaomi which use flat arrays or simple objects.
+ */
+export function isDreameVacuum(attributes: VacuumDeviceAttributes): boolean {
+  const roomsData = attributes.rooms;
+  if (!roomsData || typeof roomsData !== "object" || Array.isArray(roomsData)) {
+    return false;
+  }
+
+  // Check if any value is an array (Dreame nested format)
+  for (const value of Object.values(roomsData)) {
+    if (Array.isArray(value)) {
+      return true;
+    }
+  }
+  return false;
 }

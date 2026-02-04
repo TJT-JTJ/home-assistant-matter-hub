@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { AirQualityServer } from "@matter/main/behaviors";
 import { AirQuality } from "@matter/main/clusters";
 import { AirQualitySensorDevice } from "@matter/main/devices";
@@ -7,6 +8,8 @@ import { BasicInformationServer } from "../../../../behaviors/basic-information-
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
 import { Pm25ConcentrationMeasurementServer } from "../../../../behaviors/pm25-concentration-measurement-server.js";
+
+const logger = Logger.get("Pm25AirQualityServer");
 
 const Pm25AirQualityServerBase = AirQualityServer.with(
   AirQuality.Feature.Fair,
@@ -17,7 +20,14 @@ const Pm25AirQualityServerBase = AirQualityServer.with(
 
 class Pm25AirQualityServer extends Pm25AirQualityServerBase {
   override async initialize() {
+    // Set default value BEFORE super.initialize() to prevent validation errors
+    if (this.state.airQuality === undefined) {
+      this.state.airQuality = AirQuality.AirQualityEnum.Unknown;
+    }
+    logger.debug("Pm25AirQualityServer: before super.initialize()");
+
     await super.initialize();
+    logger.debug("Pm25AirQualityServer: after super.initialize()");
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

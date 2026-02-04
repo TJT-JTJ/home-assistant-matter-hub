@@ -5,6 +5,7 @@ interface AllBridgeFeatureFlags {
   readonly coverUseHomeAssistantPercentage: boolean;
   readonly includeHiddenEntities: boolean;
   readonly alexaPreserveBrightnessOnTurnOn: boolean;
+  readonly vacuumIncludeUnnamedRooms: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;
@@ -38,6 +39,8 @@ export interface BridgeConfig {
   readonly featureFlags?: BridgeFeatureFlags;
   readonly countryCode?: string;
   readonly icon?: BridgeIconType;
+  /** Startup priority - lower values start first. Default: 100 */
+  readonly priority?: number;
 }
 
 export interface CreateBridgeRequest extends BridgeConfig {}

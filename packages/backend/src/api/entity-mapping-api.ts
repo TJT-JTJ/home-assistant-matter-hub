@@ -33,6 +33,8 @@ export function entityMappingApi(
       matterDeviceType: body.matterDeviceType,
       customName: body.customName,
       disabled: body.disabled,
+      filterLifeEntity: body.filterLifeEntity,
+      cleaningModeEntity: body.cleaningModeEntity,
     };
 
     const config = await mappingStorage.setMapping(request);

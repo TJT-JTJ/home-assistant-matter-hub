@@ -1,32 +1,34 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import BackupIcon from "@mui/icons-material/Backup";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DevicesIcon from "@mui/icons-material/Devices";
-import DownloadIcon from "@mui/icons-material/Download";
 import ErrorIcon from "@mui/icons-material/Error";
 import MemoryIcon from "@mui/icons-material/Memory";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import SecurityIcon from "@mui/icons-material/Security";
+import SortIcon from "@mui/icons-material/Sort";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { BackupRestore } from "../backup/BackupRestore.tsx";
+
+type SortField = "name" | "created";
+type SortDirection = "asc" | "desc";
 
 interface BridgeHealthInfo {
   id: string;
@@ -93,7 +95,8 @@ export function HealthDashboard() {
   const [health, setHealth] = useState<DetailedHealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fullBackupDialogOpen, setFullBackupDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -126,36 +129,6 @@ export function HealthDashboard() {
       fetchHealth();
     } catch {
       setError("Failed to restart bridge");
-    }
-  };
-
-  const handleBackup = async (includeIdentity: boolean) => {
-    try {
-      const url = includeIdentity
-        ? "api/backup/download?includeIdentity=true"
-        : "api/backup/download";
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Backup download failed");
-      }
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("Content-Disposition");
-      const filename =
-        contentDisposition?.match(/filename="(.+)"/)?.[1] ||
-        (includeIdentity
-          ? `hamh-full-backup-${new Date().toISOString().split("T")[0]}.zip`
-          : `hamh-backup-${new Date().toISOString().split("T")[0]}.zip`);
-
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
-    } catch {
-      setError("Failed to download backup");
     }
   };
 
@@ -253,111 +226,158 @@ export function HealthDashboard() {
 
       <Divider sx={{ my: 3 }} />
 
-      <Box display="flex" alignItems="center" gap={1} mb={2}>
-        <MemoryIcon />
-        <Typography variant="h6">Bridge Status</Typography>
-        <Chip
-          label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
-          size="small"
-          variant="outlined"
-        />
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+        flexWrap="wrap"
+        gap={1}
+      >
+        <Box display="flex" alignItems="center" gap={1}>
+          <MemoryIcon />
+          <Typography variant="h6">Bridge Status</Typography>
+          <Chip
+            label={`${health.services.bridges.running}/${health.services.bridges.total} Running`}
+            size="small"
+            variant="outlined"
+          />
+        </Box>
+        <Box display="flex" alignItems="center" gap={1}>
+          <SortIcon fontSize="small" color="action" />
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Sort by</InputLabel>
+            <Select
+              value={sortField}
+              label="Sort by"
+              onChange={(e) => setSortField(e.target.value as SortField)}
+            >
+              <MenuItem value="name">Name</MenuItem>
+              <MenuItem value="created">Created</MenuItem>
+            </Select>
+          </FormControl>
+          <Tooltip title={sortDirection === "asc" ? "Ascending" : "Descending"}>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
+              }
+            >
+              {sortDirection === "asc" ? (
+                <ArrowUpwardIcon fontSize="small" />
+              ) : (
+                <ArrowDownwardIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Grid container spacing={2}>
-        {health.bridgeDetails.map((bridge) => (
-          <Grid size={{ xs: 12, md: 6 }} key={bridge.id}>
-            <Card
-              variant="outlined"
-              sx={{
-                borderColor:
-                  bridge.status === "running"
-                    ? "success.main"
-                    : bridge.status === "failed"
-                      ? "error.main"
-                      : "warning.main",
-              }}
-            >
-              <CardContent>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <DevicesIcon />
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {bridge.name}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Chip
-                      label={bridge.status.toUpperCase()}
-                      color={
-                        bridge.status === "running"
-                          ? "success"
-                          : bridge.status === "failed"
-                            ? "error"
-                            : "warning"
-                      }
-                      size="small"
-                    />
-                    {bridge.status === "failed" && (
-                      <Tooltip title="Restart Bridge">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleRestart(bridge.id)}
-                        >
-                          <AutorenewIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                </Box>
-
-                {bridge.statusReason && (
-                  <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-                    {bridge.statusReason}
-                  </Typography>
-                )}
-
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Port: {bridge.port} | Devices: {bridge.deviceCount} |
-                    Fabrics: {bridge.fabricCount}
-                    {bridge.failedEntityCount > 0 && (
+        {[...health.bridgeDetails]
+          .sort((a, b) => {
+            let cmp = 0;
+            if (sortField === "name") {
+              cmp = a.name.localeCompare(b.name);
+            } else {
+              cmp = a.id.localeCompare(b.id);
+            }
+            return sortDirection === "asc" ? cmp : -cmp;
+          })
+          .map((bridge) => (
+            <Grid size={{ xs: 12, md: 6 }} key={bridge.id}>
+              <Card
+                variant="outlined"
+                sx={{
+                  borderColor:
+                    bridge.status === "running"
+                      ? "success.main"
+                      : bridge.status === "failed"
+                        ? "error.main"
+                        : "warning.main",
+                }}
+              >
+                <CardContent>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <DevicesIcon />
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {bridge.name}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
                       <Chip
-                        label={`${bridge.failedEntityCount} failed`}
-                        color="error"
+                        label={bridge.status.toUpperCase()}
+                        color={
+                          bridge.status === "running"
+                            ? "success"
+                            : bridge.status === "failed"
+                              ? "error"
+                              : "warning"
+                        }
                         size="small"
-                        sx={{ ml: 1 }}
                       />
-                    )}
-                  </Typography>
-                </Box>
-
-                {bridge.fabrics.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Connected to:
-                    </Typography>
-                    <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
-                      {bridge.fabrics.map((fabric) => (
-                        <Chip
-                          key={fabric.fabricIndex}
-                          label={
-                            fabric.label || getVendorName(fabric.rootVendorId)
-                          }
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
+                      {bridge.status === "failed" && (
+                        <Tooltip title="Restart Bridge">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRestart(bridge.id)}
+                          >
+                            <AutorenewIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </Box>
                   </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+
+                  {bridge.statusReason && (
+                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                      {bridge.statusReason}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Port: {bridge.port} | Devices: {bridge.deviceCount} |
+                      Fabrics: {bridge.fabricCount}
+                      {bridge.failedEntityCount > 0 && (
+                        <Chip
+                          label={`${bridge.failedEntityCount} failed`}
+                          color="error"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </Typography>
+                  </Box>
+
+                  {bridge.fabrics.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Connected to:
+                      </Typography>
+                      <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
+                        {bridge.fabrics.map((fabric) => (
+                          <Chip
+                            key={fabric.fabricIndex}
+                            label={
+                              fabric.label || getVendorName(fabric.rootVendorId)
+                            }
+                            size="small"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
       </Grid>
 
       {health.recovery.enabled && (
@@ -377,96 +397,7 @@ export function HealthDashboard() {
       )}
 
       <Divider sx={{ my: 3 }} />
-      <Box display="flex" alignItems="center" gap={1} mb={2}>
-        <BackupIcon />
-        <Typography variant="h6">Backup & Restore</Typography>
-      </Box>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 2 }}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <DownloadIcon color="primary" />
-              <Typography variant="subtitle1" fontWeight="bold">
-                Config Backup
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" mb={2}>
-              Export bridge configurations and entity mappings. Bridges will
-              need to be re-commissioned after restore.
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleBackup(false)}
-            >
-              Download Backup
-            </Button>
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 2 }}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <SecurityIcon color="warning" />
-              <Typography variant="subtitle1" fontWeight="bold">
-                Full Backup (with Identity)
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" mb={2}>
-              Includes Matter identity files (keypairs, fabric credentials).
-              Preserves commissioning state across restores.
-            </Typography>
-            <Button
-              variant="outlined"
-              color="warning"
-              startIcon={<SecurityIcon />}
-              onClick={() => setFullBackupDialogOpen(true)}
-            >
-              Download Full Backup
-            </Button>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Dialog
-        open={fullBackupDialogOpen}
-        onClose={() => setFullBackupDialogOpen(false)}
-      >
-        <DialogTitle>⚠️ Security Warning</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            A <strong>Full Backup</strong> includes sensitive Matter identity
-            data such as:
-            <ul>
-              <li>Operational keypairs</li>
-              <li>Fabric credentials</li>
-              <li>Commissioning data</li>
-            </ul>
-            <strong>Keep this backup secure!</strong> Anyone with access to this
-            file could potentially impersonate your bridges.
-            <br />
-            <br />
-            This is useful for:
-            <ul>
-              <li>Migration to a new machine</li>
-              <li>Clean reinstall without re-commissioning</li>
-              <li>Disaster recovery</li>
-            </ul>
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setFullBackupDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              handleBackup(true);
-              setFullBackupDialogOpen(false);
-            }}
-            color="warning"
-            variant="contained"
-          >
-            I Understand, Download
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <BackupRestore />
     </Box>
   );
 }

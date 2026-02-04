@@ -15,7 +15,11 @@ export interface HomeAssistantMatcher {
   readonly value: string;
 }
 
+export type HomeAssistantFilterMode = "any" | "all";
+
 export interface HomeAssistantFilter {
   include: HomeAssistantMatcher[];
   exclude: HomeAssistantMatcher[];
+  /** How to combine include rules: "any" (OR) or "all" (AND). Default: "any" */
+  includeMode?: HomeAssistantFilterMode;
 }

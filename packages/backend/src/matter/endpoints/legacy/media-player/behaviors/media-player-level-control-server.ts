@@ -1,7 +1,17 @@
 import type { MediaPlayerDeviceAttributes } from "@home-assistant-matter-hub/common";
-import { LevelControlServer } from "../../../../behaviors/level-control-server.js";
+import { SpeakerLevelControlServer } from "../../../../behaviors/speaker-level-control-server.js";
 
-export const MediaPlayerLevelControlServer = LevelControlServer({
+/**
+ * LevelControl for MediaPlayer/Speaker devices.
+ *
+ * Uses SpeakerLevelControlServer which:
+ * - Does NOT use the "Lighting" feature
+ * - Uses range 0-100 for currentLevel (Google Home expects volume as percentage)
+ *
+ * This fixes Issue #79 where Google Home displayed wrong volume percentages
+ * because it interpreted currentLevel (0-254) as a percentage value.
+ */
+export const MediaPlayerLevelControlServer = SpeakerLevelControlServer({
   getValuePercent: (state) => {
     const attributes = state.attributes as MediaPlayerDeviceAttributes;
     if (attributes.volume_level != null) {
@@ -9,8 +19,10 @@ export const MediaPlayerLevelControlServer = LevelControlServer({
     }
     return 0;
   },
-  moveToLevelPercent: (value) => ({
-    action: "media_player.volume_set",
-    data: { volume_level: value },
-  }),
+  moveToLevelPercent: (value) => {
+    return {
+      action: "media_player.volume_set",
+      data: { volume_level: value },
+    };
+  },
 });

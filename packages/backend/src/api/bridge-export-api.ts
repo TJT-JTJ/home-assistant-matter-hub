@@ -26,6 +26,9 @@ interface LegacyBridgeData {
   filter?: LegacyFilter;
   featureFlags?: Record<string, boolean>;
   basicInformation?: Record<string, unknown>;
+  countryCode?: string;
+  icon?: string;
+  priority?: number;
 }
 
 interface LegacyExportData {
@@ -59,6 +62,9 @@ function migrateBridge(legacy: LegacyBridgeData): BridgeData {
     port: legacy.port,
     filter: migrateFilter(legacy.filter),
     featureFlags: legacy.featureFlags,
+    countryCode: legacy.countryCode,
+    icon: legacy.icon,
+    priority: legacy.priority,
     basicInformation: {
       vendorId: 0xfff1,
       vendorName: "Home Assistant Matter Hub",

@@ -54,7 +54,7 @@ export function createLegacyEndpointType(
   if (mapping?.matterDeviceType) {
     const overrideFactory = matterDeviceTypeFactories[mapping.matterDeviceType];
     if (overrideFactory) {
-      return overrideFactory({ entity, customName });
+      return overrideFactory({ entity, customName, mapping });
     }
   }
 
@@ -62,7 +62,7 @@ export function createLegacyEndpointType(
   if (!factory) {
     return undefined;
   }
-  return factory({ entity, customName });
+  return factory({ entity, customName, mapping });
 }
 
 const deviceCtrs: Partial<
@@ -117,7 +117,7 @@ const matterDeviceTypeFactories: Partial<
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   extended_color_light: (ha) =>
-    ExtendedColorLightType(true).set({
+    ExtendedColorLightType(true, true).set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   on_off_plugin_unit: SwitchDevice,
@@ -161,4 +161,5 @@ const matterDeviceTypeFactories: Partial<
     }),
   water_valve: ValveDevice,
   pump: PumpEndpoint,
+  water_heater: WaterHeaterDevice,
 };

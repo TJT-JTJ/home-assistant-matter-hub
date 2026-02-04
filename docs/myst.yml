@@ -17,6 +17,10 @@ project:
         - file: "Guides/Connect Multiple Fabrics.md"
         - file: "Guides/Reverse Proxy.md"
     - file: Supported Device Types.md
+    - title: Devices
+      children:
+        - file: "Devices/Robot Vacuum.md"
+        - file: "Devices/Air Purifier.md"
     - file: Frequently Asked Questions.md
     - title: Developer Documentation
       children:

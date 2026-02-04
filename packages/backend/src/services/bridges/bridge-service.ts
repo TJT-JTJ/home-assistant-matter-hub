@@ -90,7 +90,13 @@ export class BridgeService extends Service {
   }
 
   async startAll() {
-    for (const bridge of this.bridges) {
+    // Sort bridges by priority (lower = starts first), default priority is 100
+    const sortedBridges = [...this.bridges].sort((a, b) => {
+      const priorityA = a.data.priority ?? 100;
+      const priorityB = b.data.priority ?? 100;
+      return priorityA - priorityB;
+    });
+    for (const bridge of sortedBridges) {
       await bridge.start();
     }
   }
@@ -138,10 +144,45 @@ export class BridgeService extends Service {
       return;
     }
     await bridge.stop();
-    await bridge.delete();
-    await bridge.dispose();
+    try {
+      await bridge.delete();
+    } catch (e) {
+      // Ignore Matter.js internal errors during deletion
+      // These occur when endpoints are already detached from the node
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("Endpoint storage inaccessible")) {
+        throw e;
+      }
+    }
+    try {
+      await bridge.dispose();
+    } catch {
+      // Ignore disposal errors during deletion
+    }
     this.bridges.splice(this.bridges.indexOf(bridge), 1);
     await this.bridgeStorage.remove(bridgeId);
+  }
+
+  async updatePriorities(
+    updates: Array<{ id: string; priority: number }>,
+  ): Promise<void> {
+    for (const update of updates) {
+      const bridge = this.get(update.id);
+      if (bridge) {
+        // Update using existing update method with minimal data
+        const currentData = bridge.data;
+        await this.update({
+          id: update.id,
+          name: currentData.name,
+          port: currentData.port,
+          filter: currentData.filter,
+          featureFlags: currentData.featureFlags,
+          countryCode: currentData.countryCode,
+          icon: currentData.icon,
+          priority: update.priority,
+        });
+      }
+    }
   }
 
   private async addBridge(bridgeData: BridgeData): Promise<Bridge> {

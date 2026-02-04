@@ -457,17 +457,33 @@ action:
 
 **Alternative:** Use voice commands ("Hey Google, dim the lights to 50%") which work reliably.
 
+#### Cover Automations Not Available
+
+**Issue:** Window covering devices (blinds, shutters, curtains) cannot be used as actions in Google Home Automations. When selecting a cover device, "no actions available" is shown.
+
+**Cause:** This is a Google Home limitation with Matter WindowCovering devices. The same issue affects native Matter blinds (e.g., Smartwings).
+
+**Workarounds:**
+1. Use Google Home Routines with voice commands ("Hey Google, close [cover name]")
+2. Create Home Assistant scripts and expose them as switches via HAMH
+3. Use Home Assistant automations instead of Google Home automations
+
 ---
 
 ### Amazon Alexa / Echo Devices
 
 #### Light Brightness Reset on Turn-On
 
-**Issue:** After a subscription renewal (approximately every 5 minutes), Alexa may reset light brightness to 100% when turning on a light, even if it was previously dimmed.
+**Issue:** After a subscription renewal (approximately every 5 minutes), Alexa may reset light brightness to 100% when turning on a light, even if it was previously dimmed to a different level.
 
 **Cause:** This is an Alexa-side behavior where Echo devices send an explicit `moveToLevel(254)` command immediately after the `on()` command following a new subscription.
 
-**Workaround:** A feature flag `alexaPreserveBrightnessOnTurnOn` is available in Alpha/Testing versions. When enabled, the bridge ignores brightness commands that set the light to 100% immediately after a turn-on command.
+**Evidence:**
+- The same behavior occurs with other Matter bridges
+- Logs show Alexa explicitly sending `level: 254` after `on()` commands
+- This does NOT happen immediately after dimming, only after subscription renewal
+
+**Workaround:** A feature flag `alexaPreserveBrightnessOnTurnOn` is available in Alpha/Testing versions. When enabled, the bridge will ignore brightness commands that set the light to 100% immediately after a turn-on command.
 
 ---
 

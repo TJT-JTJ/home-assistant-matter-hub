@@ -4,6 +4,7 @@ import DevicesIcon from "@mui/icons-material/Devices";
 import HubIcon from "@mui/icons-material/Hub";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -61,6 +62,15 @@ export const AppTopBar = () => {
                   sx={{ color: "inherit" }}
                 >
                   <DevicesIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Startup Order">
+                <IconButton
+                  component={Link}
+                  to={navigation.startup}
+                  sx={{ color: "inherit" }}
+                >
+                  <RocketLaunchIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title={mode === "dark" ? "Light Mode" : "Dark Mode"}>
