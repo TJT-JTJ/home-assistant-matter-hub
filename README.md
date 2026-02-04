@@ -166,10 +166,18 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 
 **All Stable v2.0.x features plus:**
 
-**🔋 Auto Entity Grouping** ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) - NEW!
+**� Force Sync** - NEW!
+- **Push Device States** - Force sync all current device states to connected Matter controllers
+- **No Re-Pairing Required** - Updates controllers without losing fabric connections
+- **UI Button** - Available in Bridge Details → Connected Fabrics section
+- **Use Case** - Helpful when controllers show stale/incorrect device states
+
+> Note: This pushes current values to controllers but doesn't clear their internal cache. For a full cache reset, devices must be removed and re-paired.
+
+**�🔋 Auto Entity Grouping** ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) - NEW!
 - **Auto Battery Mapping** - Automatically assign battery sensors to their parent devices
 - **Auto Humidity Mapping** - Automatically combine Temperature + Humidity sensors from the same device
-- **Bridge Feature Flag** - Enable via "Auto Battery Mapping" in Bridge settings
+- **Bridge Feature Flags** - Enable separately via "Auto Battery Mapping" / "Auto Humidity Mapping" in Bridge settings
 - **Reduced Device Clutter** - One combined device instead of 3 separate sensors in Apple Home/Google Home
 
 Example: A climate sensor with `sensor.temp`, `sensor.humidity`, and `sensor.battery` becomes **one** `TemperatureHumiditySensorWithBattery` device.
