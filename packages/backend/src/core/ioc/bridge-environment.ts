@@ -58,6 +58,42 @@ export class BridgeEnvironment extends EnvironmentBase {
   }
 }
 
+/**
+ * ServerModeEnvironment is a lightweight environment for server mode bridges.
+ * It does NOT create a BridgeEndpointManager since server mode uses
+ * ServerModeEndpointManager instead.
+ */
+export class ServerModeEnvironment extends EnvironmentBase {
+  static async create(parent: Environment, initialData: BridgeData) {
+    const env = new ServerModeEnvironment(parent, initialData);
+    await env.construction;
+    return env;
+  }
+
+  private readonly construction: Promise<void>;
+
+  private constructor(parent: Environment, initialData: BridgeData) {
+    const loggerService = parent.get(LoggerService);
+    const log = loggerService.get(`ServerModeEnvironment / ${initialData.id}`);
+
+    super({ id: initialData.id, parent, log });
+    this.construction = this.init();
+
+    this.set(BridgeDataProvider, new BridgeDataProvider(initialData));
+  }
+
+  private async init() {
+    const haRegistry = await this.load(HomeAssistantRegistry);
+
+    this.set(
+      BridgeRegistry,
+      new BridgeRegistry(haRegistry, this.get(BridgeDataProvider)),
+    );
+    this.set(EntityStateProvider, new EntityStateProvider(haRegistry));
+    // Note: No BridgeEndpointManager - server mode uses ServerModeEndpointManager
+  }
+}
+
 export class BridgeEnvironmentFactory extends BridgeFactory {
   constructor(private readonly parent: AppEnvironment) {
     super("BridgeEnvironmentFactory");
@@ -96,7 +132,8 @@ export class BridgeEnvironmentFactory extends BridgeFactory {
   private async createServerModeBridge(
     initialData: BridgeData,
   ): Promise<Bridge> {
-    const env = await BridgeEnvironment.create(this.parent, initialData);
+    // Use ServerModeEnvironment which doesn't create BridgeEndpointManager
+    const env = await ServerModeEnvironment.create(this.parent, initialData);
     const loggerService = env.get(LoggerService);
     const dataProvider = await env.load(BridgeDataProvider);
 
