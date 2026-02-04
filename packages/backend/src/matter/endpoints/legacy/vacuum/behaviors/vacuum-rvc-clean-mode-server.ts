@@ -84,7 +84,7 @@ const CLEANING_MODE_ALIASES: Record<DreameCleaningMode, string[]> = {
     "vacuum",
     "sweeping",
   ],
-  [DreameCleaningMode.Mopping]: ["Mopping", "Mop", "mopping", "mop"],
+  [DreameCleaningMode.Mopping]: ["Mopping", "Mop", "mopping", "mop", "wet_mop"],
   [DreameCleaningMode.SweepingAndMopping]: [
     "Sweeping and mopping",
     "Vacuum and mop",
