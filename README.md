@@ -397,7 +397,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | [@SH1FT-W](https://github.com/SH1FT-W) | 💎 **Sponsor** + Vacuum room selection feature request (#49) |
 | [@depahk](https://github.com/depahk) | 📝 Migration documentation fix ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
 | [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
-| [@razzietheman](https://github.com/razzietheman) | 💡 Feature requests: Preserve commissioned state (#31), alphabetical sorting (#30) |
+| [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
 
 ### 📋 Issue Tracker - All Contributors
 
@@ -405,6 +405,12 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 | User | Issues | Type |
 |------|--------|------|
+| [@400HPMustang](https://github.com/400HPMustang) | [#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103) | 🐛 Vacuum "Updating" |
+| [@vandir](https://github.com/vandir) | [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102) | 🐛 Alexa vacuum discovery |
+| [@razzietheman](https://github.com/razzietheman) | [#101](https://github.com/RiDDiX/home-assistant-matter-hub/issues/101), [#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80), [#31](https://github.com/RiDDiX/home-assistant-matter-hub/issues/31), [#30](https://github.com/RiDDiX/home-assistant-matter-hub/issues/30) | 🐛💡 Bridge icons, sorting, features |
+| [@italoc](https://github.com/italoc) | [#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78) | 🐛 Garage door cover |
+| [@Rovanion](https://github.com/Rovanion) | [#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76) | 🐛 Cover position |
+| [@RMHogervorst](https://github.com/RMHogervorst) | [#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73) | 🐛 Sensor type override |
 | [@marksev1](https://github.com/marksev1) | [#62](https://github.com/RiDDiX/home-assistant-matter-hub/issues/62) | 💡 Aliases support |
 | [@smacpi](https://github.com/smacpi) | [#60](https://github.com/RiDDiX/home-assistant-matter-hub/issues/60) | 💡 Battery sensor |
 | [@semonR](https://github.com/semonR) | [#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58) | 🐛 Dehumidifier |
