@@ -2,9 +2,9 @@ import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
-import type { Environment, Logger } from "@matter/general";
+import type { Logger } from "@matter/general";
 import type { LoggerService } from "../../core/app/logger.js";
-import { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
+import type { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
 import type {
   BridgeDataProvider,
   BridgeServerStatus,
@@ -18,7 +18,6 @@ import type { ServerModeEndpointManager } from "./server-mode-endpoint-manager.j
  */
 export class ServerModeBridge {
   private readonly log: Logger;
-  readonly server: ServerModeServerNode;
 
   private status: BridgeServerStatus = {
     code: BridgeStatus.Stopped,
@@ -39,13 +38,12 @@ export class ServerModeBridge {
   }
 
   constructor(
-    env: Environment,
     logger: LoggerService,
     private readonly dataProvider: BridgeDataProvider,
     private readonly endpointManager: ServerModeEndpointManager,
+    readonly server: ServerModeServerNode,
   ) {
     this.log = logger.get(`ServerModeBridge / ${dataProvider.id}`);
-    this.server = new ServerModeServerNode(env, this.dataProvider);
   }
 
   async initialize(): Promise<void> {

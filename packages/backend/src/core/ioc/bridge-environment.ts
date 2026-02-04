@@ -166,10 +166,10 @@ export class BridgeEnvironmentFactory extends BridgeFactory {
     }
 
     const bridge = new ServerModeBridgeWithEnvironment(
-      env,
       loggerService,
       dataProvider,
       endpointManager,
+      serverNode,
     );
     await bridge.initialize();
 
