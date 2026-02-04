@@ -410,8 +410,6 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@vandir](https://github.com/vandir) | [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102) | 🐛 Alexa vacuum discovery |
 | [@razzietheman](https://github.com/razzietheman) | [#101](https://github.com/RiDDiX/home-assistant-matter-hub/issues/101), [#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80), [#31](https://github.com/RiDDiX/home-assistant-matter-hub/issues/31), [#30](https://github.com/RiDDiX/home-assistant-matter-hub/issues/30) | 🐛💡 Bridge icons, sorting, features |
 | [@italoc](https://github.com/italoc) | [#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78) | 🐛 Garage door cover |
-| [@Rovanion](https://github.com/Rovanion) | [#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76) | 🐛 Cover position |
-| [@RMHogervorst](https://github.com/RMHogervorst) | [#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73) | 🐛 Sensor type override |
 | [@marksev1](https://github.com/marksev1) | [#62](https://github.com/RiDDiX/home-assistant-matter-hub/issues/62) | 💡 Aliases support |
 | [@smacpi](https://github.com/smacpi) | [#60](https://github.com/RiDDiX/home-assistant-matter-hub/issues/60) | 💡 Battery sensor |
 | [@semonR](https://github.com/semonR) | [#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58) | 🐛 Dehumidifier |
