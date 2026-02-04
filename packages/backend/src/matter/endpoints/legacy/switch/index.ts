@@ -4,6 +4,7 @@ import { BasicInformationServer } from "../../../behaviors/basic-information-ser
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { OnOffServer } from "../../../behaviors/on-off-server.js";
+import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
 
 const SwitchOnOffServer = OnOffServer().with("Lighting");
 
@@ -14,8 +15,37 @@ const SwitchEndpointType = OnOffPlugInUnitDevice.with(
   SwitchOnOffServer,
 );
 
+const SwitchWithBatteryEndpointType = OnOffPlugInUnitDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomeAssistantEntityBehavior,
+  SwitchOnOffServer,
+  PowerSourceServer({
+    getBatteryPercent: (entity) => {
+      const attrs = entity.attributes as {
+        battery?: number;
+        battery_level?: number;
+      };
+      const level = attrs.battery_level ?? attrs.battery;
+      if (level == null || Number.isNaN(Number(level))) {
+        return null;
+      }
+      return Number(level);
+    },
+  }),
+);
+
 export function SwitchDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
+  const attrs = homeAssistantEntity.entity.state.attributes as {
+    battery?: number;
+    battery_level?: number;
+  };
+  const hasBattery = attrs.battery_level != null || attrs.battery != null;
+
+  if (hasBattery) {
+    return SwitchWithBatteryEndpointType.set({ homeAssistantEntity });
+  }
   return SwitchEndpointType.set({ homeAssistantEntity });
 }

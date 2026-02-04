@@ -10,15 +10,35 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
 import { FanFanControlServer } from "./behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "./behaviors/fan-on-off-server.js";
+
+const FanPowerSourceServer = PowerSourceServer({
+  getBatteryPercent: (entity) => {
+    const attrs = entity.attributes as {
+      battery?: number;
+      battery_level?: number;
+    };
+    const level = attrs.battery_level ?? attrs.battery;
+    if (level == null || Number.isNaN(Number(level))) {
+      return null;
+    }
+    return Number(level);
+  },
+});
 
 export function FanDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const attributes = homeAssistantEntity.entity.state
-    .attributes as FanDeviceAttributes;
+    .attributes as FanDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
   const supportedFeatures = attributes.supported_features ?? 0;
+  const hasBattery =
+    attributes.battery_level != null || attributes.battery != null;
 
   const hasSetSpeed = testBit(supportedFeatures, FanDeviceFeature.SET_SPEED);
   const hasPresetMode = testBit(
@@ -46,12 +66,21 @@ export function FanDevice(
     features.add("AirflowDirection");
   }
 
-  const device = Device.with(
-    IdentifyServer,
-    BasicInformationServer,
-    HomeAssistantEntityBehavior,
-    FanOnOffServer,
-    FanFanControlServer.with(...features),
-  );
+  const device = hasBattery
+    ? Device.with(
+        IdentifyServer,
+        BasicInformationServer,
+        HomeAssistantEntityBehavior,
+        FanOnOffServer,
+        FanFanControlServer.with(...features),
+        FanPowerSourceServer,
+      )
+    : Device.with(
+        IdentifyServer,
+        BasicInformationServer,
+        HomeAssistantEntityBehavior,
+        FanOnOffServer,
+        FanFanControlServer.with(...features),
+      );
   return device.set({ homeAssistantEntity });
 }
