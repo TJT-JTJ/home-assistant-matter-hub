@@ -2,15 +2,22 @@ import type {
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import {
   WindowCoveringServer as Base,
   MovementDirection,
   MovementType,
 } from "@matter/main/behaviors";
 import { WindowCovering } from "@matter/main/clusters";
+import {
+  type HomeAssistantAction,
+  HomeAssistantActions,
+} from "../../services/home-assistant/home-assistant-actions.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("WindowCoveringServer");
 
 import MovementStatus = WindowCovering.MovementStatus;
 
@@ -54,7 +61,65 @@ export interface WindowCoveringConfig {
 export class WindowCoveringServerBase extends FeaturedBase {
   declare state: WindowCoveringServerBase.State;
 
+  private liftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private tiltDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  // Track when the last command was received to implement two-phase debounce
+  private lastLiftCommandTime = 0;
+  private lastTiltCommandTime = 0;
+  // Store everything needed for debounced HA calls - entityId and actions service
+  // must be captured before setTimeout because agent context expires after command handler
+  private pendingLiftAction: {
+    action: HomeAssistantAction;
+    entityId: string;
+    actions: HomeAssistantActions;
+  } | null = null;
+  private pendingTiltAction: {
+    action: HomeAssistantAction;
+    entityId: string;
+    actions: HomeAssistantActions;
+  } | null = null;
+  // Two-phase debounce: longer for first command (quick swipe sends initial step value),
+  // shorter for subsequent commands during drag
+  private static readonly DEBOUNCE_INITIAL_MS = 400;
+  private static readonly DEBOUNCE_SUBSEQUENT_MS = 150;
+  private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
+
   override async initialize() {
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // WindowCovering with PositionAware features requires valid position values.
+    if (this.features.lift) {
+      if (this.state.installedOpenLimitLift == null) {
+        this.state.installedOpenLimitLift = 0;
+      }
+      if (this.state.installedClosedLimitLift == null) {
+        this.state.installedClosedLimitLift = 10000; // 100.00%
+      }
+    }
+    if (this.features.tilt) {
+      if (this.state.installedOpenLimitTilt == null) {
+        this.state.installedOpenLimitTilt = 0;
+      }
+      if (this.state.installedClosedLimitTilt == null) {
+        this.state.installedClosedLimitTilt = 10000; // 100.00%
+      }
+    }
+    if (this.features.positionAwareLift) {
+      if (this.state.currentPositionLiftPercent100ths === undefined) {
+        this.state.currentPositionLiftPercent100ths = null;
+      }
+      if (this.state.targetPositionLiftPercent100ths === undefined) {
+        this.state.targetPositionLiftPercent100ths = null;
+      }
+    }
+    if (this.features.positionAwareTilt) {
+      if (this.state.currentPositionTiltPercent100ths === undefined) {
+        this.state.currentPositionTiltPercent100ths = null;
+      }
+      if (this.state.targetPositionTiltPercent100ths === undefined) {
+        this.state.targetPositionTiltPercent100ths = null;
+      }
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
@@ -85,55 +150,68 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
     const currentTilt100ths = currentTilt != null ? currentTilt * 100 : null;
 
-    applyPatchState<WindowCoveringServerBase.State>(this.state, {
-      type:
-        this.features.lift && this.features.tilt
-          ? WindowCovering.WindowCoveringType.TiltBlindLift
-          : this.features.tilt
-            ? WindowCovering.WindowCoveringType.TiltBlindTiltOnly
-            : WindowCovering.WindowCoveringType.Rollershade,
-      endProductType:
-        this.features.lift && this.features.tilt
-          ? WindowCovering.EndProductType.SheerShade
-          : this.features.tilt
-            ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
-            : WindowCovering.EndProductType.RollerShade,
-      operationalStatus: {
-        global: movementStatus,
-        ...(this.features.lift ? { lift: movementStatus } : {}),
-        ...(this.features.tilt ? { tilt: movementStatus } : {}),
+    logger.debug(
+      `Cover update for ${entity.entity_id}: state=${state.state}, lift=${currentLift}%, tilt=${currentTilt}%, movement=${MovementStatus[movementStatus]}`,
+    );
+
+    const appliedPatch = applyPatchState<WindowCoveringServerBase.State>(
+      this.state,
+      {
+        type:
+          this.features.lift && this.features.tilt
+            ? WindowCovering.WindowCoveringType.TiltBlindLift
+            : this.features.tilt
+              ? WindowCovering.WindowCoveringType.TiltBlindTiltOnly
+              : WindowCovering.WindowCoveringType.Rollershade,
+        endProductType:
+          this.features.lift && this.features.tilt
+            ? WindowCovering.EndProductType.SheerShade
+            : this.features.tilt
+              ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
+              : WindowCovering.EndProductType.RollerShade,
+        operationalStatus: {
+          global: movementStatus,
+          ...(this.features.lift ? { lift: movementStatus } : {}),
+          ...(this.features.tilt ? { tilt: movementStatus } : {}),
+        },
+        ...(this.features.absolutePosition && this.features.lift
+          ? {
+              installedOpenLimitLift: 0,
+              installedClosedLimitLift: 100_00,
+              currentPositionLift: currentLift100ths,
+            }
+          : {}),
+        ...(this.features.absolutePosition && this.features.tilt
+          ? {
+              installedOpenLimitTilt: 0,
+              installedClosedLimitTilt: 100_00,
+              currentPositionTilt: currentTilt100ths,
+            }
+          : {}),
+        ...(this.features.positionAwareLift
+          ? {
+              currentPositionLiftPercentage: currentLift,
+              currentPositionLiftPercent100ths: currentLift100ths,
+              targetPositionLiftPercent100ths:
+                this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
+            }
+          : {}),
+        ...(this.features.positionAwareTilt
+          ? {
+              currentPositionTiltPercentage: currentTilt,
+              currentPositionTiltPercent100ths: currentTilt100ths,
+              targetPositionTiltPercent100ths:
+                this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
+            }
+          : {}),
       },
-      ...(this.features.absolutePosition && this.features.lift
-        ? {
-            installedOpenLimitLift: 0,
-            installedClosedLimitLift: 100_00,
-            currentPositionLift: currentLift100ths,
-          }
-        : {}),
-      ...(this.features.absolutePosition && this.features.tilt
-        ? {
-            installedOpenLimitTilt: 0,
-            installedClosedLimitTilt: 100_00,
-            currentPositionTilt: currentTilt100ths,
-          }
-        : {}),
-      ...(this.features.positionAwareLift
-        ? {
-            currentPositionLiftPercentage: currentLift,
-            currentPositionLiftPercent100ths: currentLift100ths,
-            targetPositionLiftPercent100ths:
-              this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
-          }
-        : {}),
-      ...(this.features.positionAwareTilt
-        ? {
-            currentPositionTiltPercentage: currentTilt,
-            currentPositionTiltPercent100ths: currentTilt100ths,
-            targetPositionTiltPercent100ths:
-              this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
-          }
-        : {}),
-    });
+    );
+
+    if (Object.keys(appliedPatch).length > 0) {
+      logger.info(
+        `Cover ${entity.entity_id} state changed: ${JSON.stringify(appliedPatch)}`,
+      );
+    }
   }
 
   override async handleMovement(
@@ -189,7 +267,6 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   private handleGoToLiftPosition(targetPercent100ths: number) {
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const config = this.state.config;
     // Compare in Matter space (both values should be in same coordinate system)
     const currentPositionMatter = this.state.currentPositionLiftPercent100ths;
@@ -200,13 +277,52 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
-    // Update target immediately to prevent duplicate commands from controllers
-    // that send multiple position updates in quick succession (e.g., Google Home)
+    // Update target immediately for UI feedback
     this.state.targetPositionLiftPercent100ths = targetPercent100ths;
+    // Capture EVERYTHING needed for the debounced callback NOW while context is valid
+    // The agent context expires after the command handler returns, so we must not
+    // access any behavior properties (including entityId) inside setTimeout
     const targetPosition = targetPercent100ths / 100;
-    homeAssistant.callAction(
-      config.setLiftPosition(targetPosition, this.agent),
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const action = config.setLiftPosition(targetPosition, this.agent);
+    const entityId = homeAssistant.entityId;
+    const actions = this.env.get(HomeAssistantActions);
+    this.pendingLiftAction = { action, entityId, actions };
+
+    // Two-phase debounce to handle Google Home's quick swipe behavior:
+    // - Quick swipe sends an initial "step" value, then final value after a delay
+    // - If we use short debounce, the step value gets executed before final arrives
+    // - Use longer debounce for first command, shorter for subsequent commands in sequence
+    const now = Date.now();
+    const timeSinceLastCommand = now - this.lastLiftCommandTime;
+    this.lastLiftCommandTime = now;
+
+    const isFirstInSequence =
+      timeSinceLastCommand >
+      WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
+    const debounceMs = isFirstInSequence
+      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+
+    logger.debug(
+      `Lift command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
     );
+
+    if (this.liftDebounceTimer) {
+      clearTimeout(this.liftDebounceTimer);
+    }
+    this.liftDebounceTimer = setTimeout(() => {
+      this.liftDebounceTimer = null;
+      if (this.pendingLiftAction) {
+        const {
+          action: pendingAction,
+          entityId: eid,
+          actions: act,
+        } = this.pendingLiftAction;
+        this.pendingLiftAction = null;
+        act.call(pendingAction, eid);
+      }
+    }, debounceMs);
   }
 
   private handleTiltOpen() {
@@ -224,7 +340,6 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   private handleGoToTiltPosition(targetPercent100ths: number) {
-    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const config = this.state.config;
     // Compare in Matter space (both values should be in same coordinate system)
     const currentPositionMatter = this.state.currentPositionTiltPercent100ths;
@@ -235,13 +350,49 @@ export class WindowCoveringServerBase extends FeaturedBase {
     ) {
       return;
     }
-    // Update target immediately to prevent duplicate commands from controllers
-    // that send multiple position updates in quick succession (e.g., Google Home)
+    // Update target immediately for UI feedback
     this.state.targetPositionTiltPercent100ths = targetPercent100ths;
+    // Capture EVERYTHING needed for the debounced callback NOW while context is valid
+    // The agent context expires after the command handler returns, so we must not
+    // access any behavior properties (including entityId) inside setTimeout
     const targetPosition = targetPercent100ths / 100;
-    homeAssistant.callAction(
-      config.setTiltPosition(targetPosition, this.agent),
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const action = config.setTiltPosition(targetPosition, this.agent);
+    const entityId = homeAssistant.entityId;
+    const actions = this.env.get(HomeAssistantActions);
+    this.pendingTiltAction = { action, entityId, actions };
+
+    // Two-phase debounce (same logic as lift)
+    const now = Date.now();
+    const timeSinceLastCommand = now - this.lastTiltCommandTime;
+    this.lastTiltCommandTime = now;
+
+    const isFirstInSequence =
+      timeSinceLastCommand >
+      WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
+    const debounceMs = isFirstInSequence
+      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+
+    logger.debug(
+      `Tilt command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
     );
+
+    if (this.tiltDebounceTimer) {
+      clearTimeout(this.tiltDebounceTimer);
+    }
+    this.tiltDebounceTimer = setTimeout(() => {
+      this.tiltDebounceTimer = null;
+      if (this.pendingTiltAction) {
+        const {
+          action: pendingAction,
+          entityId: eid,
+          actions: act,
+        } = this.pendingTiltAction;
+        this.pendingTiltAction = null;
+        act.call(pendingAction, eid);
+      }
+    }, debounceMs);
   }
 }
 

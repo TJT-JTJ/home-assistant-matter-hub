@@ -10,6 +10,8 @@ import type { HomeAssistantClient } from "./home-assistant-client.js";
 export interface HomeAssistantAction {
   action: string;
   data?: object | undefined;
+  /** Optional: Override the target entity ID (defaults to the entity associated with the behavior) */
+  target?: string;
 }
 
 interface HomeAssistantActionCall extends HomeAssistantAction {
@@ -57,14 +59,16 @@ export class HomeAssistantActions extends Service {
   }
 
   private processAction(_key: string, calls: HomeAssistantActionCall[]) {
-    const entity_id = calls[0].entityId;
+    // Use custom target if provided, otherwise fall back to entityId
+    const entity_id = calls[0].target ?? calls[0].entityId;
     const action = calls[0].action;
     const data = Object.assign({}, ...calls.map((c) => c.data));
     const [domain, actionName] = action.split(".");
     this.callAction(domain, actionName, data, { entity_id }, false).catch(
       (error) => {
+        const errorMsg = this.formatError(error);
         this.log.error(
-          `Failed to call action '${action}' for entity '${entity_id}': ${error}`,
+          `Failed to call action '${action}' for entity '${entity_id}': ${errorMsg}`,
         );
       },
     );
@@ -108,8 +112,9 @@ export class HomeAssistantActions extends Service {
             baseDelayMs: this.config.retryBaseDelayMs,
             maxDelayMs: this.config.retryMaxDelayMs,
             onRetry: (attempt, error, delayMs) => {
+              const errorMsg = this.formatError(error);
               this.log.warn(
-                `Retrying action '${actionKey}' for ${targetStr} (attempt ${attempt}): ${error.message}. Next retry in ${delayMs}ms`,
+                `Retrying action '${actionKey}' for ${targetStr} (attempt ${attempt}): ${errorMsg}. Next retry in ${delayMs}ms`,
               );
             },
           },
@@ -129,13 +134,31 @@ export class HomeAssistantActions extends Service {
     this.lastSuccessTime = Date.now();
   }
 
+  private formatError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === "object" && error !== null) {
+      // Handle HA WebSocket error responses which are plain objects
+      const errObj = error as Record<string, unknown>;
+      if (errObj.message) return String(errObj.message);
+      if (errObj.code) return `Code: ${errObj.code}`;
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return "[Complex object]";
+      }
+    }
+    return String(error);
+  }
+
   private onActionFailure(
     action: string,
     target: string,
     error: unknown,
   ): void {
     this.consecutiveFailures++;
-    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorMsg = this.formatError(error);
 
     if (this.circuitBreaker.isOpen) {
       this.log.error(

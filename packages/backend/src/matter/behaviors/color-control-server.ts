@@ -2,12 +2,15 @@ import {
   ColorConverter,
   type HomeAssistantEntityInformation,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { ColorControlServer as Base } from "@matter/main/behaviors/color-control";
 import { ColorControl } from "@matter/main/clusters";
 import type { ColorInstance } from "color";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("ColorControlServer");
 
 export type ColorControlMode =
   | ColorControl.ColorMode.CurrentHueAndCurrentSaturation
@@ -30,6 +33,53 @@ export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
   override async initialize() {
+    // CRITICAL: Set default values BEFORE super.initialize() to prevent validation errors.
+    // Matter.js validates ColorTemperature attributes during initialization.
+    // If the light is OFF, all color values from HA are null, causing validation to fail
+    // with "Behaviors have errors".
+    if (this.features.colorTemperature) {
+      // Default color temp range: 2000K - 6500K (147-500 mireds)
+      const defaultMinMireds = 147; // ~6800K
+      const defaultMaxMireds = 500; // ~2000K
+      const defaultMireds = 250; // ~4000K (neutral white)
+
+      if (
+        this.state.colorTempPhysicalMinMireds == null ||
+        this.state.colorTempPhysicalMinMireds === 0
+      ) {
+        this.state.colorTempPhysicalMinMireds = defaultMinMireds;
+      }
+      if (
+        this.state.colorTempPhysicalMaxMireds == null ||
+        this.state.colorTempPhysicalMaxMireds === 0
+      ) {
+        this.state.colorTempPhysicalMaxMireds = defaultMaxMireds;
+      }
+      if (this.state.colorTemperatureMireds == null) {
+        this.state.colorTemperatureMireds = defaultMireds;
+      }
+      if (this.state.coupleColorTempToLevelMinMireds == null) {
+        this.state.coupleColorTempToLevelMinMireds = defaultMinMireds;
+      }
+      if (this.state.startUpColorTemperatureMireds == null) {
+        this.state.startUpColorTemperatureMireds = defaultMireds;
+      }
+
+      logger.debug(
+        `initialize: set ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
+      );
+    }
+
+    if (this.features.hueSaturation) {
+      // Default hue/saturation to 0 (red, no saturation = white)
+      if (this.state.currentHue == null) {
+        this.state.currentHue = 0;
+      }
+      if (this.state.currentSaturation == null) {
+        this.state.currentSaturation = 0;
+      }
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
@@ -66,32 +116,51 @@ export class ColorControlServerBase extends FeaturedBase {
     const maxMireds = Math.ceil(
       ColorConverter.temperatureKelvinToMireds(minKelvin),
     );
-    const startUpMireds = ColorConverter.temperatureKelvinToMireds(
+    // Clamp startUpMireds to valid range
+    let startUpMireds = ColorConverter.temperatureKelvinToMireds(
       currentKelvin ?? maxKelvin,
     );
+    startUpMireds = Math.max(Math.min(startUpMireds, maxMireds), minMireds);
+
     let currentMireds: number | undefined;
     if (currentKelvin != null) {
       currentMireds = ColorConverter.temperatureKelvinToMireds(currentKelvin);
       currentMireds = Math.max(Math.min(currentMireds, maxMireds), minMireds);
     }
 
+    const newColorMode = this.getColorModeFromFeatures(
+      config.getCurrentMode(entity.state, this.agent),
+    );
+
+    // CRITICAL: For ColorTemperature, we must set boundaries FIRST, then values.
+    // Matter.js validates that colorTemperatureMireds and startUpColorTemperatureMireds
+    // are within [colorTempPhysicalMinMireds, colorTempPhysicalMaxMireds].
+    // If we set values before boundaries, validation fails with "Behaviors have errors".
+    if (this.features.colorTemperature) {
+      // Step 1: Set the physical boundaries FIRST
+      applyPatchState(this.state, {
+        colorTempPhysicalMinMireds: minMireds,
+        colorTempPhysicalMaxMireds: maxMireds,
+      });
+
+      // Step 2: Now set the values that depend on those boundaries
+      applyPatchState(this.state, {
+        coupleColorTempToLevelMinMireds: minMireds,
+        startUpColorTemperatureMireds: startUpMireds,
+        // Only update colorTemperatureMireds if we have a valid value.
+        ...(currentMireds != null
+          ? { colorTemperatureMireds: currentMireds }
+          : {}),
+      });
+    }
+
+    // Set colorMode and hueSaturation attributes
     applyPatchState(this.state, {
-      colorMode: this.getColorModeFromFeatures(
-        config.getCurrentMode(entity.state, this.agent),
-      ),
+      colorMode: newColorMode,
       ...(this.features.hueSaturation
         ? {
             currentHue: hue,
             currentSaturation: saturation,
-          }
-        : {}),
-      ...(this.features.colorTemperature
-        ? {
-            coupleColorTempToLevelMinMireds: minMireds,
-            colorTempPhysicalMinMireds: minMireds,
-            colorTempPhysicalMaxMireds: maxMireds,
-            startUpColorTemperatureMireds: startUpMireds,
-            colorTemperatureMireds: currentMireds,
           }
         : {}),
     });

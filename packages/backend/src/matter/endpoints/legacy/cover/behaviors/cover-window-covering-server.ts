@@ -17,19 +17,18 @@ const attributes = (entity: HomeAssistantEntityState) =>
 
 /**
  * Platforms known to use Matter-compatible position semantics (0=open, 100=closed).
- * These integrations report position as "% open" which matches Matter's expectations.
+ * These integrations report position as "% closed" which matches Matter's expectations.
+ * NOTE: Overkiz/Somfy was removed - it uses standard HA semantics (0=closed, 100=open).
+ * See GitHub Issue #90.
  */
-const MATTER_SEMANTIC_PLATFORMS = [
-  "overkiz", // Somfy TaHoma, Cozytouch, etc.
-  "tahoma", // Legacy Somfy TaHoma integration
-  "somfy", // Direct Somfy integration
-  "somfy_mylink", // Somfy myLink
+const MATTER_SEMANTIC_PLATFORMS: string[] = [
+  // Currently empty - no known platforms use Matter semantics by default
+  // Add platforms here only if confirmed to use 0=open, 100=closed
 ];
 
 /**
  * Checks if the entity uses Matter-compatible position semantics (0=open, 100=closed).
- * Some integrations like Overkiz (Somfy TaHoma) use this convention instead of
- * standard HA semantics (0=closed, 100=open).
+ * Currently no platforms are known to use this by default.
  */
 const usesMatterSemantics = (agent: Agent): boolean => {
   const homeAssistant = agent.get(HomeAssistantEntityBehavior);

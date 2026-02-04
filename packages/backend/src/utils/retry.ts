@@ -3,7 +3,7 @@ export interface RetryOptions {
   baseDelayMs?: number;
   maxDelayMs?: number;
   backoffMultiplier?: number;
-  onRetry?: (attempt: number, error: Error, delayMs: number) => void;
+  onRetry?: (attempt: number, error: unknown, delayMs: number) => void;
 }
 
 const defaultOptions: Required<Omit<RetryOptions, "onRetry">> = {
@@ -18,13 +18,13 @@ export async function withRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const opts = { ...defaultOptions, ...options };
-  let lastError: Error | undefined;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      lastError = error;
 
       if (attempt === opts.maxAttempts) {
         break;
@@ -35,7 +35,7 @@ export async function withRetry<T>(
         opts.maxDelayMs,
       );
 
-      opts.onRetry?.(attempt, lastError, delayMs);
+      opts.onRetry?.(attempt, error, delayMs);
 
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }

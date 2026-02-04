@@ -16,23 +16,28 @@ const CoverDeviceType = (supportedFeatures: number) => {
   const features: FeatureSelection<WindowCovering.Complete> = new Set();
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open)) {
     features.add("Lift");
-    features.add("PositionAwareLift");
+    // Only add PositionAwareLift if the cover supports position control.
+    // Binary covers (like garage doors) only support open/close, not positions.
+    // Adding PositionAwareLift for binary covers causes Apple Home to show only
+    // a percentage slider instead of Open/Close buttons (#78).
     if (
       testBit(supportedFeatures, CoverSupportedFeatures.support_set_position)
     ) {
+      features.add("PositionAwareLift");
       features.add("AbsolutePosition");
     }
   }
 
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open_tilt)) {
     features.add("Tilt");
-    features.add("PositionAwareTilt");
+    // Same logic for tilt - only add PositionAwareTilt if position control is supported
     if (
       testBit(
         supportedFeatures,
         CoverSupportedFeatures.support_set_tilt_position,
       )
     ) {
+      features.add("PositionAwareTilt");
       features.add("AbsolutePosition");
     }
   }

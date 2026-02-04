@@ -7,12 +7,9 @@ Air Purifiers from Home Assistant's `fan` domain can be exposed to Matter contro
 - **On/Off Control** - Turn the air purifier on or off
 - **Speed Control** - Adjust fan speed (if supported)
 - **Preset Modes** - Auto mode and other presets (if supported)
-- **HEPA Filter Life Monitoring** - Show filter life remaining in Matter controllers (alpha feature)
+- **HEPA Filter Life Monitoring** - Show filter life remaining in Matter controllers
 
 ## HEPA Filter Life Monitoring
-
-> [!NOTE]
-> This feature is currently available in **alpha** only. It will be included in the next stable release.
 
 Matter's Air Purifier device type includes HEPA Filter Monitoring, which displays the remaining filter life in compatible Matter controllers (Apple Home, Google Home, Alexa).
 

@@ -44,6 +44,15 @@ export class FanControlServerBase extends FeaturedBase {
   declare state: FanControlServerBase.State;
 
   override async initialize() {
+    // Matter.js defaults: speedMax=0, percentSetting=null, percentCurrent=0
+    // speedMax=0 is invalid for MultiSpeed feature - must be >= 1 per Matter spec
+    if (this.features.multiSpeed) {
+      if (this.state.speedMax == null || this.state.speedMax < minSpeedMax) {
+        this.state.speedMax = minSpeedMax;
+      }
+    }
+    // Other values (percentSetting=null, percentCurrent=0) are valid per Matter spec
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);

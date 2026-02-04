@@ -52,6 +52,9 @@ export class BridgeDataProvider extends Service implements BridgeData {
   get icon(): BridgeIconType | undefined {
     return this.data.icon;
   }
+  get priority(): number | undefined {
+    return this.data.priority;
+  }
 
   /************************************************
    * Functions
@@ -82,6 +85,7 @@ export class BridgeDataProvider extends Service implements BridgeData {
       basicInformation: this.basicInformation,
       countryCode: this.countryCode,
       icon: this.icon,
+      priority: this.priority,
       status: status.code,
       statusReason: status.reason,
       commissioning: commissioning

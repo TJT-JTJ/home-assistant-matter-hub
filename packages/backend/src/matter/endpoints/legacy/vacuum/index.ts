@@ -10,15 +10,20 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
+import {
+  createVacuumRvcCleanModeServer,
+  supportsCleaningModes,
+} from "./behaviors/vacuum-rvc-clean-mode-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
-import { VacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
+import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
+import { createVacuumServiceAreaServer } from "./behaviors/vacuum-service-area-server.js";
+import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
 
 const VacuumEndpointType = RoboticVacuumCleanerDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
   VacuumRvcOperationalStateServer,
-  VacuumRvcRunModeServer,
 );
 
 export function VacuumDevice(
@@ -31,7 +36,12 @@ export function VacuumDevice(
   const attributes = homeAssistantEntity.entity.state
     .attributes as VacuumDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
-  let device = VacuumEndpointType.set({ homeAssistantEntity });
+
+  // Add RvcRunModeServer with initial supportedModes (including room modes if available)
+  let device = VacuumEndpointType.with(
+    createVacuumRvcRunModeServer(attributes),
+  ).set({ homeAssistantEntity });
+
   if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
     device = device.with(VacuumOnOffServer);
   }
@@ -42,5 +52,18 @@ export function VacuumDevice(
   if (testBit(supportedFeatures, VacuumDeviceFeature.BATTERY) || hasBattery) {
     device = device.with(VacuumPowerSourceServer);
   }
+
+  // ServiceArea cluster for native room selection in Apple Home
+  // All state is set at creation time (no custom initialize())
+  const rooms = parseVacuumRooms(attributes);
+  if (rooms.length > 0) {
+    device = device.with(createVacuumServiceAreaServer(attributes));
+  }
+
+  // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
+  if (supportsCleaningModes(attributes)) {
+    device = device.with(createVacuumRvcCleanModeServer(attributes));
+  }
+
   return device;
 }

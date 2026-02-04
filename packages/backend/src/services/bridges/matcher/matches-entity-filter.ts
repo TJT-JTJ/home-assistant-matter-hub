@@ -1,15 +1,27 @@
 import type {
   HomeAssistantDeviceRegistry,
   HomeAssistantEntityRegistry,
+  HomeAssistantFilterMode,
   HomeAssistantMatcher,
 } from "@home-assistant-matter-hub/common";
 
+/**
+ * Test if an entity matches any or all of the matchers based on mode.
+ * @param matchers - Array of matchers to test
+ * @param device - Device registry entry (optional)
+ * @param entity - Entity registry entry
+ * @param mode - "any" (OR) or "all" (AND), defaults to "any"
+ */
 export function testMatchers(
-  matcher: HomeAssistantMatcher[],
+  matchers: HomeAssistantMatcher[],
   device: HomeAssistantDeviceRegistry | undefined,
   entity: HomeAssistantEntityRegistry,
+  mode: HomeAssistantFilterMode = "any",
 ) {
-  return matcher.some((matcher) => testMatcher(matcher, device, entity));
+  if (mode === "all") {
+    return matchers.every((matcher) => testMatcher(matcher, device, entity));
+  }
+  return matchers.some((matcher) => testMatcher(matcher, device, entity));
 }
 
 export function testMatcher(

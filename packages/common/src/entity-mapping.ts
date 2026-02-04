@@ -39,6 +39,19 @@ export interface EntityMappingConfig {
   readonly matterDeviceType?: MatterDeviceType;
   readonly customName?: string;
   readonly disabled?: boolean;
+  /**
+   * Optional: Entity ID of a sensor that provides filter life percentage (0-100).
+   * Used for Air Purifiers to show HEPA filter life in Matter controllers.
+   * Example: "sensor.luftreiniger_filter_life"
+   */
+  readonly filterLifeEntity?: string;
+  /**
+   * Optional: Entity ID of a select entity that controls the vacuum cleaning mode.
+   * Used for Dreame vacuums where the cleaning mode is controlled via a separate select entity.
+   * If not specified, it will be derived from the vacuum entity ID (e.g., vacuum.r2d2 -> select.r2d2_cleaning_mode).
+   * Example: "select.r2_d2_cleaning_mode"
+   */
+  readonly cleaningModeEntity?: string;
 }
 
 export interface EntityMappingRequest {
@@ -47,6 +60,8 @@ export interface EntityMappingRequest {
   readonly matterDeviceType?: MatterDeviceType;
   readonly customName?: string;
   readonly disabled?: boolean;
+  readonly filterLifeEntity?: string;
+  readonly cleaningModeEntity?: string;
 }
 
 export interface EntityMappingResponse {

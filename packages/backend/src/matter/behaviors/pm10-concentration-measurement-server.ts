@@ -4,12 +4,38 @@ import { ConcentrationMeasurement } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 
+// Use only NumericMeasurement feature.
+// Using both NumericMeasurement and LevelIndication together causes "Behaviors have errors".
+// Apple Home requires Ugm3 for Pm10ConcentrationMeasurement cluster.
 const Pm10ConcentrationMeasurementServerBase = Base.with(
   ConcentrationMeasurement.Feature.NumericMeasurement,
 );
 
 export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasurementServerBase {
   override async initialize() {
+    // Set default values BEFORE super.initialize() to prevent validation errors.
+    // Use only NumericMeasurement attributes.
+    if (this.state.measuredValue === undefined) {
+      this.state.measuredValue = null;
+    }
+    if (this.state.minMeasuredValue === undefined) {
+      this.state.minMeasuredValue = null;
+    }
+    if (this.state.maxMeasuredValue === undefined) {
+      this.state.maxMeasuredValue = null;
+    }
+    if (this.state.uncertainty === undefined) {
+      this.state.uncertainty = 0;
+    }
+    if (this.state.measurementUnit === undefined) {
+      this.state.measurementUnit =
+        ConcentrationMeasurement.MeasurementUnit.Ugm3;
+    }
+    if (this.state.measurementMedium === undefined) {
+      this.state.measurementMedium =
+        ConcentrationMeasurement.MeasurementMedium.Air;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
@@ -29,8 +55,6 @@ export class Pm10ConcentrationMeasurementServer extends Pm10ConcentrationMeasure
 
     applyPatchState(this.state, {
       measuredValue,
-      measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
-      measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
     });
   }
 }

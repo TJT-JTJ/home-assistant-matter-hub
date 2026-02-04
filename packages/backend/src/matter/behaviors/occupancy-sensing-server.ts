@@ -13,6 +13,10 @@ const OccupancySensingServerBase = Base.with(
 
 export class OccupancySensingServer extends OccupancySensingServerBase {
   override async initialize() {
+    // Matter.js defaults: occupancy={}, occupancySensorTypeBitmap={}
+    // These are valid per Matter spec - we set actual values in update()
+    // No overrides needed here
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);

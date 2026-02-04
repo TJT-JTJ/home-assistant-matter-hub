@@ -12,7 +12,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/RiDDiX/home-assistant-matter-hub)](https://github.com/RiDDiX/home-assistant-matter-hub/stargazers)
 [![License](https://img.shields.io/github/license/RiDDiX/home-assistant-matter-hub)](LICENSE)
 
-[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [� Dashboard Screenshots](./Dashboard.md) • [�🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
+[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
 
 </div>
 
@@ -37,8 +37,8 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v1.10.8 | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.0-alpha.x | Pre-release with new features, for early adopters |
+| **Stable** | `main` | v2.0.0 | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Semantic Versioning
@@ -55,69 +55,8 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Stable Features (v1.10.8) - NEW! 🎉
+### Stable Features (v1.5.x)
 
-#### 🆕 New in v1.10.8
-
-**🛡️ Stability & Crash Prevention**
-- **Invalid intervalMs Crash Fix** - Suppress Matter.js subscription timing errors that caused FATAL crashes ([#74](https://github.com/RiDDiX/home-assistant-matter-hub/issues/74), [#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82))
-- **Entity Isolation Service** - Automatically isolate problematic entities at runtime instead of crashing the bridge ([#82](https://github.com/RiDDiX/home-assistant-matter-hub/issues/82))
-
-**🌡️ Climate & Thermostat**
-- **Thermostat Auto Mode Fix** - Auto mode now correctly displays on Matter controllers (was incorrectly showing "Heat") ([#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71))
-
-#### Previous in v1.10.5
-
-**🌡️ New Device Support**
-- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
-
-**🤖 Vacuum Enhancements**
-- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
-- **Vacuum Battery Support** - Battery level shown for vacuums with `battery_level` or `battery` attribute ([#59](https://github.com/RiDDiX/home-assistant-matter-hub/issues/59))
-
-**🌡️ Climate & Thermostat**
-- **Humidity Sensor Fix** - Climate entities correctly report humidity ([#67](https://github.com/RiDDiX/home-assistant-matter-hub/issues/67))
-- **HVAC Auto Mode Mapping** - Improved mapping for `auto` mode to Matter's `heat_cool` ([#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71))
-- **Thermostat Limits Fix** - Use HA limits directly for single-mode, wide limits for dual-mode ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52))
-
-**🚪 Covers & Blinds**
-- **Cover Position Fix** - Corrected inverted state-based position fallback ([#72](https://github.com/RiDDiX/home-assistant-matter-hub/issues/72))
-- **Cover Percentage Consistency** - `coverUseHomeAssistantPercentage` now works for both reading and writing ([#34](https://github.com/RiDDiX/home-assistant-matter-hub/issues/34))
-
-**💧 Humidifier**
-- **Humidity Sensor** - Humidifiers now expose humidity measurement cluster ([#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58))
-- **Device Type Change** - Changed from OnOffPlugInUnit to FanDevice for better controller representation
-
-**🔌 Valves & Switches**
-- **Water Valve Device** - New WaterValveDevice for valve domain entities
-- **RoomAirConditioner** - Climate entities with `fan_mode` now use RoomAirConditioner type
-
-**🏷️ Entity Mapping**
-- **Sensor Type Override** - Entity mapping correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
-- **Water Valve Option** - Valve and Pump now available as mapping options ([#65](https://github.com/RiDDiX/home-assistant-matter-hub/issues/65))
-- **Custom Name Support** - Entity mappings correctly apply custom names to Matter `nodeLabel`
-
-**🖼️ Backup & Restore**
-- **Bridge Icons in Backup** - Full backup includes bridge icons when exporting with identity
-- **Icon Restore** - Icons automatically restored during backup import
-
-**🎚️ Alexa Integration**
-- **Brightness Preserve** - `alexaPreserveBrightnessOnTurnOn` feature flag prevents Alexa brightness reset ([#37](https://github.com/RiDDiX/home-assistant-matter-hub/issues/37))
-
-**� Bug Fixes**
-- **Illuminance Sensor** - Fixed "Behaviors have errors" (minMeasuredValue must be 1)
-- **Binary Sensor Update** - New `update` device class mapping
-- **Hidden Entities** - Only included via feature flag, not by filter match ([#56](https://github.com/RiDDiX/home-assistant-matter-hub/issues/56))
-- **Button Inverted State** - Fixed button showing inverted state ([#57](https://github.com/RiDDiX/home-assistant-matter-hub/issues/57))
-
----
-
-#### 📦 Previous Features (v1.5 - v1.9)
-
-<details>
-<summary>Click to expand all previous features</summary>
-
-**🌉 Core Features**
 - **Matter Bridge** - Expose Home Assistant entities to Matter controllers
 - **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
 - **Graceful Error Handling** - Skips problematic entities without crashing
@@ -125,35 +64,50 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
 - **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
 - **Bridge Wizard** - Guided setup for creating multiple bridges with automatic port assignment
+- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
+- **Improved Fan Control** - Better speed control compatibility with Matter controllers
+- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
 - **Node.js 24** - Latest LTS runtime
 - **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
 
-**🎨 UI & Customization**
+### Stable Features (v1.7.x)
+
 - **Dark Mode Toggle** - Switch between light and dark theme
 - **Device List Sorting** - Sort endpoints by name, type, or ID
-- **Custom Bridge Icons** - Upload your own PNG, JPG, GIF, WebP, or SVG icons (max 5MB)
-- **Domain-based Icons** - Automatic icon assignment based on bridge domain
-- **20 Preset Icons** - Quick selection dropdown in bridge editor
-- **Entity Mapping Button** - Quick access to entity mapping from bridge card view
 
-**📡 Sensors & Devices**
-- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
-- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
+### Stable Features (v1.8.x) - NEW! 🎉
+
+- **Graceful Crash Handler** - Failed entities no longer crash the bridge
+  - Problematic entities are automatically skipped during boot
+  - Failed entities are displayed in the UI with detailed error messages
+  - Bridge continues to run with remaining healthy entities
+- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³ (not just quality levels)
+- **Access Control Fix** - Fixed attribute write issues using `asLocalActor` ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
+- **Water Valve Support** - Control water valves via Matter
+- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms (separate device types)
 - **Pressure Sensor** - Atmospheric pressure measurements
 - **Flow Sensor** - Volume flow rate measurements
-- **Water Valve Support** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms
 - **Air Purifier** - Map fans to Air Purifier device type via entity mapping
 - **Pump Device** - Map switches/valves to Pump device type via entity mapping
 
-**📺 Media & Entertainment**
-- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
-- **Improved Fan Control** - Better speed control compatibility with Matter controllers
-- **Basic Video Player** - TV and media player support for Apple Home ([#45](https://github.com/RiDDiX/home-assistant-matter-hub/issues/45))
-- **Remote Device Support** - Support for remote devices ([#40](https://github.com/RiDDiX/home-assistant-matter-hub/issues/40))
+### Stable Features (v1.9.0)
 
-**🌡️ Thermostat**
-- **Auto-only Thermostat Support** - Thermostats with only "auto" mode work correctly ([#54](https://github.com/RiDDiX/home-assistant-matter-hub/issues/54))
+All previous features plus:
+
+**🎨 Bridge Icons & UI**
+- **Custom Bridge Icons** - Upload your own PNG, JPG, GIF, WebP, or SVG icons (max 5MB)
+- **Domain-based Icons** - Automatic icon assignment based on bridge domain (light, climate, etc.)
+- **Name-based Icon Fallback** - Icons derived from bridge names ("Lamps" → 💡)
+- **20 Preset Icons** - Quick selection dropdown in bridge editor
+- **Entity Mapping Button** - Quick access to entity mapping from bridge card view
+- **Improved Status Labels** - Cleaner spacing and layout
+
+**📺 Media & Devices**
+- **Basic Video Player** - TV and media player support for Apple Home ([#45](https://github.com/RiDDiX/home-assistant-matter-hub/issues/45))
+- **Alexa Deduplication** - UniqueId in BridgedDeviceBasicInformation prevents duplicate devices ([#53](https://github.com/RiDDiX/home-assistant-matter-hub/issues/53))
+
+**🌡️ Thermostat Improvements**
+- **Auto-only Thermostat Support** - Thermostats with only "auto" mode now work correctly ([#54](https://github.com/RiDDiX/home-assistant-matter-hub/issues/54))
 - **Heating+Cooling Constraint Fixes** - Proper handling of Matter.js deadband requirements
 - **Google Home Fix** - Handle null transitionTime from Google Home ([#41](https://github.com/RiDDiX/home-assistant-matter-hub/issues/41))
 - **Temperature Range Detection** - Check HVAC mode for range support ([#9](https://github.com/RiDDiX/home-assistant-matter-hub/issues/9))
@@ -164,18 +118,100 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Ingress Compatibility** - Fixed WebSocket and API routing for Home Assistant Ingress
 - **Full Backup/Restore** - Complete backups including entity mappings and Matter identity
 - **Filter Preview** - Preview entity matches before saving
-- **Access Control Fix** - Fixed attribute write issues using `asLocalActor` ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
-- **Alexa Deduplication** - UniqueId in BridgedDeviceBasicInformation prevents duplicate devices ([#53](https://github.com/RiDDiX/home-assistant-matter-hub/issues/53))
 
-</details>
+### Stable Features (v1.10.4) - NEW! 🎉
 
-### Alpha Features (v2.0.0-alpha) 🧪
+All previous features plus:
+
+**🌡️ Climate & Thermostat**
+- **Humidity Sensor Fix** - Climate entities now correctly report humidity when `current_humidity` attribute exists ([#67](https://github.com/RiDDiX/home-assistant-matter-hub/issues/67))
+- **HVAC Auto Mode Mapping** - Improved mapping for `auto` mode to Matter's `heat_cool` ([#71](https://github.com/RiDDiX/home-assistant-matter-hub/issues/71))
+- **Heat/Cool Fallback** - Better default fallback for auto mode mapping
+- **Thermostat Limits Fix** - Use HA limits directly for single-mode, wide limits for dual-mode ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52))
+
+**🚪 Covers & Blinds**
+- **Cover Position Fix** - Corrected inverted state-based position fallback ([#72](https://github.com/RiDDiX/home-assistant-matter-hub/issues/72))
+- **Cover Percentage Consistency** - `coverUseHomeAssistantPercentage` now works for both reading and writing ([#34](https://github.com/RiDDiX/home-assistant-matter-hub/issues/34))
+
+**🤖 Vacuum & Devices**
+- **Vacuum Battery Support** - Battery level now shown for vacuums with `battery_level` or `battery` attribute ([#59](https://github.com/RiDDiX/home-assistant-matter-hub/issues/59))
+- **Dreame Vacuum Fix** - Support for `battery` attribute used by Dreame and similar vacuums
+
+**💧 Humidifier**
+- **Humidity Sensor** - Humidifiers now expose humidity measurement cluster ([#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58))
+- **Auto Mode Support** - Fan control with auto mode for humidifiers
+- **Device Type Change** - Changed from OnOffPlugInUnit to FanDevice for better controller representation
+
+**🔌 Valves & Switches**
+- **Water Valve Device** - New WaterValveDevice for valve domain entities
+- **RoomAirConditioner** - Climate entities with `fan_mode` now use RoomAirConditioner type
+
+**🏷️ Entity Mapping**
+- **Custom Name Support** - Entity mappings now correctly apply custom names to Matter `nodeLabel`
+- **Auto-refresh List** - Entity Mappings list refreshes automatically after saving
+
+**🎚️ Alexa Integration**
+- **Brightness Preserve** - New `alexaPreserveBrightnessOnTurnOn` feature flag prevents Alexa from resetting brightness to 100% ([#37](https://github.com/RiDDiX/home-assistant-matter-hub/issues/37))
+
+**🖼️ UI Improvements**
+- **Bridge Icon Selection** - Fixed icon selection applying correctly
+- **Button Inverted State** - Fixed button showing inverted state ([#57](https://github.com/RiDDiX/home-assistant-matter-hub/issues/57))
+- **Duplicate Status Chip** - Removed duplicate status chip from UI
+- **Remote Device Support** - Added support for remote devices ([#40](https://github.com/RiDDiX/home-assistant-matter-hub/issues/40))
+
+**🐛 Bug Fixes**
+- **Hidden Entities** - Hidden entities only included via feature flag, not by filter match ([#56](https://github.com/RiDDiX/home-assistant-matter-hub/issues/56))
+- **Device Lookup** - Use `device_id` instead of `entity_id` for proper device lookup
+- **Icon API** - Fixed leading slash in bridge-icons API for Ingress compatibility
+- **Icon Preservation** - Icon field now preserved when saving bridge config
+
+### Stable Features (v2.0.0) - NEW! 🎉
+
+**💡 Light Entity Fixes**
+- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
+- **Boundary Order Fix** - Color temperature boundaries are now set before values to prevent validation errors
+- **LevelControlServer** - Fixed validation errors during initialization
+
+**🌡️ Concentration Sensors**
+- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors" for all concentration measurement sensors
+- **Feature Configuration** - Corrected to use `NumericMeasurement` only (not `LevelIndication`)
+- **Apple Home Compatibility** - Proper default values for seamless Apple Home integration
+
+**🌡️ New Device Support**
+- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
+
+**🤖 Vacuum Enhancements**
+- **Apple Home Room Selection** - Matter 1.4 Service Area cluster for native room selection
+- **Dreame Vacuum Support** - Full support for nested room format (`rooms: { "Map Name": [...] }`)
+- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+
+**🏷️ Entity Mapping**
+- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
+
+**🖼️ Backup & Restore**
+- **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
+
+**🌬️ Air Purifier**
+- **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
+- **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
+
+**🚪 Cover/Blinds**
+- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
+- **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
+
+**🎨 UI/UX**
+- **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
+
+**📖 Documentation**
+- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
+- New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
+
+### Alpha Features (v2.1.0-alpha) 🧪
 
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-All stable features - currently synced with v1.10.5 stable release.
-New alpha features will be added here as they are developed.
+All stable features plus experimental changes being actively developed.
 
 ### Testing Features (v4.1.0-testing) ⚠️
 

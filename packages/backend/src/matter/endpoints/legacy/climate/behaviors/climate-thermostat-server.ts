@@ -14,6 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistan
 import {
   ThermostatServer,
   type ThermostatServerConfig,
+  type ThermostatServerInitialState,
 } from "../../../../behaviors/thermostat-server.js";
 
 const getUnit = (agent: Agent) =>
@@ -141,4 +142,19 @@ const config: ThermostatServerConfig = {
     },
   }),
 };
-export const ClimateThermostatServer = ThermostatServer(config);
+/**
+ * Creates a ClimateThermostatServer with the specified initial state.
+ *
+ * CRITICAL: The initial state values are passed DIRECTLY to Matter.js during
+ * behavior registration. This prevents NaN validation errors because Matter.js
+ * validates setpoints BEFORE our initialize() method runs.
+ *
+ * Pass ALL thermostat attributes during registration.
+ *
+ * @param initialState - Initial attribute values (temperature, setpoints, limits)
+ */
+export function ClimateThermostatServer(
+  initialState: ThermostatServerInitialState = {},
+) {
+  return ThermostatServer(config, initialState);
+}
