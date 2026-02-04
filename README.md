@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.0 | Production-ready, recommended for most users |
+| **Stable** | `main` | v1.10.11 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -165,7 +165,7 @@ All previous features plus:
 - **Icon API** - Fixed leading slash in bridge-icons API for Ingress compatibility
 - **Icon Preservation** - Icon field now preserved when saving bridge config
 
-### Stable Features (v2.0.0) - NEW! 🎉
+### Stable Features (v1.10.11) - NEW! 🎉
 
 **💡 Light Entity Fixes**
 - **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes

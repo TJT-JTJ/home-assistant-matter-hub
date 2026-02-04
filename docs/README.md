@@ -100,7 +100,7 @@ All previous features plus:
 - **Entity Mapping** - Override Matter device types per entity
 - **Filter Preview** - Preview entity matches before saving
 
-### Stable (v2.0.0) - NEW! 🎉
+### Stable (v1.10.11) - NEW! 🎉
 
 **Major Fixes:**
 - **Light Entity Fixes** - Fixed "Behaviors have errors" for lights with ColorTemperature + HueSaturation
