@@ -65,6 +65,12 @@ export class ColorControlServerBase extends FeaturedBase {
         this.state.startUpColorTemperatureMireds = defaultMireds;
       }
 
+      // For ColorTemperature-only lights, set colorMode to ColorTemperatureMireds
+      // This is required because Matter.js may validate colorMode during initialization
+      if (!this.features.hueSaturation) {
+        this.state.colorMode = ColorControl.ColorMode.ColorTemperatureMireds;
+      }
+
       logger.debug(
         `initialize: set ColorTemperature defaults - min=${this.state.colorTempPhysicalMinMireds}, max=${this.state.colorTempPhysicalMaxMireds}, current=${this.state.colorTemperatureMireds}`,
       );
