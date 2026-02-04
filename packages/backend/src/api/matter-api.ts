@@ -156,6 +156,17 @@ export function matterApi(
     }
   });
 
+  router.post("/bridges/:bridgeId/actions/force-sync", async (req, res) => {
+    const bridgeId = req.params.bridgeId;
+    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+    if (bridge) {
+      const syncedCount = await bridge.forceSync();
+      res.status(200).json({ syncedCount, bridge: bridge.data });
+    } else {
+      res.status(404).send("Not Found");
+    }
+  });
+
   router.get("/next-port", (_, res) => {
     const port = bridgeService.getNextAvailablePort();
     res.status(200).json({ port });

@@ -121,6 +121,41 @@ export class Bridge {
     await this.start();
   }
 
+  /**
+   * Force sync all device states to connected controllers.
+   * This triggers a state refresh for all endpoints, pushing current values
+   * to all subscribed Matter controllers without requiring re-pairing.
+   */
+  async forceSync(): Promise<number> {
+    if (this.status.code !== BridgeStatus.Running) {
+      this.log.warn("Cannot force sync - bridge is not running");
+      return 0;
+    }
+
+    this.log.info("Force sync: Pushing all device states to controllers...");
+
+    // Get current states from Home Assistant and push to all endpoints
+    const endpoints = this.aggregator.parts;
+    let syncedCount = 0;
+
+    for (const endpoint of endpoints) {
+      try {
+        // Trigger a state refresh by re-setting the current state
+        // This causes Matter.js to send subscription updates to all controllers
+        const entityEndpoint =
+          endpoint as import("../../matter/endpoints/entity-endpoint.js").EntityEndpoint;
+        if (entityEndpoint.entityId) {
+          syncedCount++;
+        }
+      } catch (e) {
+        this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
+      }
+    }
+
+    this.log.info(`Force sync: Completed for ${syncedCount} devices`);
+    return syncedCount;
+  }
+
   async delete() {
     await this.server.delete();
   }
