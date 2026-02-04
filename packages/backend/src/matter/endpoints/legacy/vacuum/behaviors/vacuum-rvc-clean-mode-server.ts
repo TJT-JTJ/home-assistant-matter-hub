@@ -124,12 +124,13 @@ function findMatchingOption(
     if (match) return match;
   }
 
-  // Try partial match
+  // Try partial match - only check if option contains alias, not vice versa
+  // This prevents "Mopping after sweeping" from matching "Sweeping" because the alias contains the option
   for (const alias of aliases) {
     const match = availableOptions.find((opt) => {
       const optLower = opt.toLowerCase();
       const aliasLower = alias.toLowerCase();
-      return optLower.includes(aliasLower) || aliasLower.includes(optLower);
+      return optLower.includes(aliasLower);
     });
     if (match) return match;
   }
