@@ -143,7 +143,12 @@ export class ColorControlServerBase extends FeaturedBase {
             colorTempPhysicalMinMireds: minMireds,
             colorTempPhysicalMaxMireds: maxMireds,
             startUpColorTemperatureMireds: startUpMireds,
-            colorTemperatureMireds: currentMireds,
+            // Only update colorTemperatureMireds if we have a valid value.
+            // When the light is OFF, currentKelvin is null, so currentMireds is undefined.
+            // Setting undefined would overwrite the default set in initialize().
+            ...(currentMireds != null
+              ? { colorTemperatureMireds: currentMireds }
+              : {}),
           }
         : {}),
     });
