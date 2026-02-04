@@ -100,7 +100,7 @@ All previous features plus:
 - **Entity Mapping** - Override Matter device types per entity
 - **Filter Preview** - Preview entity matches before saving
 
-### Stable (v2.0.0) - NEW! 🎉
+### Stable (v1.10.11) - NEW! 🎉
 
 **Major Fixes:**
 - **Light Entity Fixes** - Fixed "Behaviors have errors" for lights with ColorTemperature + HueSaturation
@@ -115,9 +115,9 @@ All previous features plus:
 - New [Robot Vacuum](./Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
 - New [Air Purifier](./Devices/Air%20Purifier.md) guide
 
-### Alpha (v2.1.0-alpha)
+### Alpha (v2.0.1-alpha)
 
-All stable features plus experimental changes being actively developed.
+Currently synced with Stable v1.10.11 - same features and fixes.
 
 See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for detailed documentation.
 
