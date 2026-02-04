@@ -83,5 +83,16 @@ const config: ThermostatServerConfig = {
   }),
 };
 
-export const WaterHeaterThermostatServer =
-  ThermostatServer(config).with("Heating");
+// Water heaters (kettles, boilers) typically operate at 70-100°C
+// We need higher limits than the default 0-50°C range
+const waterHeaterInitialState = {
+  localTemperature: 2100, // 21°C default
+  occupiedHeatingSetpoint: 10000, // 100°C default for water heaters
+  minHeatSetpointLimit: 0, // 0°C
+  maxHeatSetpointLimit: 12000, // 120°C - allows for boiling water + margin
+};
+
+export const WaterHeaterThermostatServer = ThermostatServer(
+  config,
+  waterHeaterInitialState,
+).with("Heating");
