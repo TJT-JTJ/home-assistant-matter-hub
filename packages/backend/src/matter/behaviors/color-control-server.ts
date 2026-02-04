@@ -116,9 +116,12 @@ export class ColorControlServerBase extends FeaturedBase {
     const maxMireds = Math.ceil(
       ColorConverter.temperatureKelvinToMireds(minKelvin),
     );
-    const startUpMireds = ColorConverter.temperatureKelvinToMireds(
+    // Clamp startUpMireds to valid range
+    let startUpMireds = ColorConverter.temperatureKelvinToMireds(
       currentKelvin ?? maxKelvin,
     );
+    startUpMireds = Math.max(Math.min(startUpMireds, maxMireds), minMireds);
+
     let currentMireds: number | undefined;
     if (currentKelvin != null) {
       currentMireds = ColorConverter.temperatureKelvinToMireds(currentKelvin);
@@ -129,15 +132,29 @@ export class ColorControlServerBase extends FeaturedBase {
       config.getCurrentMode(entity.state, this.agent),
     );
 
-    logger.debug(
-      `update: entity=${entity.entity_id}, state=${entity.state.state}, ` +
-        `currentKelvin=${currentKelvin}, minKelvin=${minKelvin}, maxKelvin=${maxKelvin}, ` +
-        `minMireds=${minMireds}, maxMireds=${maxMireds}, currentMireds=${currentMireds}, ` +
-        `startUpMireds=${startUpMireds}, colorMode=${newColorMode}, ` +
-        `hue=${hue}, saturation=${saturation}, ` +
-        `features: CT=${this.features.colorTemperature}, HS=${this.features.hueSaturation}`,
-    );
+    // CRITICAL: For ColorTemperature, we must set boundaries FIRST, then values.
+    // Matter.js validates that colorTemperatureMireds and startUpColorTemperatureMireds
+    // are within [colorTempPhysicalMinMireds, colorTempPhysicalMaxMireds].
+    // If we set values before boundaries, validation fails with "Behaviors have errors".
+    if (this.features.colorTemperature) {
+      // Step 1: Set the physical boundaries FIRST
+      applyPatchState(this.state, {
+        colorTempPhysicalMinMireds: minMireds,
+        colorTempPhysicalMaxMireds: maxMireds,
+      });
 
+      // Step 2: Now set the values that depend on those boundaries
+      applyPatchState(this.state, {
+        coupleColorTempToLevelMinMireds: minMireds,
+        startUpColorTemperatureMireds: startUpMireds,
+        // Only update colorTemperatureMireds if we have a valid value.
+        ...(currentMireds != null
+          ? { colorTemperatureMireds: currentMireds }
+          : {}),
+      });
+    }
+
+    // Set colorMode and hueSaturation attributes
     applyPatchState(this.state, {
       colorMode: newColorMode,
       ...(this.features.hueSaturation
@@ -146,25 +163,7 @@ export class ColorControlServerBase extends FeaturedBase {
             currentSaturation: saturation,
           }
         : {}),
-      ...(this.features.colorTemperature
-        ? {
-            coupleColorTempToLevelMinMireds: minMireds,
-            colorTempPhysicalMinMireds: minMireds,
-            colorTempPhysicalMaxMireds: maxMireds,
-            startUpColorTemperatureMireds: startUpMireds,
-            // Only update colorTemperatureMireds if we have a valid value.
-            // When the light is OFF, currentKelvin is null, so currentMireds is undefined.
-            // Setting undefined would overwrite the default set in initialize().
-            ...(currentMireds != null
-              ? { colorTemperatureMireds: currentMireds }
-              : {}),
-          }
-        : {}),
     });
-
-    logger.debug(
-      `update: after patch - colorTemperatureMireds=${this.state.colorTemperatureMireds}`,
-    );
   }
 
   override moveToColorTemperatureLogic(targetMireds: number) {
