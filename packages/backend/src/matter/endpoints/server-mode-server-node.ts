@@ -48,12 +48,12 @@ export class ServerModeServerNode extends ServerNode {
   /**
    * Add the device endpoint to this server node.
    * In server mode, only ONE device is allowed.
+   * This method is idempotent - if a device already exists, it's a no-op.
    */
   async addDevice(endpoint: Endpoint): Promise<void> {
     if (this.deviceEndpoint) {
-      throw new Error(
-        "Server mode only supports a single device. Remove other entities from this bridge.",
-      );
+      // Already have a device - this is fine, just ignore
+      return;
     }
     this.deviceEndpoint = endpoint;
     await this.add(endpoint);

@@ -93,6 +93,14 @@ export class ServerModeEndpointManager extends Service {
         `Server mode only supports a single device, but ${this.entityIds.length} entities are configured. ` +
           `Only the first entity will be exposed. Remove other entities from this bridge for proper operation.`,
       );
+      // Mark all but the first entity as failed
+      for (let i = 1; i < this.entityIds.length; i++) {
+        this._failedEntities.push({
+          entityId: this.entityIds[i],
+          reason:
+            "Server mode only supports a single device. Remove other entities from this bridge.",
+        });
+      }
       // Only use the first entity
       this.entityIds = [this.entityIds[0]];
     }
