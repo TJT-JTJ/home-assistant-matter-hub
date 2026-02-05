@@ -200,6 +200,17 @@ Example: A climate sensor with `sensor.temp`, `sensor.humidity`, and `sensor.bat
 - **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" selecting wrong mode (was "sweeping" instead of "sweeping_and_mopping")
 - **Partial Match Logic** - Corrected option matching to prevent false positives
 
+**🤖 Roborock Room Selection** ([#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) - NEW!
+- **Button Entity Mapping** - Map Roborock room buttons (e.g., `button.roborock_clean_kitchen`) to your vacuum
+- **Auto-Discovery** - UI automatically discovers button entities belonging to the same device
+- **Apple Home Integration** - Rooms appear as selectable areas in Apple Home
+- **Voice Control** - "Hey Siri, clean the kitchen" triggers the mapped button entity
+- **Works with Official Roborock Integration** - No custom integration required
+
+**🚪 Cover Open/Close Fix** ([#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107)) - NEW!
+- **Alexa Command Inversion** - Fixed open/close commands being inverted for covers
+- **Explicit Direction Priority** - Open/Close commands now always respect the explicit direction
+
 **🖼️ Bridge Icons Backup Fix** ([#101](https://github.com/RiDDiX/home-assistant-matter-hub/issues/101))
 - **Icons Now Restore** - Bridge icons are now correctly restored from full backups
 
