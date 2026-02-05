@@ -46,13 +46,12 @@ const defaultState = {
   minSetpointDeadBand: 0,
 };
 
-// Create the FeaturedBase with HeatingCooling features and defaults.
-// NOTE: Currently all thermostats use HeatingCooling features regardless of what
-// the HA entity actually supports. This is a limitation because Matter.js's .with()
-// method creates a new class that loses the defaults set via .set().
-// The features are still checked at runtime in initialize() via this.features,
-// so single-mode thermostats will work correctly - they just expose both attributes.
-const FeaturedBase = Base.with("Heating", "Cooling").set(defaultState);
+// Create the FeaturedBase with Heating, Cooling, and AutoMode features.
+// AutoMode is required to expose minSetpointDeadBand attribute, which we set to 0
+// to allow heat_cool thermostats with a single temperature setpoint.
+// NOTE: We don't include AutoMode's thermostatRunningMode to avoid Matter.js issue #3105
+// where the internal reactor tries to write without permissions.
+const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(defaultState);
 
 export interface ThermostatRunningState {
   heat: boolean;
