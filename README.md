@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.7 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -55,50 +55,73 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Stable Features (v2.0.x) - Current 🎉
+### Stable Features (v2.0.7) - Current 🎉
 
-**💡 Light Entity Fixes**
-- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
-- **Boundary Order Fix** - Color temperature boundaries are now set before values to prevent validation errors
-- **LevelControlServer** - Fixed validation errors during initialization
+**� Force Sync** - NEW!
+- **Push Device States** - Force sync all current device states to connected Matter controllers
+- **Auto Force Sync** - Optional automatic sync every 5 minutes for Google Home workaround ([#93](https://github.com/RiDDiX/home-assistant-matter-hub/issues/93))
+- **UI Button** - Available in Bridge Details → More Menu
+- **Use Case** - Helpful when controllers show stale/incorrect device states
 
-**🌡️ Concentration Sensors**
-- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors" for all concentration measurement sensors
-- **Feature Configuration** - Corrected to use `NumericMeasurement` only (not `LevelIndication`)
-- **Apple Home Compatibility** - Proper default values for seamless Apple Home integration
+**🔐 Lock PIN Security** ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) - NEW!
+- **PBKDF2 Hashing** - PIN codes are now securely hashed before storage
+- **RequirePINforRemoteOperation** - Matter locks now enforce PIN for remote unlock
 
-**🌡️ New Device Support**
-- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
+**🚪 Cover/Blinds Fixes** - NEW!
+- **Target Position Sync** - Cover target position now syncs with current when stopped ([#93](https://github.com/RiDDiX/home-assistant-matter-hub/issues/93))
+- **Explicit Direction Priority** - Open/Close commands respect explicit direction ([#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107))
+- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
+
+**🤖 Roborock Room Selection** ([#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) - NEW!
+- **Button Entity Mapping** - Map Roborock room buttons to your vacuum
+- **Auto-Discovery** - UI automatically discovers button entities from the same device
+- **Voice Control** - "Hey Siri, clean the kitchen" triggers the mapped button
+
+**🔋 Auto Entity Grouping** ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) - NEW!
+- **Auto Battery Mapping** - Automatically assign battery sensors to parent devices
+- **Auto Humidity Mapping** - Combine Temperature + Humidity sensors from same device
+- **Bridge Feature Flags** - Enable via "Auto Battery Mapping" / "Auto Humidity Mapping" in Bridge settings
+
+**🏷️ Labels API** - NEW!
+- **`/api/matter/labels`** - New API endpoint for label-based entity filtering
+
+**🔢 All Devices Sorting** ([#100](https://github.com/RiDDiX/home-assistant-matter-hub/issues/100)) - NEW!
+- **Sort Direction Toggle** - Click column headers for ascending/descending
+- **Persistent Sorting** - Sort preference remembered
+
+**�️ Thermostat Improvements** - NEW!
+- **Heat/Cool Mode Fix** - minSetpointDeadBand now set correctly
+- **AutoMode Feature** - Proper AutoMode support for heat_cool thermostats
+
+**🌡️ Water Heater** - NEW!
+- **High Temperature Support** - Kettles & boilers now support 70-100°C range
+- **Thermostat Device** - `water_heater` domain mapped to Thermostat (Heating only)
 
 **🤖 Vacuum Enhancements**
-- **Apple Home Room Selection** - Matter 1.4 Service Area cluster for native room selection
-- **Dreame Vacuum Support** - Full support for nested room format (`rooms: { "Map Name": [...] }`)
-- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
+- **Server Mode** - Vacuums as standalone Matter devices for Apple Home/Alexa compatibility
+- **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" mode selection
+- **Apple Home Room Selection** - Matter 1.4 Service Area cluster
 
-**🏷️ Entity Mapping**
-- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
+**💡 Light Entity Fixes**
+- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors"
+- **Boundary Order Fix** - Color temperature boundaries set before values
 
-**�️ Backup & Restore**
-- **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
+**🌡️ Concentration Sensors**
+- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors"
+- **Apple Home Compatibility** - Proper default values
 
 **🌬️ Air Purifier**
 - **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
-- **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
 
 **🌡️ Combined Temperature & Humidity Sensors** - [Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)
-- **Unified Device** - Combine separate temperature, humidity, and battery entities into one Matter device
-- **Manual Mapping** - Link humidity and battery sensors via Entity Mapping UI
-- **Better UX** - Single device in Apple Home, Google Home, Alexa instead of 3 separate ones
-
-**🚪 Cover/Blinds**
-- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
-- **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
+- **Unified Device** - Combine temperature, humidity, and battery into one Matter device
 
 **🎨 UI/UX**
 - **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
+- **Bridge Icons in Backup** - Full backup includes icons
 
-**� Documentation**
-- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
+**📚 Documentation**
+- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide
 - New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
 
 <details>
@@ -164,60 +187,14 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 > [!WARNING]
 > Alpha versions are for early adopters and may contain bugs!
 
-**All Stable v2.0.x features plus:**
+**All Stable v2.0.7 features plus:**
 
-**� Force Sync** - NEW!
-- **Push Device States** - Force sync all current device states to connected Matter controllers
-- **No Re-Pairing Required** - Updates controllers without losing fabric connections
-- **UI Button** - Available in Bridge Details → Connected Fabrics section
-- **Use Case** - Helpful when controllers show stale/incorrect device states
-
-> Note: This pushes current values to controllers but doesn't clear their internal cache. For a full cache reset, devices must be removed and re-paired.
-
-**�🔋 Auto Entity Grouping** ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) - NEW!
-- **Auto Battery Mapping** - Automatically assign battery sensors to their parent devices
-- **Auto Humidity Mapping** - Automatically combine Temperature + Humidity sensors from the same device
-- **Bridge Feature Flags** - Enable separately via "Auto Battery Mapping" / "Auto Humidity Mapping" in Bridge settings
-- **Reduced Device Clutter** - One combined device instead of 3 separate sensors in Apple Home/Google Home
-
-Example: A climate sensor with `sensor.temp`, `sensor.humidity`, and `sensor.battery` becomes **one** `TemperatureHumiditySensorWithBattery` device.
-
-**🔢 All Devices Sorting** ([#100](https://github.com/RiDDiX/home-assistant-matter-hub/issues/100)) - NEW!
-- **Sort Direction Toggle** - Click column headers to toggle ascending/descending
-- **Persistent Sorting** - Sort preference is remembered
-
-**🌡️ Water Heater High Temperature Fix** - NEW!
-- **Kettles & Boilers** - Now supports temperatures up to 100°C (was limited to 50°C)
-- **Electric Water Heaters** - Proper support for 70-100°C range
-
-**🤖 Server Mode for Robot Vacuums** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49), [#102](https://github.com/RiDDiX/home-assistant-matter-hub/issues/102), [#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103))
-- **Standalone Device Mode** - Expose vacuums as native Matter devices (not bridged)
-- **Apple Home Siri Support** - Voice commands now work with Server Mode
-- **Alexa Discovery Fix** - Alexa now discovers vacuums properly
-- **"Updating" Fix** - No more stuck "Updating" status in Apple Home
-
-**🧹 Vacuum Cleaning Mode Fix** ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
-- **Dreame Cleaning Modes** - Fixed "Vacuum & Mop" selecting wrong mode (was "sweeping" instead of "sweeping_and_mopping")
-- **Partial Match Logic** - Corrected option matching to prevent false positives
-
-**🤖 Roborock Room Selection** ([#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) - NEW!
-- **Button Entity Mapping** - Map Roborock room buttons (e.g., `button.roborock_clean_kitchen`) to your vacuum
-- **Auto-Discovery** - UI automatically discovers button entities belonging to the same device
-- **Apple Home Integration** - Rooms appear as selectable areas in Apple Home
-- **Voice Control** - "Hey Siri, clean the kitchen" triggers the mapped button entity
-- **Works with Official Roborock Integration** - No custom integration required
-
-**🚪 Cover Open/Close Fix** ([#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107)) - NEW!
-- **Alexa Command Inversion** - Fixed open/close commands being inverted for covers
-- **Explicit Direction Priority** - Open/Close commands now always respect the explicit direction
-
-**🖼️ Bridge Icons Backup Fix** ([#101](https://github.com/RiDDiX/home-assistant-matter-hub/issues/101))
-- **Icons Now Restore** - Bridge icons are now correctly restored from full backups
-
-**🌡️ Combined Sensors** - [Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)
-- **Temperature + Humidity + Battery** - Combine multiple entities into one Matter device
-- **Entity Mapping UI** - Configure `humidityEntity` and `batteryEntity` in the UI
-- **Single Device UX** - One device in Apple Home/Google Home instead of 3 separate sensors
+**🌬️ Fan Oscillation & Wind Modes** ([#108](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/108)) - NEW!
+- **Rocking (Oscillation)** - Control fan oscillation via Matter (maps to HA `oscillating` attribute)
+- **Wind Modes** - Natural Wind and Sleep Wind support (maps to HA preset modes)
+- **Auto-Detection** - Features enabled automatically based on fan capabilities
+- **rockUpDown** - Maps to Home Assistant oscillating on/off
+- **naturalWind/sleepWind** - Maps to "Natural" and "Sleep" preset modes
 
 **🔋 PowerSource Cluster**
 - **Battery Support** - Climate, Fan devices now show battery level if available
