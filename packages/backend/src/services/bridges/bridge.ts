@@ -125,6 +125,10 @@ export class Bridge {
    * Force sync all device states to connected controllers.
    * This triggers a state refresh for all endpoints, pushing current values
    * to all subscribed Matter controllers without requiring re-pairing.
+   *
+   * This works by re-emitting the current entity state, which causes all
+   * behavior servers to re-apply their state patches. Matter.js then sends
+   * subscription updates to all controllers for any changed attributes.
    */
   async forceSync(): Promise<number> {
     if (this.status.code !== BridgeStatus.Running) {
@@ -134,17 +138,36 @@ export class Bridge {
 
     this.log.info("Force sync: Pushing all device states to controllers...");
 
-    // Get current states from Home Assistant and push to all endpoints
+    // Import dynamically to avoid circular dependencies
+    const { HomeAssistantEntityBehavior } = await import(
+      "../../matter/behaviors/home-assistant-entity-behavior.js"
+    );
+
     const endpoints = this.aggregator.parts;
     let syncedCount = 0;
 
     for (const endpoint of endpoints) {
       try {
-        // Trigger a state refresh by re-setting the current state
-        // This causes Matter.js to send subscription updates to all controllers
-        const entityEndpoint =
-          endpoint as import("../../matter/endpoints/entity-endpoint.js").EntityEndpoint;
-        if (entityEndpoint.entityId) {
+        // Check if this endpoint has the HomeAssistantEntityBehavior
+        if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
+          continue;
+        }
+
+        // Get the current entity state and re-emit it
+        // This triggers all behaviors listening to onChange to re-apply their state
+        const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
+        const currentEntity = behavior.entity;
+
+        if (currentEntity?.state) {
+          // Re-set the state to trigger the entity$Changed event
+          // Even setting to the same value will cause behaviors to re-evaluate
+          await endpoint.setStateOf(HomeAssistantEntityBehavior, {
+            entity: {
+              ...currentEntity,
+              // Add a timestamp to force Matter.js to consider this a change
+              state: { ...currentEntity.state },
+            },
+          });
           syncedCount++;
         }
       } catch (e) {
