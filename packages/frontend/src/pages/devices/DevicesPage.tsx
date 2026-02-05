@@ -191,11 +191,20 @@ export const DevicesPage = () => {
     page * itemsPerPage,
   );
 
-  // Get unique device types
+  // Get unique device types (always sorted alphabetically)
   const deviceTypes = useMemo(() => {
     const types = new Set(devices.map((d) => d.endpoint.type.name));
     return Array.from(types).sort();
   }, [devices]);
+
+  // Sort bridges alphabetically based on current sort direction
+  const sortedBridges = useMemo(() => {
+    if (!bridges) return [];
+    return [...bridges].sort((a, b) => {
+      const comparison = a.name.localeCompare(b.name);
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [bridges, sortDirection]);
 
   const handleRefresh = useCallback(() => {
     dispatch(loadBridges());
@@ -295,7 +304,7 @@ export const DevicesPage = () => {
                 onChange={(e) => setSelectedBridge(e.target.value)}
               >
                 <MenuItem value="">All Bridges</MenuItem>
-                {(bridges || []).map((bridge) => (
+                {sortedBridges.map((bridge) => (
                   <MenuItem key={bridge.id} value={bridge.id}>
                     {bridge.name}
                   </MenuItem>
