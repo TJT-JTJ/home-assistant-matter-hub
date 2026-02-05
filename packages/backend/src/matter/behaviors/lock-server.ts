@@ -51,35 +51,14 @@ class LockServerBase extends Base {
 
   override lockDoor() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const pinCode = this.getStoredPinCode(homeAssistant.entityId);
     const action = this.state.config.lock(void 0, this.agent);
-    if (pinCode) {
-      action.data = { ...action.data, code: pinCode };
-    }
     homeAssistant.callAction(action);
   }
 
   override unlockDoor() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const pinCode = this.getStoredPinCode(homeAssistant.entityId);
     const action = this.state.config.unlock(void 0, this.agent);
-    if (pinCode) {
-      action.data = { ...action.data, code: pinCode };
-    }
     homeAssistant.callAction(action);
-  }
-
-  protected getStoredPinCode(entityId: string): string | undefined {
-    try {
-      const storage = this.env.get(LockCredentialStorage);
-      const credential = storage.getCredentialForEntity(entityId);
-      if (credential?.enabled && credential.pinCode) {
-        return credential.pinCode;
-      }
-    } catch {
-      // Storage not available or no credential found
-    }
-    return undefined;
   }
 }
 
@@ -121,7 +100,7 @@ class LockServerWithPinBase extends PinCredentialBase {
 
     // Check if a PIN credential is configured for this entity
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const hasPinConfigured = !!this.getStoredPinCode(homeAssistant.entityId);
+    const hasPinConfigured = this.hasStoredCredential(homeAssistant.entityId);
 
     applyPatchState(this.state, {
       lockState: this.state.config.getLockState(entity.state, this.agent),
@@ -148,30 +127,26 @@ class LockServerWithPinBase extends PinCredentialBase {
 
   override lockDoor(request: DoorLock.LockDoorRequest) {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const storedPin = this.getStoredPinCode(homeAssistant.entityId);
     const action = this.state.config.lock(void 0, this.agent);
 
-    // If a PIN was provided by the controller, validate it
+    // If a PIN was provided by the controller, validate it against the hashed PIN
     if (request.pinCode) {
       const providedPin = new TextDecoder().decode(request.pinCode);
-      if (storedPin && providedPin !== storedPin) {
+      if (!this.verifyStoredPin(homeAssistant.entityId, providedPin)) {
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
+      // Pass the provided PIN to Home Assistant (for locks that require it)
+      action.data = { ...action.data, code: providedPin };
     }
 
-    // Use stored PIN for HA action if available
-    if (storedPin) {
-      action.data = { ...action.data, code: storedPin };
-    }
     homeAssistant.callAction(action);
   }
 
   override unlockDoor(request: DoorLock.UnlockDoorRequest) {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const storedPin = this.getStoredPinCode(homeAssistant.entityId);
     const action = this.state.config.unlock(void 0, this.agent);
 
-    // Validate provided PIN against stored PIN
+    // Validate provided PIN against stored hashed PIN
     if (this.state.requirePinForRemoteOperation) {
       if (!request.pinCode) {
         throw new StatusResponseError(
@@ -180,34 +155,43 @@ class LockServerWithPinBase extends PinCredentialBase {
         );
       }
       const providedPin = new TextDecoder().decode(request.pinCode);
-      if (storedPin && providedPin !== storedPin) {
+      if (!this.verifyStoredPin(homeAssistant.entityId, providedPin)) {
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
+      // Pass the provided PIN to Home Assistant (for locks that require it)
+      action.data = { ...action.data, code: providedPin };
     }
 
-    // Use stored PIN for HA action if available
-    if (storedPin) {
-      action.data = { ...action.data, code: storedPin };
-    }
     homeAssistant.callAction(action);
   }
 
-  protected getStoredPinCode(entityId: string): string | undefined {
+  /**
+   * Check if a PIN credential exists and is enabled for an entity
+   */
+  protected hasStoredCredential(entityId: string): boolean {
     try {
       const storage = this.env.get(LockCredentialStorage);
-      const credential = storage.getCredentialForEntity(entityId);
-      if (credential?.enabled && credential.pinCode) {
-        return credential.pinCode;
-      }
+      return storage.hasCredential(entityId);
     } catch {
-      // Storage not available or no credential found
+      return false;
     }
-    return undefined;
+  }
+
+  /**
+   * Verify a PIN against the stored hashed credential
+   */
+  protected verifyStoredPin(entityId: string, pin: string): boolean {
+    try {
+      const storage = this.env.get(LockCredentialStorage);
+      return storage.verifyPin(entityId, pin);
+    } catch {
+      return false;
+    }
   }
 
   /**
    * Set a PIN code for a user slot.
-   * We store this in our LockCredentialStorage.
+   * The PIN will be hashed before storage.
    */
   override async setPinCode(
     request: DoorLock.SetPinCodeRequest,
@@ -227,14 +211,16 @@ class LockServerWithPinBase extends PinCredentialBase {
 
   /**
    * Get a PIN code for a user slot.
+   * Note: We cannot return the actual PIN since it's hashed.
+   * We return a placeholder to indicate a PIN exists.
    */
   override getPinCode(
     request: DoorLock.GetPinCodeRequest,
   ): DoorLock.GetPinCodeResponse {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const credential = this.getStoredCredential(homeAssistant.entityId);
+    const hasCredential = this.hasStoredCredential(homeAssistant.entityId);
 
-    if (!credential || request.userId !== 1) {
+    if (!hasCredential || request.userId !== 1) {
       return {
         userId: request.userId,
         userStatus: DoorLock.UserStatus.Available,
@@ -243,15 +229,12 @@ class LockServerWithPinBase extends PinCredentialBase {
       };
     }
 
+    // Cannot return actual PIN since it's hashed - return empty to indicate PIN exists
     return {
       userId: request.userId,
-      userStatus: credential.enabled
-        ? DoorLock.UserStatus.OccupiedEnabled
-        : DoorLock.UserStatus.OccupiedDisabled,
+      userStatus: DoorLock.UserStatus.OccupiedEnabled,
       userType: DoorLock.UserType.UnrestrictedUser,
-      pinCode: credential.pinCode
-        ? new TextEncoder().encode(credential.pinCode)
-        : null,
+      pinCode: null, // PIN is hashed, cannot be retrieved
     };
   }
 
@@ -275,15 +258,6 @@ class LockServerWithPinBase extends PinCredentialBase {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const storage = this.env.get(LockCredentialStorage);
     await storage.deleteCredential(homeAssistant.entityId);
-  }
-
-  private getStoredCredential(entityId: string) {
-    try {
-      const storage = this.env.get(LockCredentialStorage);
-      return storage.getCredentialForEntity(entityId);
-    } catch {
-      return undefined;
-    }
   }
 }
 

@@ -4,8 +4,10 @@
 export interface LockCredential {
   /** The entity ID of the lock (e.g., lock.front_door) */
   entityId: string;
-  /** The PIN code to use for lock/unlock operations */
-  pinCode: string;
+  /** The hashed PIN code (PBKDF2 with salt) */
+  pinCodeHash: string;
+  /** Salt used for PIN hashing */
+  pinCodeSalt: string;
   /** Optional friendly name for this credential */
   name?: string;
   /** Whether this credential is enabled */
@@ -13,6 +15,19 @@ export interface LockCredential {
   /** Timestamp when this credential was created */
   createdAt: number;
   /** Timestamp when this credential was last updated */
+  updatedAt: number;
+}
+
+/**
+ * @deprecated Use LockCredential with pinCodeHash instead
+ * Legacy credential format with plain text PIN (for migration)
+ */
+export interface LockCredentialLegacy {
+  entityId: string;
+  pinCode: string;
+  name?: string;
+  enabled: boolean;
+  createdAt: number;
   updatedAt: number;
 }
 

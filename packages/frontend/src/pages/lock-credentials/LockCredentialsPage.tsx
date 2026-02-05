@@ -1,4 +1,3 @@
-import type { LockCredential } from "@home-assistant-matter-hub/common";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
@@ -27,6 +26,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   deleteLockCredential,
   fetchLockCredentials,
+  type SanitizedCredential,
+  toggleLockCredentialEnabled,
   updateLockCredential,
 } from "../../api/lock-credentials.ts";
 
@@ -144,13 +145,12 @@ const CredentialDialog = ({
 };
 
 export const LockCredentialsPage = () => {
-  const [credentials, setCredentials] = useState<LockCredential[]>([]);
+  const [credentials, setCredentials] = useState<SanitizedCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editCredential, setEditCredential] = useState<LockCredential | null>(
-    null,
-  );
+  const [editCredential, setEditCredential] =
+    useState<SanitizedCredential | null>(null);
 
   const loadCredentials = useCallback(async () => {
     setLoading(true);
@@ -197,21 +197,19 @@ export const LockCredentialsPage = () => {
     }
   };
 
-  const handleToggleEnabled = async (credential: LockCredential) => {
+  const handleToggleEnabled = async (credential: SanitizedCredential) => {
     try {
-      await updateLockCredential(credential.entityId, {
-        entityId: credential.entityId,
-        pinCode: credential.pinCode,
-        name: credential.name,
-        enabled: !credential.enabled,
-      });
+      await toggleLockCredentialEnabled(
+        credential.entityId,
+        !credential.enabled,
+      );
       await loadCredentials();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update");
     }
   };
 
-  const handleEdit = (credential: LockCredential) => {
+  const handleEdit = (credential: SanitizedCredential) => {
     setEditCredential(credential);
     setDialogOpen(true);
   };
