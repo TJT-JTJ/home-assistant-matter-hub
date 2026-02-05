@@ -38,11 +38,6 @@ jobs:
         run: pnpm run lint
       - name: Test
         run: pnpm run test
-      - name: Build
-        run: pnpm run build
-        env:
-          BASE_URL: /home-assistant-matter-hub
-
       - name: Calculate Next Alpha Version
         id: version
         run: |
@@ -67,10 +62,11 @@ jobs:
           VERSION="${{ steps.version.outputs.release-version }}"
           pnpm run release:version "$VERSION"
 
-      - name: Rebuild with New Version
+      - name: Build with Version
         run: pnpm run build
         env:
           BASE_URL: /home-assistant-matter-hub
+          APP_VERSION: ${{ steps.version.outputs.release-version }}
 
       - name: Package
         run: pnpm run release:pack
