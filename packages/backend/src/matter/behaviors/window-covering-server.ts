@@ -222,27 +222,45 @@ export class WindowCoveringServerBase extends FeaturedBase {
   ) {
     const currentLift = this.state.currentPositionLiftPercent100ths ?? 0;
     const currentTilt = this.state.currentPositionTiltPercent100ths ?? 0;
+
+    logger.debug(
+      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}`,
+    );
+
     if (type === MovementType.Lift) {
       if (targetPercent100ths != null && this.features.absolutePosition) {
         this.handleGoToLiftPosition(targetPercent100ths);
-      } else if (
-        direction === MovementDirection.Close ||
-        (targetPercent100ths != null && targetPercent100ths > currentLift)
-      ) {
-        this.handleLiftClose();
       } else if (direction === MovementDirection.Open) {
+        // Explicit open command - always open regardless of target position
         this.handleLiftOpen();
+      } else if (direction === MovementDirection.Close) {
+        // Explicit close command - always close regardless of target position
+        this.handleLiftClose();
+      } else if (targetPercent100ths != null) {
+        // Fallback: No explicit direction, use target position to determine direction
+        // In Matter: 0% = open, 100% = closed
+        if (targetPercent100ths > currentLift) {
+          this.handleLiftClose();
+        } else if (targetPercent100ths < currentLift) {
+          this.handleLiftOpen();
+        }
       }
     } else if (type === MovementType.Tilt) {
       if (targetPercent100ths != null && this.features.absolutePosition) {
         this.handleGoToTiltPosition(targetPercent100ths);
-      } else if (
-        direction === MovementDirection.Close ||
-        (targetPercent100ths != null && targetPercent100ths > currentTilt)
-      ) {
-        this.handleTiltClose();
       } else if (direction === MovementDirection.Open) {
+        // Explicit open command - always open regardless of target position
         this.handleTiltOpen();
+      } else if (direction === MovementDirection.Close) {
+        // Explicit close command - always close regardless of target position
+        this.handleTiltClose();
+      } else if (targetPercent100ths != null) {
+        // Fallback: No explicit direction, use target position to determine direction
+        if (targetPercent100ths > currentTilt) {
+          this.handleTiltClose();
+        } else if (targetPercent100ths < currentTilt) {
+          this.handleTiltOpen();
+        }
       }
     }
   }
