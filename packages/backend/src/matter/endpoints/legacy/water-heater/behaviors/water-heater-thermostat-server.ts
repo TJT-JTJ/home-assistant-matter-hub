@@ -90,9 +90,16 @@ const waterHeaterInitialState = {
   occupiedHeatingSetpoint: 10000, // 100°C default for water heaters
   minHeatSetpointLimit: 0, // 0°C
   maxHeatSetpointLimit: 12000, // 120°C - allows for boiling water + margin
+  // Also set absolute limits for water heaters
+  absMinHeatSetpointLimit: 0,
+  absMaxHeatSetpointLimit: 12000,
 };
 
+// NOTE: Do NOT call .with("Heating") after ThermostatServer()!
+// Matter.js .with() creates a NEW class that loses the initial state values set via .set().
+// The thermostat features are already configured in ThermostatServerBase (Heating + Cooling),
+// and the runtime code handles single-mode thermostats correctly.
 export const WaterHeaterThermostatServer = ThermostatServer(
   config,
   waterHeaterInitialState,
-).with("Heating");
+);
