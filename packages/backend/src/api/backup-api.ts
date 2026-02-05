@@ -216,6 +216,7 @@ export function backupApi(
                     cleaningModeEntity: config.cleaningModeEntity,
                     humidityEntity: config.humidityEntity,
                     batteryEntity: config.batteryEntity,
+                    roomEntities: config.roomEntities,
                   });
                   mappingsRestored++;
                 }

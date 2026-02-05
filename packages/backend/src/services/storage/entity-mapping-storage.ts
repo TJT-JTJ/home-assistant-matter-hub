@@ -100,6 +100,9 @@ export class EntityMappingStorage extends Service {
       this.mappings.set(request.bridgeId, bridgeMap);
     }
 
+    // Filter roomEntities to only include non-empty strings
+    const roomEntities = request.roomEntities?.filter((e) => e?.trim()) || [];
+
     const config: EntityMappingConfig = {
       entityId: request.entityId,
       matterDeviceType: request.matterDeviceType,
@@ -109,6 +112,7 @@ export class EntityMappingStorage extends Service {
       cleaningModeEntity: request.cleaningModeEntity?.trim() || undefined,
       humidityEntity: request.humidityEntity?.trim() || undefined,
       batteryEntity: request.batteryEntity?.trim() || undefined,
+      roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
     };
 
     if (
@@ -118,7 +122,8 @@ export class EntityMappingStorage extends Service {
       !config.filterLifeEntity &&
       !config.cleaningModeEntity &&
       !config.humidityEntity &&
-      !config.batteryEntity
+      !config.batteryEntity &&
+      !config.roomEntities
     ) {
       bridgeMap.delete(request.entityId);
     } else {
