@@ -11,6 +11,9 @@ import type {
 } from "./bridge-data-provider.js";
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 
+// Auto Force Sync interval in milliseconds (60 seconds)
+const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
+
 export class Bridge {
   private readonly log: Logger;
   readonly server: BridgeServerNode;
@@ -19,6 +22,8 @@ export class Bridge {
     code: BridgeStatus.Stopped,
     reason: undefined,
   };
+
+  private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   get id() {
     return this.dataProvider.id;
@@ -76,6 +81,7 @@ export class Bridge {
       this.endpointManager.startObserving();
       await this.server.start();
       this.status = { code: BridgeStatus.Running };
+      this.startAutoForceSyncIfEnabled();
     } catch (e) {
       const reason = "Failed to start bridge due to error:";
       this.log.error(reason, e);
@@ -87,6 +93,7 @@ export class Bridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ) {
+    this.stopAutoForceSync();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();
@@ -101,10 +108,37 @@ export class Bridge {
     this.status = { code, reason };
   }
 
+  private startAutoForceSyncIfEnabled() {
+    // Stop any existing timer first
+    this.stopAutoForceSync();
+
+    if (this.dataProvider.featureFlags?.autoForceSync) {
+      this.log.info(
+        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`,
+      );
+      this.autoForceSyncTimer = setInterval(() => {
+        this.forceSync().catch((e) => {
+          this.log.warn("Auto force sync failed:", e);
+        });
+      }, AUTO_FORCE_SYNC_INTERVAL_MS);
+    }
+  }
+
+  private stopAutoForceSync() {
+    if (this.autoForceSyncTimer) {
+      clearInterval(this.autoForceSyncTimer);
+      this.autoForceSyncTimer = null;
+    }
+  }
+
   async update(update: UpdateBridgeRequest) {
     try {
       this.dataProvider.update(update);
       await this.refreshDevices();
+      // Re-evaluate auto force sync setting after config update
+      if (this.status.code === BridgeStatus.Running) {
+        this.startAutoForceSyncIfEnabled();
+      }
     } catch (e) {
       const reason = "Failed to update bridge due to error:";
       this.log.error(reason, e);

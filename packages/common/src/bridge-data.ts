@@ -27,6 +27,14 @@ interface AllBridgeFeatureFlags {
    * Default: true (enabled)
    */
   readonly autoHumidityMapping: boolean;
+  /**
+   * Auto Force Sync: Periodically push all device states to connected controllers.
+   * This is a workaround for Google Home which sometimes loses subscriptions and
+   * doesn't receive state updates. When enabled, the bridge will push all device
+   * states every 60 seconds.
+   * Default: false (disabled)
+   */
+  readonly autoForceSync: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

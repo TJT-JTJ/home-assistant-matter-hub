@@ -116,6 +116,16 @@ const featureFlagSchema: JSONSchema7 = {
       type: "boolean",
       default: true,
     },
+
+    autoForceSync: {
+      title: "Auto Force Sync (Google Home workaround)",
+      description:
+        "Periodically push all device states to connected controllers every 60 seconds. " +
+        "This is a workaround for Google Home which sometimes loses subscriptions and doesn't receive state updates. " +
+        "Only enable this if you experience state sync issues with Google Home.",
+      type: "boolean",
+      default: false,
+    },
   },
   additionalProperties: false,
 };
