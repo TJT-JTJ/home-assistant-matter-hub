@@ -12,6 +12,8 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     },
     value: {
       title: "Value",
+      description:
+        "For labels, use the label_id (slug), not the display name. Example: 'my_smart_lights' instead of 'My Smart Lights'. Check /api/matter/labels for available labels.",
       type: "string",
       minLength: 1,
     },

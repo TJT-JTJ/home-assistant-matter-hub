@@ -7,7 +7,12 @@ import type {
 import { getStates } from "home-assistant-js-websocket";
 import { fromPairs, keyBy, keys, uniq, values } from "lodash-es";
 import { Service } from "../../core/ioc/service.js";
-import { getDeviceRegistry, getRegistry } from "./api/get-registry.js";
+import {
+  getDeviceRegistry,
+  getLabelRegistry,
+  getRegistry,
+  type HomeAssistantLabel,
+} from "./api/get-registry.js";
 import type {
   HomeAssistantClient,
   HomeAssistantClientProps,
@@ -16,6 +21,7 @@ import type {
 export type HomeAssistantDevices = Record<string, HomeAssistantDeviceRegistry>;
 export type HomeAssistantEntities = Record<string, HomeAssistantEntityRegistry>;
 export type HomeAssistantStates = Record<string, HomeAssistantEntityState>;
+export type HomeAssistantLabels = HomeAssistantLabel[];
 
 export class HomeAssistantRegistry extends Service {
   private autoRefresh?: NodeJS.Timeout;
@@ -33,6 +39,11 @@ export class HomeAssistantRegistry extends Service {
   private _states: HomeAssistantStates = {};
   get states() {
     return this._states;
+  }
+
+  private _labels: HomeAssistantLabels = [];
+  get labels() {
+    return this._labels;
   }
 
   constructor(
@@ -97,6 +108,14 @@ export class HomeAssistantRegistry extends Service {
     // that don't have entity registry entries but still need to be filterable
     this._entities = allEntities;
     this._states = states;
+
+    // Fetch labels registry for UI autocomplete
+    try {
+      this._labels = await getLabelRegistry(connection);
+    } catch {
+      // Label registry might not be available in older HA versions
+      this._labels = [];
+    }
   }
 }
 

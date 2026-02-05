@@ -172,6 +172,15 @@ export function matterApi(
     res.status(200).json({ port });
   });
 
+  router.get("/labels", async (_, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+    // Return labels with both label_id and display name to help users
+    res.status(200).json(haRegistry.labels);
+  });
+
   router.post("/filter-preview", async (req, res) => {
     if (!haRegistry) {
       res.status(503).json({ error: "Home Assistant registry not available" });
