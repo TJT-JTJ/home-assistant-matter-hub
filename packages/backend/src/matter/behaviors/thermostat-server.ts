@@ -51,7 +51,9 @@ const defaultState = {
 // to allow heat_cool thermostats with a single temperature setpoint.
 // NOTE: We don't include AutoMode's thermostatRunningMode to avoid Matter.js issue #3105
 // where the internal reactor tries to write without permissions.
-const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(defaultState);
+const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
+  defaultState,
+);
 
 export interface ThermostatRunningState {
   heat: boolean;
