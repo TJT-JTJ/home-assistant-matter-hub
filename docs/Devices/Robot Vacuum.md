@@ -109,16 +109,47 @@ Room selection works with any integration that exposes room data as attributes:
 
 | Integration | Room Attribute | Notes |
 |-------------|---------------|-------|
-| Roborock | `rooms` or `segments` | Native support |
+| Roborock (Official) | Button entities | Use Entity Mapping UI (see below) |
+| Roborock (Xiaomi Miot) | `rooms` or `segments` | Native support |
 | Dreame | `rooms` | Nested format with map name |
 | Xiaomi | `rooms` | May require custom integration |
 | Ecovacs | `rooms` | Varies by model |
+
+### Roborock (Official Integration)
+
+The official **Roborock integration** does not expose room data as attributes. Instead, it creates **button entities** for each room/scene configured in the Roborock app.
+
+**Example button entities:**
+- `button.roborock_clean_kitchen`
+- `button.roborock_clean_living_room`
+- `button.roborock_clean_bedroom`
+
+#### Setting up Room Selection for Roborock
+
+1. **Open the Entity Mapping page** in the Matter Hub web UI
+2. **Edit your Roborock vacuum entity** (e.g., `vacuum.roborock_qrevo`)
+3. In the **"Room Button Entities"** field, select the button entities for each room
+   - The UI will auto-discover button entities belonging to the same device
+   - You can also manually enter entity IDs
+4. **Save** the mapping
+5. **Restart the bridge** or re-pair to apply changes
+
+#### How it works
+
+When you select a room in Apple Home and start cleaning:
+1. HAMH identifies which room was selected
+2. Presses the corresponding button entity in Home Assistant
+3. The Roborock integration triggers the room cleaning via the Roborock cloud
+
+:::{tip}
+You can also create **multi-room scenes** in the Roborock app (e.g., "Kitchen + Living Room") and map those button entities for combined room cleaning.
+:::
 
 ### Dreame Integration Note
 
 The Dreame integration exposes room data in a nested format. As of version 1.x-alpha.150+, this format is fully supported.
 
-If your vacuum uses separate `select` entities for room selection instead of attributes, room selection via Matter is not currently supported.
+If your vacuum uses separate `select` entities for room selection instead of attributes, you may need to use the `cleaningModeEntity` mapping instead.
 
 ## Troubleshooting
 
