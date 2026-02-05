@@ -337,9 +337,9 @@ export const DevicesPage = () => {
                   setSortBy(e.target.value as "name" | "type" | "bridge")
                 }
               >
-                <MenuItem value="name">Name</MenuItem>
-                <MenuItem value="type">Device Type</MenuItem>
                 <MenuItem value="bridge">Bridge</MenuItem>
+                <MenuItem value="type">Device Type</MenuItem>
+                <MenuItem value="name">Name</MenuItem>
               </Select>
             </FormControl>
 
