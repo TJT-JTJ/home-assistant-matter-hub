@@ -1,6 +1,6 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
-import { ThermostatBehavior } from "@matter/main/behaviors";
+import { ThermostatServer as Base } from "@matter/main/behaviors";
 import { Thermostat } from "@matter/main/clusters";
 
 const logger = Logger.get("ThermostatServer");
@@ -43,19 +43,13 @@ const defaultState = {
   absMaxCoolSetpointLimit: 5000,
 };
 
-// WORKAROUND: Use ThermostatBehavior instead of ThermostatServer as the base class.
-// ThermostatServer has internal validation (#clampSetpointToLimits) that reads setpoint
-// values from an internal path that doesn't see our .set() defaults. This causes
-// "Heat setpoint (undefined) is out of limits" errors even when we set valid values.
-//
-// By using ThermostatBehavior directly, we bypass the problematic validation while
-// still getting all the cluster attributes and events we need.
-//
+// Create the FeaturedBase with HeatingCooling features and defaults.
 // NOTE: Currently all thermostats use HeatingCooling features regardless of what
-// the HA entity actually supports. The features are checked at runtime in initialize().
-const FeaturedBase = ThermostatBehavior.with("Heating", "Cooling").set(
-  defaultState,
-);
+// the HA entity actually supports. This is a limitation because Matter.js's .with()
+// method creates a new class that loses the defaults set via .set().
+// The features are still checked at runtime in initialize() via this.features,
+// so single-mode thermostats will work correctly - they just expose both attributes.
+const FeaturedBase = Base.with("Heating", "Cooling").set(defaultState);
 
 export interface ThermostatRunningState {
   heat: boolean;
