@@ -150,6 +150,11 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
     const currentTilt100ths = currentTilt != null ? currentTilt * 100 : null;
 
+    // When cover is stopped, target position MUST equal current position.
+    // This is critical for Matter controllers to correctly display the cover state.
+    // Without this, Google Home and other controllers may show stale positions.
+    const isStopped = movementStatus === MovementStatus.Stopped;
+
     logger.debug(
       `Cover update for ${entity.entity_id}: state=${state.state}, lift=${currentLift}%, tilt=${currentTilt}%, movement=${MovementStatus[movementStatus]}`,
     );
@@ -192,16 +197,22 @@ export class WindowCoveringServerBase extends FeaturedBase {
           ? {
               currentPositionLiftPercentage: currentLift,
               currentPositionLiftPercent100ths: currentLift100ths,
-              targetPositionLiftPercent100ths:
-                this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
+              // When stopped, target MUST equal current for controllers to show correct state
+              targetPositionLiftPercent100ths: isStopped
+                ? currentLift100ths
+                : (this.state.targetPositionLiftPercent100ths ??
+                  currentLift100ths),
             }
           : {}),
         ...(this.features.positionAwareTilt
           ? {
               currentPositionTiltPercentage: currentTilt,
               currentPositionTiltPercent100ths: currentTilt100ths,
-              targetPositionTiltPercent100ths:
-                this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
+              // When stopped, target MUST equal current for controllers to show correct state
+              targetPositionTiltPercent100ths: isStopped
+                ? currentTilt100ths
+                : (this.state.targetPositionTiltPercent100ths ??
+                  currentTilt100ths),
             }
           : {}),
       },
