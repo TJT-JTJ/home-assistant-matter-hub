@@ -55,9 +55,14 @@ export function VacuumDevice(
 
   // ServiceArea cluster for native room selection in Apple Home
   // All state is set at creation time (no custom initialize())
+  // Support both: 1) rooms from vacuum attributes (Dreame, Xiaomi Miot)
+  //               2) button entities from mapping (Roborock official integration)
+  const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
-  if (rooms.length > 0) {
-    device = device.with(createVacuumServiceAreaServer(attributes));
+  if (rooms.length > 0 || (roomEntities && roomEntities.length > 0)) {
+    device = device.with(
+      createVacuumServiceAreaServer(attributes, roomEntities),
+    );
   }
 
   // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
