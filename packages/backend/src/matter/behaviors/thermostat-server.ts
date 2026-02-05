@@ -41,6 +41,9 @@ const defaultState = {
   absMaxHeatSetpointLimit: 5000,
   absMinCoolSetpointLimit: 0,
   absMaxCoolSetpointLimit: 5000,
+  // Allow same setpoint for heating and cooling (HA heat_cool thermostats often
+  // only have a single temperature setpoint, not separate high/low targets)
+  minSetpointDeadBand: 0,
 };
 
 // Create the FeaturedBase with HeatingCooling features and defaults.
