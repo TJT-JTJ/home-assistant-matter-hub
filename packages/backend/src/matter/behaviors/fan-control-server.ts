@@ -10,6 +10,8 @@ import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 
 import AirflowDirection = FanControl.AirflowDirection;
+import Rock = FanControl.Rock;
+import Wind = FanControl.Wind;
 
 const defaultStepSize = 33.33;
 const minSpeedMax = 3;
@@ -20,6 +22,8 @@ const FeaturedBase = Base.with(
   "MultiSpeed",
   "AirflowDirection",
   "Auto",
+  "Rocking",
+  "Wind",
 );
 
 export interface FanControlServerConfig {
@@ -31,6 +35,12 @@ export interface FanControlServerConfig {
   getPresetModes: ValueGetter<string[] | undefined>;
   getCurrentPresetMode: ValueGetter<string | undefined>;
   supportsPercentage: ValueGetter<boolean>;
+  // Rocking (oscillation) support
+  isOscillating: ValueGetter<boolean>;
+  supportsOscillation: ValueGetter<boolean>;
+  // Wind mode support - returns preset mode name that maps to wind
+  getWindMode: ValueGetter<"natural" | "sleep" | undefined>;
+  supportsWind: ValueGetter<boolean>;
 
   turnOff: ValueSetter<void>;
   turnOn: ValueSetter<number>;
@@ -38,6 +48,10 @@ export interface FanControlServerConfig {
   setAirflowDirection: ValueSetter<AirflowDirection>;
   // Set preset mode for fans without percentage control
   setPresetMode: ValueSetter<string>;
+  // Rocking (oscillation) control
+  setOscillation: ValueSetter<boolean>;
+  // Wind mode control - sets preset mode for wind
+  setWindMode: ValueSetter<"natural" | "sleep" | "off">;
 }
 
 export class FanControlServerBase extends FeaturedBase {
@@ -72,6 +86,18 @@ export class FanControlServerBase extends FeaturedBase {
       this.reactTo(
         this.events.airflowDirection$Changed,
         this.targetAirflowDirectionChanged,
+      );
+    }
+    if (this.features.rocking) {
+      this.reactTo(
+        this.events.rockSetting$Changed,
+        this.targetRockSettingChanged,
+      );
+    }
+    if (this.features.wind) {
+      this.reactTo(
+        this.events.windSetting$Changed,
+        this.targetWindSettingChanged,
       );
     }
   }
@@ -164,6 +190,23 @@ export class FanControlServerBase extends FeaturedBase {
               airflowDirection: config.getAirflowDirection(
                 entity.state,
                 this.agent,
+              ),
+            }
+          : {}),
+
+        ...(this.features.rocking
+          ? {
+              // rockUpDown maps to HA oscillating
+              rockSetting: config.isOscillating(entity.state, this.agent)
+                ? { rockUpDown: true }
+                : {},
+            }
+          : {}),
+
+        ...(this.features.wind
+          ? {
+              windSetting: this.mapWindModeToSetting(
+                config.getWindMode(entity.state, this.agent),
               ),
             }
           : {}),
@@ -350,6 +393,70 @@ export class FanControlServerBase extends FeaturedBase {
     return this.features.auto
       ? FanControl.FanModeSequence.OffHighAuto
       : FanControl.FanModeSequence.OffHigh;
+  }
+
+  private targetRockSettingChanged(
+    rockSetting: {
+      rockLeftRight?: boolean;
+      rockUpDown?: boolean;
+      rockRound?: boolean;
+    },
+    _oldValue: {
+      rockLeftRight?: boolean;
+      rockUpDown?: boolean;
+      rockRound?: boolean;
+    },
+    context?: ActionContext,
+  ) {
+    if (transactionIsOffline(context)) {
+      return;
+    }
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (!homeAssistant.isAvailable) {
+        return;
+      }
+      // rockUpDown maps to HA oscillating
+      const isOscillating = !!rockSetting.rockUpDown;
+      homeAssistant.callAction(
+        this.state.config.setOscillation(isOscillating, this.agent),
+      );
+    });
+  }
+
+  private targetWindSettingChanged(
+    windSetting: { sleepWind?: boolean; naturalWind?: boolean },
+    _oldValue: { sleepWind?: boolean; naturalWind?: boolean },
+    context?: ActionContext,
+  ) {
+    if (transactionIsOffline(context)) {
+      return;
+    }
+    this.agent.asLocalActor(() => {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (!homeAssistant.isAvailable) {
+        return;
+      }
+      let mode: "natural" | "sleep" | "off" = "off";
+      if (windSetting.naturalWind) {
+        mode = "natural";
+      } else if (windSetting.sleepWind) {
+        mode = "sleep";
+      }
+      homeAssistant.callAction(this.state.config.setWindMode(mode, this.agent));
+    });
+  }
+
+  private mapWindModeToSetting(mode: "natural" | "sleep" | undefined): {
+    naturalWind?: boolean;
+    sleepWind?: boolean;
+  } {
+    if (mode === "natural") {
+      return { naturalWind: true };
+    } else if (mode === "sleep") {
+      return { sleepWind: true };
+    }
+    return {};
   }
 }
 

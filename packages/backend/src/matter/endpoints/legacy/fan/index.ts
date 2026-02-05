@@ -65,6 +65,20 @@ export function FanDevice(
   if (testBit(supportedFeatures, FanDeviceFeature.DIRECTION)) {
     features.add("AirflowDirection");
   }
+  // Enable Rocking (oscillation) if fan supports it
+  if (testBit(supportedFeatures, FanDeviceFeature.OSCILLATE)) {
+    features.add("Rocking");
+  }
+  // Enable Wind mode if fan has natural/sleep preset modes
+  const hasWindModes = presetModes.some(
+    (m) =>
+      m.toLowerCase() === "natural" ||
+      m.toLowerCase() === "nature" ||
+      m.toLowerCase() === "sleep",
+  );
+  if (hasWindModes) {
+    features.add("Wind");
+  }
 
   const device = hasBattery
     ? Device.with(
