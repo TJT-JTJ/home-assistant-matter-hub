@@ -106,51 +106,56 @@ export class ThermostatServerBase extends FeaturedBase {
   };
 
   override async initialize() {
-    // CRITICAL: Set default setpoints UNCONDITIONALLY before super.initialize().
-    // Matter.js's ThermostatServer.initialize() calls #clampSetpointToLimits() which validates
-    // these values. If they are undefined, it clamps to NaN and causes "Behaviors have errors".
+    // CRITICAL: Matter.js's internal #clampSetpointToLimits() runs during super.initialize()
+    // and reads setpoint values from a path that might not see our .set() defaults.
+    // The logs show our this.state has correct values (2200) but Matter.js sees "undefined".
     //
-    // We set BOTH heating and cooling setpoints regardless of features because:
-    // 1. FeaturedBase always has both Heating and Cooling features enabled
-    // 2. The validation happens for both attributes
-    // 3. Setting unused attributes doesn't cause problems
+    // FIX: UNCONDITIONALLY force-set all values before super.initialize() to ensure
+    // Matter.js's internal validation has valid values to work with.
+    // We use the current values if they're valid numbers, otherwise use sensible defaults.
+
     const currentHeating = this.state.occupiedHeatingSetpoint;
     const currentCooling = this.state.occupiedCoolingSetpoint;
     const currentLocal = this.state.localTemperature;
 
-    // Log current state for debugging
     logger.debug(
       `initialize: before defaults - heating=${currentHeating}, cooling=${currentCooling}, local=${currentLocal}`,
     );
 
-    // UNCONDITIONALLY set defaults if values are not valid numbers
-    // This must happen BEFORE super.initialize() which runs validation
-    if (typeof currentHeating !== "number" || Number.isNaN(currentHeating)) {
-      this.state.occupiedHeatingSetpoint = 2000; // 20°C
-    }
-    if (typeof currentCooling !== "number" || Number.isNaN(currentCooling)) {
-      this.state.occupiedCoolingSetpoint = 2400; // 24°C
-    }
-    if (typeof currentLocal !== "number" || Number.isNaN(currentLocal)) {
-      this.state.localTemperature = 2100; // 21°C
-    }
+    // ALWAYS set these values unconditionally to ensure Matter.js sees them.
+    // Use current value if valid, otherwise use default.
+    const heatingValue =
+      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+        ? currentHeating
+        : 2000;
+    const coolingValue =
+      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+        ? currentCooling
+        : 2400;
+    const localValue =
+      typeof currentLocal === "number" && !Number.isNaN(currentLocal)
+        ? currentLocal
+        : 2100;
 
-    // Also ensure limits are set
-    if (this.state.minHeatSetpointLimit == null) {
-      this.state.minHeatSetpointLimit = 0;
-    }
-    if (this.state.maxHeatSetpointLimit == null) {
-      this.state.maxHeatSetpointLimit = 5000;
-    }
-    if (this.state.minCoolSetpointLimit == null) {
-      this.state.minCoolSetpointLimit = 0;
-    }
-    if (this.state.maxCoolSetpointLimit == null) {
-      this.state.maxCoolSetpointLimit = 5000;
-    }
+    // Force-set ALL thermostat values unconditionally
+    this.state.occupiedHeatingSetpoint = heatingValue;
+    this.state.occupiedCoolingSetpoint = coolingValue;
+    this.state.localTemperature = localValue;
+    this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
+    this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
+    this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
+    this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
+    this.state.absMinHeatSetpointLimit =
+      this.state.absMinHeatSetpointLimit ?? 0;
+    this.state.absMaxHeatSetpointLimit =
+      this.state.absMaxHeatSetpointLimit ?? 5000;
+    this.state.absMinCoolSetpointLimit =
+      this.state.absMinCoolSetpointLimit ?? 0;
+    this.state.absMaxCoolSetpointLimit =
+      this.state.absMaxCoolSetpointLimit ?? 5000;
 
     logger.debug(
-      `initialize: after defaults - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
+      `initialize: after force-set - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
     );
 
     // Set controlSequenceOfOperation based on enabled features
