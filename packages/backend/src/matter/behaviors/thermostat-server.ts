@@ -86,25 +86,11 @@ export interface ThermostatServerConfig {
 export class ThermostatServerBase extends FeaturedBase {
   declare state: ThermostatServerBase.State;
 
-  // CRITICAL: Define State class with defaults as static property.
-  // This is the Matter.js pattern for ensuring defaults are applied during
-  // behavior instantiation, BEFORE any validation runs.
-  // NOTE: We MUST NOT use 'override' keyword - it doesn't set the actual default value,
-  // it only declares the type. We need direct property initialization.
+  // State class only declares the config property type.
+  // ALL defaults are set via .set() in the ThermostatServer function below.
+  // This ensures Matter.js's internal cluster data store receives the values.
   static override State = class State extends FeaturedBase.State {
     config!: ThermostatServerConfig;
-    // Default setpoints to prevent NaN validation errors
-    override occupiedHeatingSetpoint = 2000; // 20°C
-    override occupiedCoolingSetpoint = 2400; // 24°C
-    override localTemperature = 2100; // 21°C
-    override minHeatSetpointLimit = 0;
-    override maxHeatSetpointLimit = 5000;
-    override minCoolSetpointLimit = 0;
-    override maxCoolSetpointLimit = 5000;
-    override absMinHeatSetpointLimit = 0;
-    override absMaxHeatSetpointLimit = 5000;
-    override absMinCoolSetpointLimit = 0;
-    override absMaxCoolSetpointLimit = 5000;
   };
 
   override async initialize() {
