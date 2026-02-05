@@ -41,16 +41,19 @@ const defaultState = {
   absMaxHeatSetpointLimit: 5000,
   absMinCoolSetpointLimit: 0,
   absMaxCoolSetpointLimit: 5000,
+  // Allow same setpoint for heating and cooling (HA heat_cool thermostats often
+  // only have a single temperature setpoint, not separate high/low targets)
+  minSetpointDeadBand: 0,
 };
 
-// Create the FeaturedBase with HeatingCooling features and defaults.
-// NOTE: Currently all thermostats use HeatingCooling features regardless of what
-// the HA entity actually supports. This is a limitation because Matter.js's .with()
-// method creates a new class that loses the defaults set via .set().
-// The features are still checked at runtime in initialize() via this.features,
-// so single-mode thermostats will work correctly - they just expose both attributes.
-// TODO: Future improvement - create separate behavior classes for each feature combo.
-const FeaturedBase = Base.with("Heating", "Cooling").set(defaultState);
+// Create the FeaturedBase with Heating, Cooling, and AutoMode features.
+// AutoMode is required to expose minSetpointDeadBand attribute, which we set to 0
+// to allow heat_cool thermostats with a single temperature setpoint.
+// NOTE: We don't include AutoMode's thermostatRunningMode to avoid Matter.js issue #3105
+// where the internal reactor tries to write without permissions.
+const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
+  defaultState,
+);
 
 export interface ThermostatRunningState {
   heat: boolean;
@@ -84,73 +87,64 @@ export interface ThermostatServerConfig {
 export class ThermostatServerBase extends FeaturedBase {
   declare state: ThermostatServerBase.State;
 
-  // CRITICAL: Define State class with defaults as static property.
-  // This is the Matter.js pattern for ensuring defaults are applied during
-  // behavior instantiation, BEFORE any validation runs.
-  // NOTE: We MUST NOT use 'override' keyword - it doesn't set the actual default value,
-  // it only declares the type. We need direct property initialization.
+  // State class only declares the config property type.
+  // ALL defaults are set via .set() in the ThermostatServer function below.
+  // This ensures Matter.js's internal cluster data store receives the values.
   static override State = class State extends FeaturedBase.State {
     config!: ThermostatServerConfig;
-    // Default setpoints to prevent NaN validation errors
-    override occupiedHeatingSetpoint = 2000; // 20°C
-    override occupiedCoolingSetpoint = 2400; // 24°C
-    override localTemperature = 2100; // 21°C
-    override minHeatSetpointLimit = 0;
-    override maxHeatSetpointLimit = 5000;
-    override minCoolSetpointLimit = 0;
-    override maxCoolSetpointLimit = 5000;
-    override absMinHeatSetpointLimit = 0;
-    override absMaxHeatSetpointLimit = 5000;
-    override absMinCoolSetpointLimit = 0;
-    override absMaxCoolSetpointLimit = 5000;
   };
 
   override async initialize() {
-    // CRITICAL: Set default setpoints UNCONDITIONALLY before super.initialize().
-    // Matter.js's ThermostatServer.initialize() calls #clampSetpointToLimits() which validates
-    // these values. If they are undefined, it clamps to NaN and causes "Behaviors have errors".
+    // CRITICAL: Matter.js's internal #clampSetpointToLimits() runs during super.initialize()
+    // and reads setpoint values from a path that might not see our .set() defaults.
+    // The logs show our this.state has correct values (2200) but Matter.js sees "undefined".
     //
-    // We set BOTH heating and cooling setpoints regardless of features because:
-    // 1. FeaturedBase always has both Heating and Cooling features enabled
-    // 2. The validation happens for both attributes
-    // 3. Setting unused attributes doesn't cause problems
+    // FIX: UNCONDITIONALLY force-set all values before super.initialize() to ensure
+    // Matter.js's internal validation has valid values to work with.
+    // We use the current values if they're valid numbers, otherwise use sensible defaults.
+
     const currentHeating = this.state.occupiedHeatingSetpoint;
     const currentCooling = this.state.occupiedCoolingSetpoint;
     const currentLocal = this.state.localTemperature;
 
-    // Log current state for debugging
     logger.debug(
       `initialize: before defaults - heating=${currentHeating}, cooling=${currentCooling}, local=${currentLocal}`,
     );
 
-    // UNCONDITIONALLY set defaults if values are not valid numbers
-    // This must happen BEFORE super.initialize() which runs validation
-    if (typeof currentHeating !== "number" || Number.isNaN(currentHeating)) {
-      this.state.occupiedHeatingSetpoint = 2000; // 20°C
-    }
-    if (typeof currentCooling !== "number" || Number.isNaN(currentCooling)) {
-      this.state.occupiedCoolingSetpoint = 2400; // 24°C
-    }
-    if (typeof currentLocal !== "number" || Number.isNaN(currentLocal)) {
-      this.state.localTemperature = 2100; // 21°C
-    }
+    // ALWAYS set these values unconditionally to ensure Matter.js sees them.
+    // Use current value if valid, otherwise use default.
+    const heatingValue =
+      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+        ? currentHeating
+        : 2000;
+    const coolingValue =
+      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+        ? currentCooling
+        : 2400;
+    const localValue =
+      typeof currentLocal === "number" && !Number.isNaN(currentLocal)
+        ? currentLocal
+        : 2100;
 
-    // Also ensure limits are set
-    if (this.state.minHeatSetpointLimit == null) {
-      this.state.minHeatSetpointLimit = 0;
-    }
-    if (this.state.maxHeatSetpointLimit == null) {
-      this.state.maxHeatSetpointLimit = 5000;
-    }
-    if (this.state.minCoolSetpointLimit == null) {
-      this.state.minCoolSetpointLimit = 0;
-    }
-    if (this.state.maxCoolSetpointLimit == null) {
-      this.state.maxCoolSetpointLimit = 5000;
-    }
+    // Force-set ALL thermostat values unconditionally
+    this.state.occupiedHeatingSetpoint = heatingValue;
+    this.state.occupiedCoolingSetpoint = coolingValue;
+    this.state.localTemperature = localValue;
+    this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
+    this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
+    this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
+    this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
+    this.state.absMinHeatSetpointLimit =
+      this.state.absMinHeatSetpointLimit ?? 0;
+    this.state.absMaxHeatSetpointLimit =
+      this.state.absMaxHeatSetpointLimit ?? 5000;
+    this.state.absMinCoolSetpointLimit =
+      this.state.absMinCoolSetpointLimit ?? 0;
+    this.state.absMaxCoolSetpointLimit =
+      this.state.absMaxCoolSetpointLimit ?? 5000;
 
     logger.debug(
-      `initialize: after defaults - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
+      `initialize: after force-set - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
     );
 
     // Set controlSequenceOfOperation based on enabled features
@@ -501,19 +495,12 @@ export class ThermostatServerBase extends FeaturedBase {
   }
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {
-    let systemMode = this.state.config.getSystemMode(entity.state, this.agent);
-    // CRITICAL: Without AutoMode feature, we MUST map Auto to Heat or Cool.
-    // Matter.js cannot handle SystemMode.Auto without the AutoMode feature enabled.
-    // This was the working behavior in v1.10.6 before commits d348265 and 0a4af9e broke it.
-    // The AutoMode feature is intentionally not included due to Matter.js issue #3105.
-    if (systemMode === Thermostat.SystemMode.Auto) {
-      systemMode = this.features.heating
-        ? SystemMode.Heat
-        : this.features.cooling
-          ? SystemMode.Cool
-          : SystemMode.Off;
-    }
-    return systemMode;
+    // NOTE: We intentionally allow SystemMode.Auto to be displayed without the AutoMode feature.
+    // The AutoMode feature only adds thermostatRunningMode attribute and its internal reactor.
+    // The systemMode attribute itself (including Auto value) is part of the base Thermostat cluster.
+    // Controllers should be able to display Auto mode without the AutoMode feature enabled.
+    // See: https://github.com/matter-js/matter.js/issues/3105 for why we don't enable AutoMode.
+    return this.state.config.getSystemMode(entity.state, this.agent);
   }
 
   private getRunningState(

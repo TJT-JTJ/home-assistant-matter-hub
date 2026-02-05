@@ -2,6 +2,8 @@ import type {
   EndpointData,
   EntityMappingConfig,
 } from "@home-assistant-matter-hub/common";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DevicesIcon from "@mui/icons-material/Devices";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import Alert from "@mui/material/Alert";
@@ -12,6 +14,7 @@ import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
@@ -19,6 +22,7 @@ import Select from "@mui/material/Select";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -45,6 +49,8 @@ export const DevicesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBridge, setSelectedBridge] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"name" | "type" | "bridge">("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const itemsPerPage = 12;
 
@@ -147,18 +153,58 @@ export const DevicesPage = () => {
     });
   }, [devices, searchTerm, selectedBridge, selectedType]);
 
+  // Sort devices
+  const sortedDevices = useMemo(() => {
+    const sorted = [...filteredDevices].sort((a, b) => {
+      const nameA = getEndpointName(a.endpoint.state) ?? a.endpoint.id.local;
+      const nameB = getEndpointName(b.endpoint.state) ?? b.endpoint.id.local;
+
+      let comparison = 0;
+      switch (sortBy) {
+        case "name":
+          comparison = nameA.localeCompare(nameB);
+          break;
+        case "type":
+          comparison = a.endpoint.type.name.localeCompare(b.endpoint.type.name);
+          // Secondary sort by name within same type
+          if (comparison === 0) {
+            comparison = nameA.localeCompare(nameB);
+          }
+          break;
+        case "bridge":
+          comparison = a.bridgeName.localeCompare(b.bridgeName);
+          // Secondary sort by name within same bridge
+          if (comparison === 0) {
+            comparison = nameA.localeCompare(nameB);
+          }
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    return sorted;
+  }, [filteredDevices, sortBy, sortDirection]);
+
   // Pagination
-  const totalPages = Math.ceil(filteredDevices.length / itemsPerPage);
-  const paginatedDevices = filteredDevices.slice(
+  const totalPages = Math.ceil(sortedDevices.length / itemsPerPage);
+  const paginatedDevices = sortedDevices.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage,
   );
 
-  // Get unique device types
+  // Get unique device types (always sorted alphabetically)
   const deviceTypes = useMemo(() => {
     const types = new Set(devices.map((d) => d.endpoint.type.name));
     return Array.from(types).sort();
   }, [devices]);
+
+  // Sort bridges alphabetically based on current sort direction
+  const sortedBridges = useMemo(() => {
+    if (!bridges) return [];
+    return [...bridges].sort((a, b) => {
+      const comparison = a.name.localeCompare(b.name);
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [bridges, sortDirection]);
 
   const handleRefresh = useCallback(() => {
     dispatch(loadBridges());
@@ -258,7 +304,7 @@ export const DevicesPage = () => {
                 onChange={(e) => setSelectedBridge(e.target.value)}
               >
                 <MenuItem value="">All Bridges</MenuItem>
-                {(bridges || []).map((bridge) => (
+                {sortedBridges.map((bridge) => (
                   <MenuItem key={bridge.id} value={bridge.id}>
                     {bridge.name}
                   </MenuItem>
@@ -281,6 +327,38 @@ export const DevicesPage = () => {
                 ))}
               </Select>
             </FormControl>
+
+            <FormControl sx={{ minWidth: 150 }}>
+              <InputLabel>Sort By</InputLabel>
+              <Select
+                value={sortBy}
+                label="Sort By"
+                onChange={(e) =>
+                  setSortBy(e.target.value as "name" | "type" | "bridge")
+                }
+              >
+                <MenuItem value="bridge">Bridge</MenuItem>
+                <MenuItem value="type">Device Type</MenuItem>
+                <MenuItem value="name">Name</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Tooltip
+              title={sortDirection === "asc" ? "Ascending" : "Descending"}
+            >
+              <IconButton
+                onClick={() =>
+                  setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+                }
+                color="primary"
+              >
+                {sortDirection === "asc" ? (
+                  <ArrowUpwardIcon />
+                ) : (
+                  <ArrowDownwardIcon />
+                )}
+              </IconButton>
+            </Tooltip>
           </Stack>
         </CardContent>
       </Card>

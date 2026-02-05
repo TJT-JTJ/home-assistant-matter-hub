@@ -6,6 +6,7 @@ import type {
 import { useCallback, useMemo } from "react";
 import {
   type BridgePriorityUpdate,
+  forceSyncBridge as forceSyncBridgeApi,
   updateBridgePriorities as updateBridgePrioritiesApi,
 } from "../../api/bridges.ts";
 import {
@@ -106,6 +107,21 @@ export function useUpdateBridgePriorities(): (
       await updateBridgePrioritiesApi(updates);
       // Reload bridges to get updated priorities
       await dispatch(loadBridges());
+    },
+    [dispatch],
+  );
+}
+
+export function useForceSyncBridge(): (
+  bridgeId: string,
+) => Promise<{ syncedCount: number; bridge: BridgeDataWithMetadata }> {
+  const dispatch = useAppDispatch();
+  return useCallback(
+    async (bridgeId: string) => {
+      const result = await forceSyncBridgeApi(bridgeId);
+      // Reload bridges to reflect any state changes
+      await dispatch(loadBridges());
+      return result;
     },
     [dispatch],
   );

@@ -65,6 +65,13 @@ export interface EntityMappingConfig {
    * Example: "sensor.h_t_bad_battery"
    */
   readonly batteryEntity?: string;
+  /**
+   * Optional: Array of button entity IDs for room-based cleaning (Roborock, etc.).
+   * Each button entity represents a room/scene in the vacuum app.
+   * When a room is selected via Matter, the corresponding button will be pressed.
+   * Example: ["button.roborock_clean_kitchen", "button.roborock_clean_living_room"]
+   */
+  readonly roomEntities?: string[];
 }
 
 export interface EntityMappingRequest {
@@ -77,6 +84,7 @@ export interface EntityMappingRequest {
   readonly cleaningModeEntity?: string;
   readonly humidityEntity?: string;
   readonly batteryEntity?: string;
+  readonly roomEntities?: string[];
 }
 
 export interface EntityMappingResponse {

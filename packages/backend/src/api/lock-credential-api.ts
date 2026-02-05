@@ -6,6 +6,21 @@ import type {
 import { type Request, type Response, Router } from "express";
 import type { LockCredentialStorage } from "../services/storage/lock-credential-storage.js";
 
+/**
+ * Sanitize credential for API response - never expose PIN hash/salt
+ */
+function sanitizeCredential(credential: LockCredential) {
+  return {
+    entityId: credential.entityId,
+    name: credential.name,
+    enabled: credential.enabled,
+    createdAt: credential.createdAt,
+    updatedAt: credential.updatedAt,
+    // Indicate PIN is set without exposing hash
+    hasPinCode: !!credential.pinCodeHash,
+  };
+}
+
 export function lockCredentialApi(
   lockCredentialStorage: LockCredentialStorage,
 ): Router {
@@ -16,12 +31,11 @@ export function lockCredentialApi(
     "/",
     async (_req: Request, res: Response<LockCredentialsResponse>) => {
       const credentials = lockCredentialStorage.getAllCredentials();
-      // Don't expose actual PIN codes in the list response for security
-      const sanitizedCredentials = credentials.map((c) => ({
-        ...c,
-        pinCode: "****", // Mask the PIN
-      }));
-      res.json({ credentials: sanitizedCredentials });
+      // Sanitize credentials - never expose PIN hash/salt
+      const sanitizedCredentials = credentials.map(sanitizeCredential);
+      res.json({
+        credentials: sanitizedCredentials as unknown as LockCredential[],
+      });
     },
   );
 
@@ -30,7 +44,7 @@ export function lockCredentialApi(
     "/:entityId",
     async (
       req: Request<{ entityId: string }>,
-      res: Response<LockCredential | { error: string }>,
+      res: Response<ReturnType<typeof sanitizeCredential> | { error: string }>,
     ) => {
       const { entityId } = req.params;
       const decodedEntityId = decodeURIComponent(entityId);
@@ -41,8 +55,7 @@ export function lockCredentialApi(
         return;
       }
 
-      // Don't expose actual PIN code
-      res.json({ ...credential, pinCode: "****" });
+      res.json(sanitizeCredential(credential));
     },
   );
 
@@ -51,7 +64,7 @@ export function lockCredentialApi(
     "/:entityId",
     async (
       req: Request<{ entityId: string }, unknown, LockCredentialRequest>,
-      res: Response<LockCredential | { error: string }>,
+      res: Response<ReturnType<typeof sanitizeCredential> | { error: string }>,
     ) => {
       const { entityId } = req.params;
       const decodedEntityId = decodeURIComponent(entityId);
@@ -76,8 +89,32 @@ export function lockCredentialApi(
         enabled,
       });
 
-      // Don't expose actual PIN code in response
-      res.json({ ...credential, pinCode: "****" });
+      res.json(sanitizeCredential(credential));
+    },
+  );
+
+  // Toggle enabled status without changing PIN
+  router.patch(
+    "/:entityId/enabled",
+    async (
+      req: Request<{ entityId: string }, unknown, { enabled: boolean }>,
+      res: Response<ReturnType<typeof sanitizeCredential> | { error: string }>,
+    ) => {
+      const { entityId } = req.params;
+      const decodedEntityId = decodeURIComponent(entityId);
+      const { enabled } = req.body;
+
+      const credential = await lockCredentialStorage.toggleEnabled(
+        decodedEntityId,
+        enabled,
+      );
+
+      if (!credential) {
+        res.status(404).json({ error: "Credential not found" });
+        return;
+      }
+
+      res.json(sanitizeCredential(credential));
     },
   );
 

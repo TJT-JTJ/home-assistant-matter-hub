@@ -86,8 +86,42 @@ const vacuumRvcRunModeConfig = {
       const selectedAreas = serviceArea.state.selectedAreas;
 
       if (selectedAreas && selectedAreas.length > 0) {
-        const entity = agent.get(HomeAssistantEntityBehavior).entity;
+        const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+        const entity = homeAssistant.entity;
         const attributes = entity.state.attributes as VacuumDeviceAttributes;
+
+        // Check if we have button entities mapped for rooms (Roborock integration)
+        const roomEntities = homeAssistant.state.mapping?.roomEntities;
+        if (roomEntities && roomEntities.length > 0) {
+          // Find button entity IDs for selected areas
+          const buttonEntityIds: string[] = [];
+          for (const areaId of selectedAreas) {
+            const buttonEntityId = roomEntities.find(
+              (id) => toAreaId(id) === areaId,
+            );
+            if (buttonEntityId) {
+              buttonEntityIds.push(buttonEntityId);
+            }
+          }
+
+          if (buttonEntityIds.length > 0) {
+            logger.info(
+              `Roborock: Pressing button entities for selected rooms: ${buttonEntityIds.join(", ")}`,
+            );
+
+            // Clear selected areas after use
+            serviceArea.state.selectedAreas = [];
+
+            // Press the first button entity (most controllers select one room at a time)
+            // For multiple rooms, the user's Roborock scene buttons handle multi-room cleaning
+            return {
+              action: "button.press",
+              target: buttonEntityIds[0], // Press the specific button entity
+            };
+          }
+        }
+
+        // Fallback: Try to find rooms from vacuum attributes (Dreame, Xiaomi Miot)
         const rooms = parseVacuumRooms(attributes);
 
         // Convert area IDs back to room IDs

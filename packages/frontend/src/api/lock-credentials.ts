@@ -1,10 +1,20 @@
-import type {
-  LockCredential,
-  LockCredentialRequest,
-  LockCredentialsResponse,
-} from "@home-assistant-matter-hub/common";
+import type { LockCredentialRequest } from "@home-assistant-matter-hub/common";
 
-export async function fetchLockCredentials(): Promise<LockCredentialsResponse> {
+/**
+ * Sanitized credential returned from API (PIN is never exposed)
+ */
+export interface SanitizedCredential {
+  entityId: string;
+  name?: string;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+  hasPinCode: boolean;
+}
+
+export async function fetchLockCredentials(): Promise<{
+  credentials: SanitizedCredential[];
+}> {
   const response = await fetch("api/lock-credentials");
   if (!response.ok) {
     throw new Error(`Failed to fetch lock credentials: ${response.statusText}`);
@@ -15,7 +25,7 @@ export async function fetchLockCredentials(): Promise<LockCredentialsResponse> {
 export async function updateLockCredential(
   entityId: string,
   config: LockCredentialRequest,
-): Promise<LockCredential> {
+): Promise<SanitizedCredential> {
   const response = await fetch(
     `api/lock-credentials/${encodeURIComponent(entityId)}`,
     {
@@ -28,6 +38,27 @@ export async function updateLockCredential(
     const error = await response.json().catch(() => ({}));
     throw new Error(
       error.error || `Failed to update lock credential: ${response.statusText}`,
+    );
+  }
+  return response.json();
+}
+
+export async function toggleLockCredentialEnabled(
+  entityId: string,
+  enabled: boolean,
+): Promise<SanitizedCredential> {
+  const response = await fetch(
+    `api/lock-credentials/${encodeURIComponent(entityId)}/enabled`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    },
+  );
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      error.error || `Failed to toggle credential: ${response.statusText}`,
     );
   }
   return response.json();

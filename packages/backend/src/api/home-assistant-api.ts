@@ -284,5 +284,61 @@ export function homeAssistantApi(
     }
   });
 
+  /**
+   * Get button entities that belong to the same HA device as the given entity.
+   * Useful for Roborock vacuums where room cleaning is exposed as button entities.
+   * GET /api/home-assistant/related-buttons/:entityId
+   */
+  router.get("/related-buttons/:entityId", (req, res) => {
+    const { entityId } = req.params;
+    const entity = haRegistry.entities[entityId];
+
+    if (!entity) {
+      res.status(404).json({ error: "Entity not found" });
+      return;
+    }
+
+    if (!entity.device_id) {
+      res.json({ buttons: [], message: "Entity has no associated device" });
+      return;
+    }
+
+    // Find all button entities belonging to the same device
+    const allEntities = Object.values(haRegistry.entities);
+    const states = haRegistry.states;
+    const buttonEntities = allEntities.filter(
+      (e) =>
+        e.device_id === entity.device_id && e.entity_id.startsWith("button."),
+    );
+
+    const buttons = buttonEntities.map((btn) => {
+      const state = states[btn.entity_id];
+      const friendlyName = state?.attributes?.friendly_name as
+        | string
+        | undefined;
+      // Extract a clean name from entity_id or friendly_name
+      const entityPart = btn.entity_id.split(".")[1] || btn.entity_id;
+      const cleanName = friendlyName || entityPart.replace(/_/g, " ");
+
+      return {
+        entity_id: btn.entity_id,
+        friendly_name: friendlyName,
+        clean_name: cleanName,
+      };
+    });
+
+    // Sort by friendly name or entity_id
+    buttons.sort((a, b) =>
+      (a.friendly_name || a.entity_id).localeCompare(
+        b.friendly_name || b.entity_id,
+      ),
+    );
+
+    res.json({
+      device_id: entity.device_id,
+      buttons,
+    });
+  });
+
   return router;
 }

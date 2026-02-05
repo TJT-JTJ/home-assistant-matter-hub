@@ -80,8 +80,10 @@ export function BinarySensorDevice(
     battery_level?: number;
   };
   const deviceClass = attributes.device_class;
-  const hasBattery =
+  const hasBatteryAttr =
     attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
 
   let type: CombinedType =
     deviceClass && deviceClasses[deviceClass]

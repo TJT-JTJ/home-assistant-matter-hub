@@ -12,6 +12,8 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     },
     value: {
       title: "Value",
+      description:
+        "For labels, use the label_id (slug), not the display name. Example: 'my_smart_lights' instead of 'My Smart Lights'. Check /api/matter/labels for available labels.",
       type: "string",
       minLength: 1,
     },
@@ -93,6 +95,34 @@ const featureFlagSchema: JSONSchema7 = {
         "Expose the device as a standalone Matter device instead of a bridged device. " +
         "This is required for Apple Home to properly support Siri voice commands for Robot Vacuums. " +
         "IMPORTANT: Only ONE device should be in this bridge when server mode is enabled.",
+      type: "boolean",
+      default: false,
+    },
+
+    autoBatteryMapping: {
+      title: "Auto Battery Mapping",
+      description:
+        "Automatically assign battery sensors from the same Home Assistant device to the main entity. " +
+        "When enabled, battery sensors will be merged into their parent devices instead of appearing as separate devices.",
+      type: "boolean",
+      default: false,
+    },
+
+    autoHumidityMapping: {
+      title: "Auto Humidity Mapping",
+      description:
+        "Automatically combine humidity sensors with temperature sensors from the same Home Assistant device. " +
+        "When enabled, humidity sensors will be merged into temperature sensors to create combined TemperatureHumiditySensor devices.",
+      type: "boolean",
+      default: true,
+    },
+
+    autoForceSync: {
+      title: "Auto Force Sync (Google Home workaround)",
+      description:
+        "Periodically push all device states to connected controllers every 60 seconds. " +
+        "This is a workaround for Google Home which sometimes loses subscriptions and doesn't receive state updates. " +
+        "Only enable this if you experience state sync issues with Google Home.",
       type: "boolean",
       default: false,
     },

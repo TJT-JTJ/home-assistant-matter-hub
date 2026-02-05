@@ -37,6 +37,7 @@ export function entityMappingApi(
       cleaningModeEntity: body.cleaningModeEntity,
       humidityEntity: body.humidityEntity,
       batteryEntity: body.batteryEntity,
+      roomEntities: body.roomEntities,
     };
 
     const config = await mappingStorage.setMapping(request);

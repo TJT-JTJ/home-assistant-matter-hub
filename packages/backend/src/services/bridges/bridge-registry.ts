@@ -2,7 +2,9 @@ import type {
   HomeAssistantDeviceRegistry,
   HomeAssistantEntityRegistry,
   HomeAssistantFilter,
+  SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
+import { SensorDeviceClass } from "@home-assistant-matter-hub/common";
 import { keys, pickBy, values } from "lodash-es";
 import type {
   HomeAssistantDevices,
@@ -27,6 +29,11 @@ export class BridgeRegistry {
   private _entities: HomeAssistantEntities = {};
   private _states: HomeAssistantStates = {};
 
+  // Track battery entities that have been auto-assigned to other devices
+  private _usedBatteryEntities: Set<string> = new Set();
+  // Track humidity entities that have been auto-assigned to temperature sensors
+  private _usedHumidityEntities: Set<string> = new Set();
+
   deviceOf(entityId: string): HomeAssistantDeviceRegistry {
     const entity = this._entities[entityId];
     return this._devices[entity.device_id];
@@ -38,6 +45,91 @@ export class BridgeRegistry {
     return this._states[entityId];
   }
 
+  /**
+   * Find a battery sensor entity that belongs to the same HA device.
+   * Returns the entity_id of the battery sensor, or undefined if none found.
+   */
+  findBatteryEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this._entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this._states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.battery) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Mark a battery entity as used (auto-assigned to another device).
+   */
+  markBatteryEntityUsed(entityId: string): void {
+    this._usedBatteryEntities.add(entityId);
+  }
+
+  /**
+   * Check if a battery entity has been auto-assigned to another device.
+   */
+  isBatteryEntityUsed(entityId: string): boolean {
+    return this._usedBatteryEntities.has(entityId);
+  }
+
+  /**
+   * Check if auto battery mapping is enabled for this bridge.
+   */
+  isAutoBatteryMappingEnabled(): boolean {
+    return this.dataProvider.featureFlags?.autoBatteryMapping === true;
+  }
+
+  /**
+   * Check if auto humidity mapping is enabled for this bridge.
+   * Default: true (enabled by default)
+   */
+  isAutoHumidityMappingEnabled(): boolean {
+    return this.dataProvider.featureFlags?.autoHumidityMapping !== false;
+  }
+
+  /**
+   * Find a humidity sensor entity that belongs to the same HA device.
+   * Returns the entity_id of the humidity sensor, or undefined if none found.
+   */
+  findHumidityEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this._entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this._states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.humidity) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Mark a humidity entity as used (auto-assigned to a temperature sensor).
+   */
+  markHumidityEntityUsed(entityId: string): void {
+    this._usedHumidityEntities.add(entityId);
+  }
+
+  /**
+   * Check if a humidity entity has been auto-assigned to a temperature sensor.
+   */
+  isHumidityEntityUsed(entityId: string): boolean {
+    return this._usedHumidityEntities.has(entityId);
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
@@ -46,6 +138,10 @@ export class BridgeRegistry {
   }
 
   refresh() {
+    // Clear used entities on refresh to allow re-assignment
+    this._usedBatteryEntities.clear();
+    this._usedHumidityEntities.clear();
+
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];
       const filter = this.dataProvider.filter;
@@ -74,6 +170,70 @@ export class BridgeRegistry {
         .map((e) => e.device_id)
         .some((id) => d.id === id),
     );
+
+    // Pre-calculate auto-assignments BEFORE endpoints are created
+    // This ensures entities are marked as "used" regardless of processing order
+    this.preCalculateAutoAssignments();
+  }
+
+  /**
+   * Pre-calculate which entities will be auto-assigned to other devices.
+   * This must run BEFORE endpoint creation to ensure correct "used" marking
+   * regardless of the order entities are processed.
+   */
+  private preCalculateAutoAssignments(): void {
+    const entities = values(this._entities);
+
+    // First pass: Find all temperature sensors and mark their humidity entities
+    if (this.isAutoHumidityMappingEnabled()) {
+      for (const entity of entities) {
+        if (!entity.device_id) continue;
+        if (!entity.entity_id.startsWith("sensor.")) continue;
+
+        const state = this._states[entity.entity_id];
+        if (!state) continue;
+
+        const attrs = state.attributes as SensorDeviceAttributes;
+        if (attrs.device_class === SensorDeviceClass.temperature) {
+          const humidityEntityId = this.findHumidityEntityForDevice(
+            entity.device_id,
+          );
+          if (humidityEntityId && humidityEntityId !== entity.entity_id) {
+            this._usedHumidityEntities.add(humidityEntityId);
+          }
+        }
+      }
+    }
+
+    // Second pass: Find all "main" entities and mark their battery entities
+    // A "main" entity is any entity that is NOT already marked as used
+    if (this.isAutoBatteryMappingEnabled()) {
+      for (const entity of entities) {
+        if (!entity.device_id) continue;
+
+        // Skip entities that are already marked as used (e.g., humidity sensors)
+        if (this._usedHumidityEntities.has(entity.entity_id)) continue;
+
+        // Skip battery sensors themselves
+        if (entity.entity_id.startsWith("sensor.")) {
+          const state = this._states[entity.entity_id];
+          if (state) {
+            const attrs = state.attributes as SensorDeviceAttributes;
+            if (attrs.device_class === SensorDeviceClass.battery) continue;
+          }
+        }
+
+        const batteryEntityId = this.findBatteryEntityForDevice(
+          entity.device_id,
+        );
+        if (batteryEntityId && batteryEntityId !== entity.entity_id) {
+          // Only mark if not already marked (first entity wins)
+          if (!this._usedBatteryEntities.has(batteryEntityId)) {
+            this._usedBatteryEntities.add(batteryEntityId);
+          }
+        }
+      }
+    }
   }
 
   private matchesFilter(

@@ -13,6 +13,28 @@ interface AllBridgeFeatureFlags {
    * Multiple devices in server mode will cause errors.
    */
   readonly serverMode: boolean;
+  /**
+   * Auto Battery Mapping: Automatically assign battery sensors from the same Home Assistant device
+   * to the main entity. When enabled, battery sensors will be merged into their parent devices
+   * instead of appearing as separate devices in Matter controllers.
+   * Default: false (disabled)
+   */
+  readonly autoBatteryMapping: boolean;
+  /**
+   * Auto Humidity Mapping: Automatically combine humidity sensors with temperature sensors
+   * from the same Home Assistant device. When enabled, humidity sensors will be merged into
+   * temperature sensors to create combined TemperatureHumiditySensor devices.
+   * Default: true (enabled)
+   */
+  readonly autoHumidityMapping: boolean;
+  /**
+   * Auto Force Sync: Periodically push all device states to connected controllers.
+   * This is a workaround for Google Home which sometimes loses subscriptions and
+   * doesn't receive state updates. When enabled, the bridge will push all device
+   * states every 60 seconds.
+   * Default: false (disabled)
+   */
+  readonly autoForceSync: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

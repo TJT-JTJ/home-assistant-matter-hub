@@ -38,8 +38,16 @@ export async function deleteBridge(bridgeId: string) {
 
 export async function resetBridge(bridgeId: string) {
   return await fetch(`api/matter/bridges/${bridgeId}/actions/factory-reset`, {
-    method: "GET",
+    method: "POST",
   }).then((res) => res.json() as Promise<BridgeDataWithMetadata>);
+}
+
+export async function forceSyncBridge(
+  bridgeId: string,
+): Promise<{ syncedCount: number; bridge: BridgeDataWithMetadata }> {
+  return await fetch(`api/matter/bridges/${bridgeId}/actions/force-sync`, {
+    method: "POST",
+  }).then((res) => res.json());
 }
 
 export interface BridgePriorityUpdate {
