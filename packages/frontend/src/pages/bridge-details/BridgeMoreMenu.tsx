@@ -2,6 +2,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVert from "@mui/icons-material/MoreVert";
 import ResetIcon from "@mui/icons-material/RotateLeft";
+import SyncIcon from "@mui/icons-material/Sync";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -11,7 +12,11 @@ import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 import { Link as RouterLink, useNavigate } from "react-router";
 import { useNotifications } from "../../components/notifications/use-notifications.ts";
-import { useDeleteBridge, useResetBridge } from "../../hooks/data/bridges.ts";
+import {
+  useDeleteBridge,
+  useForceSyncBridge,
+  useResetBridge,
+} from "../../hooks/data/bridges.ts";
 import { navigation } from "../../routes.tsx";
 
 export interface BridgeMoreMenuProps {
@@ -27,10 +32,28 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
 
   const factoryReset = useResetBridge();
   const deleteBridge = useDeleteBridge();
+  const forceSync = useForceSyncBridge();
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
+  const handleForceSync = async () => {
+    handleClose();
+    await forceSync(bridge)
+      .then((result) =>
+        notification.show({
+          message: `Synced ${result.syncedCount} devices to controllers`,
+          severity: "success",
+        }),
+      )
+      .catch((reason) =>
+        notification.show({
+          message: `Failed to sync: ${reason?.message ?? JSON.stringify(reason)}`,
+          severity: "error",
+        }),
+      );
+  };
 
   const handleFactoryReset = async () => {
     handleClose();
@@ -79,6 +102,12 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
           <ListItemText>Edit</ListItemText>
         </MenuItem>
         <Divider />
+        <MenuItem onClick={handleForceSync}>
+          <ListItemIcon>
+            <SyncIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Force Sync</ListItemText>
+        </MenuItem>
         <MenuItem onClick={handleFactoryReset}>
           <ListItemIcon>
             <ResetIcon fontSize="small" />
