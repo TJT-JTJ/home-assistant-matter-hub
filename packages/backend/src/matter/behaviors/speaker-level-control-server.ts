@@ -16,17 +16,13 @@ export interface SpeakerLevelControlConfig {
 /**
  * LevelControlServer for Speaker/MediaPlayer devices.
  *
- * Key differences from LevelControlServer (for lights):
- * - Uses OnOff feature but NOT the "Lighting" feature
- * - Uses range 1-254 for currentLevel (matching Matterbridge's approach)
- * - minLevel = 1, maxLevel = 254
+ * Key difference from LevelControlServer (for lights):
+ * - Does NOT use the "Lighting" feature
+ * - Uses range 0-254 for currentLevel (Google Home calculates percentage as currentLevel/254)
+ * - minLevel = 0, maxLevel = 254 (no +1 offset like lights)
  *
- * Based on Matterbridge speaker.ts implementation:
- * - Volume < 1 coerced to 1
- * - Volume > 254 coerced to 254
- * - LevelControl (1..254) maps linearly to 0..100%
- *
- * Google Home calculates volume percentage as: currentLevel / 254 * 100
+ * Google Home always calculates volume percentage as: currentLevel / 254 * 100
+ * regardless of the maxLevel attribute value.
  */
 const FeaturedBase = Base.with("OnOff");
 
@@ -35,9 +31,15 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
 
   override async initialize() {
     // Set default values BEFORE super.initialize() to prevent validation errors.
-    // Speaker uses 1-254 range (matching Matterbridge approach).
+    // Speaker uses 0-254 range (no Lighting feature, so 0 is valid).
     if (this.state.currentLevel == null) {
-      this.state.currentLevel = 1; // Minimum level (not 0, as per Matterbridge)
+      this.state.currentLevel = 0; // Muted by default
+    }
+    if (this.state.minLevel == null) {
+      this.state.minLevel = 0;
+    }
+    if (this.state.maxLevel == null) {
+      this.state.maxLevel = 254;
     }
 
     await super.initialize();
@@ -49,19 +51,18 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
   private update({ state }: HomeAssistantEntityInformation) {
     const config = this.state.config;
 
-    // For speakers, use 1-254 range (matching Matterbridge approach)
-    // 1 = muted/min, 254 = max volume
-    const minLevel = 1;
+    // For speakers, use 0-254 range (Google Home calculates: currentLevel / 254 * 100)
+    // No +1 offset like lights - 0 means muted, 254 means max volume
+    const minLevel = 0;
     const maxLevel = 254;
 
     // Get volume as percentage (0.0-1.0) from Home Assistant
     const currentLevelPercent = config.getValuePercent(state, this.agent);
 
-    // Convert percentage (0.0-1.0) to 1-254 range
-    // Formula: level = percent * 253 + 1 (so 0% = 1, 100% = 254)
+    // Convert percentage (0.0-1.0) to 0-254 range
     let currentLevel =
       currentLevelPercent != null
-        ? Math.round(currentLevelPercent * 253 + 1)
+        ? Math.round(currentLevelPercent * maxLevel)
         : null;
 
     if (currentLevel != null) {
@@ -70,12 +71,15 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
 
     const entityId = this.agent.get(HomeAssistantEntityBehavior).entity
       .entity_id;
-    logger.info(
+    logger.debug(
       `[${entityId}] Volume update: HA=${currentLevelPercent != null ? Math.round(currentLevelPercent * 100) : "null"}% -> currentLevel=${currentLevel}`,
     );
 
-    // Only set currentLevel - minLevel/maxLevel are not available without Lighting feature
+    // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
+    // as Matter.js might expose them and confuse controllers
     applyPatchState(this.state, {
+      minLevel: minLevel,
+      maxLevel: maxLevel,
       currentLevel: currentLevel,
     });
   }
@@ -129,6 +133,7 @@ export namespace SpeakerLevelControlServerBase {
 
 export function SpeakerLevelControlServer(config: SpeakerLevelControlConfig) {
   return SpeakerLevelControlServerBase.set({
+    options: { executeIfOff: true },
     config,
   });
 }
