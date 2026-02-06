@@ -234,8 +234,8 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const currentLift = this.state.currentPositionLiftPercent100ths ?? 0;
     const currentTilt = this.state.currentPositionTiltPercent100ths ?? 0;
 
-    logger.debug(
-      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}`,
+    logger.info(
+      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}, absolutePosition=${this.features.absolutePosition}`,
     );
 
     if (type === MovementType.Lift) {
@@ -283,16 +283,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
 
   private handleLiftOpen() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      this.state.config.openCoverLift(void 0, this.agent),
-    );
+    const action = this.state.config.openCoverLift(void 0, this.agent);
+    logger.info(`handleLiftOpen: calling action=${action.action}`);
+    homeAssistant.callAction(action);
   }
 
   private handleLiftClose() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      this.state.config.closeCoverLift(void 0, this.agent),
-    );
+    const action = this.state.config.closeCoverLift(void 0, this.agent);
+    logger.info(`handleLiftClose: calling action=${action.action}`);
+    homeAssistant.callAction(action);
   }
 
   private handleGoToLiftPosition(targetPercent100ths: number) {
