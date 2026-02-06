@@ -121,8 +121,13 @@ class LockServerWithPinBase extends PinCredentialBase {
     }
 
     // Check if a PIN credential is configured for this entity
+    // Also check if PIN is disabled via entity mapping
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const hasPinConfigured = this.hasStoredCredential(homeAssistant.entityId);
+    const isPinDisabledByMapping =
+      homeAssistant.state.mapping?.disableLockPin === true;
+    const hasPinConfigured =
+      !isPinDisabledByMapping &&
+      this.hasStoredCredential(homeAssistant.entityId);
 
     applyPatchState(this.state, {
       lockState: this.state.config.getLockState(entity.state, this.agent),
