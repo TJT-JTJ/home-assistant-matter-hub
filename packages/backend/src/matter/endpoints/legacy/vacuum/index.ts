@@ -89,7 +89,13 @@ export function VacuumDevice(
   }
 
   // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
-  if (supportsCleaningModes(attributes)) {
+  // Check both: isDreameVacuum OR if a cleaningModeEntity is mapped
+  const hasCleaningModeEntity =
+    !!homeAssistantEntity.mapping?.cleaningModeEntity;
+  if (supportsCleaningModes(attributes) || hasCleaningModeEntity) {
+    logger.info(
+      `${entityId}: Adding RvcCleanMode cluster (isDreame=${supportsCleaningModes(attributes)}, mappedEntity=${hasCleaningModeEntity})`,
+    );
     device = device.with(createVacuumRvcCleanModeServer(attributes));
   }
 
