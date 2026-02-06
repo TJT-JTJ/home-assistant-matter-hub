@@ -2,8 +2,12 @@ import {
   type BinarySensorDeviceAttributes,
   BinarySensorDeviceClass,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
+
+const logger = Logger.get("BinarySensorDevice");
+
 import {
   ContactSensorType,
   ContactSensorWithBatteryType,
@@ -16,7 +20,12 @@ import {
   OnOffSensorType,
   OnOffSensorWithBatteryType,
 } from "./on-off-sensor.js";
-import { CoAlarmType, SmokeAlarmType } from "./smoke-co-alarm.js";
+import {
+  CoAlarmType,
+  CoAlarmWithBatteryType,
+  SmokeAlarmType,
+  SmokeAlarmWithBatteryType,
+} from "./smoke-co-alarm.js";
 import { WaterLeakDetectorType } from "./water-leak-detector.js";
 
 type CombinedType =
@@ -67,11 +76,14 @@ const batteryTypes = new Map<CombinedType, CombinedType>([
   [ContactSensorType, ContactSensorWithBatteryType],
   [OccupancySensorType, OccupancySensorWithBatteryType],
   [OnOffSensorType, OnOffSensorWithBatteryType],
+  [SmokeAlarmType, SmokeAlarmWithBatteryType],
+  [CoAlarmType, CoAlarmWithBatteryType],
 ]);
 
 export function BinarySensorDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
+  const entityId = homeAssistantEntity.entity.entity_id;
   const defaultDeviceType = OnOffSensorType;
 
   const attributes = homeAssistantEntity.entity.state
@@ -90,9 +102,19 @@ export function BinarySensorDevice(
       ? deviceClasses[deviceClass]
       : defaultDeviceType;
 
+  const originalTypeName = type.name;
+
   // Use battery variant if available
   if (hasBattery && batteryTypes.has(type)) {
     type = batteryTypes.get(type)!;
+    logger.info(
+      `[${entityId}] Using battery variant: ${originalTypeName} -> ${type.name}, ` +
+        `batteryAttr=${hasBatteryAttr}, batteryEntity=${homeAssistantEntity.mapping?.batteryEntity ?? "none"}`,
+    );
+  } else if (hasBattery) {
+    logger.warn(
+      `[${entityId}] Has battery but no variant available for ${originalTypeName}`,
+    );
   }
 
   return type.set({ homeAssistantEntity });

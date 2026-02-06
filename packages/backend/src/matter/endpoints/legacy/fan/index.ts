@@ -5,6 +5,7 @@ import {
 import type { EndpointType } from "@matter/main";
 import type { FanControl } from "@matter/main/clusters";
 import { FanDevice as Device } from "@matter/main/devices";
+import { EntityStateProvider } from "../../../../services/bridges/entity-state-provider.js";
 import type { FeatureSelection } from "../../../../utils/feature-selection.js";
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
@@ -15,7 +16,19 @@ import { FanFanControlServer } from "./behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "./behaviors/fan-on-off-server.js";
 
 const FanPowerSourceServer = PowerSourceServer({
-  getBatteryPercent: (entity) => {
+  getBatteryPercent: (entity, agent) => {
+    // First check for battery entity from mapping (auto-assigned or manual)
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const battery = stateProvider.getNumericState(batteryEntity);
+      if (battery != null) {
+        return Math.max(0, Math.min(100, battery));
+      }
+    }
+
+    // Fallback to entity's own battery attribute
     const attrs = entity.attributes as {
       battery?: number;
       battery_level?: number;
@@ -37,8 +50,10 @@ export function FanDevice(
     battery_level?: number;
   };
   const supportedFeatures = attributes.supported_features ?? 0;
-  const hasBattery =
+  const hasBatteryAttr =
     attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
 
   const hasSetSpeed = testBit(supportedFeatures, FanDeviceFeature.SET_SPEED);
   const hasPresetMode = testBit(
@@ -64,6 +79,20 @@ export function FanDevice(
   }
   if (testBit(supportedFeatures, FanDeviceFeature.DIRECTION)) {
     features.add("AirflowDirection");
+  }
+  // Enable Rocking (oscillation) if fan supports it
+  if (testBit(supportedFeatures, FanDeviceFeature.OSCILLATE)) {
+    features.add("Rocking");
+  }
+  // Enable Wind mode if fan has natural/sleep preset modes
+  const hasWindModes = presetModes.some(
+    (m) =>
+      m.toLowerCase() === "natural" ||
+      m.toLowerCase() === "nature" ||
+      m.toLowerCase() === "sleep",
+  );
+  if (hasWindModes) {
+    features.add("Wind");
   }
 
   const device = hasBattery

@@ -119,4 +119,59 @@ export class ServerModeBridge {
   async delete(): Promise<void> {
     await this.server.delete();
   }
+
+  /**
+   * Force sync the device state to all connected Matter controllers.
+   * This triggers a state refresh, pushing current values to all subscribed
+   * controllers without requiring re-pairing.
+   */
+  async forceSync(): Promise<number> {
+    if (this.status.code !== BridgeStatus.Running) {
+      this.log.warn("Cannot force sync - server mode bridge is not running");
+      return 0;
+    }
+
+    const device = this.endpointManager.device;
+    if (!device) {
+      this.log.warn("Cannot force sync - no device endpoint");
+      return 0;
+    }
+
+    this.log.info("Force sync: Pushing device state to controllers...");
+
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { HomeAssistantEntityBehavior } = await import(
+        "../../matter/behaviors/home-assistant-entity-behavior.js"
+      );
+
+      // Check if this endpoint has the HomeAssistantEntityBehavior
+      if (!device.behaviors.has(HomeAssistantEntityBehavior)) {
+        this.log.warn(
+          "Force sync: Device does not have HomeAssistantEntityBehavior",
+        );
+        return 0;
+      }
+
+      // Get the current entity state and re-emit it
+      const behavior = device.stateOf(HomeAssistantEntityBehavior);
+      const currentEntity = behavior.entity;
+
+      if (currentEntity?.state) {
+        // Re-set the state to trigger the entity$Changed event
+        await device.setStateOf(HomeAssistantEntityBehavior, {
+          entity: {
+            ...currentEntity,
+            state: { ...currentEntity.state },
+          },
+        });
+        this.log.info("Force sync: Completed for 1 device");
+        return 1;
+      }
+    } catch (e) {
+      this.log.debug("Force sync: Failed due to error:", e);
+    }
+
+    return 0;
+  }
 }

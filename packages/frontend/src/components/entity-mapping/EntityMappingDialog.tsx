@@ -59,6 +59,7 @@ export function EntityMappingDialog({
   const [humidityEntity, setHumidityEntity] = useState("");
   const [batteryEntity, setBatteryEntity] = useState("");
   const [roomEntities, setRoomEntities] = useState<string[]>([]);
+  const [disableLockPin, setDisableLockPin] = useState(false);
   const [availableButtons, setAvailableButtons] = useState<RelatedButton[]>([]);
   const [loadingButtons, setLoadingButtons] = useState(false);
 
@@ -75,6 +76,7 @@ export function EntityMappingDialog({
       setHumidityEntity(currentMapping?.humidityEntity || "");
       setBatteryEntity(currentMapping?.batteryEntity || "");
       setRoomEntities(currentMapping?.roomEntities || []);
+      setDisableLockPin(currentMapping?.disableLockPin || false);
       setAvailableButtons([]);
     }
   }, [open, entityId, currentMapping]);
@@ -119,6 +121,7 @@ export function EntityMappingDialog({
       humidityEntity: humidityEntity.trim() || undefined,
       batteryEntity: batteryEntity.trim() || undefined,
       roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
+      disableLockPin: disableLockPin || undefined,
     });
   }, [
     editEntityId,
@@ -130,6 +133,7 @@ export function EntityMappingDialog({
     humidityEntity,
     batteryEntity,
     roomEntities,
+    disableLockPin,
     onSave,
   ]);
 
@@ -148,6 +152,10 @@ export function EntityMappingDialog({
   const showHumidityBatteryFields =
     matterDeviceType === "temperature_sensor" ||
     (currentDomain === "sensor" && !matterDeviceType);
+
+  // Show PIN disable option for locks
+  const showLockPinField =
+    matterDeviceType === "door_lock" || currentDomain === "lock";
 
   const availableTypes = Object.entries(matterDeviceTypeLabels) as [
     MatterDeviceType,
@@ -339,6 +347,19 @@ export function EntityMappingDialog({
               helperText="Include battery level from a separate sensor entity"
             />
           </>
+        )}
+
+        {showLockPinField && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={disableLockPin}
+                onChange={(e) => setDisableLockPin(e.target.checked)}
+              />
+            }
+            label="Disable PIN requirement for this lock"
+            sx={{ mt: 1, display: "block" }}
+          />
         )}
 
         <FormControlLabel

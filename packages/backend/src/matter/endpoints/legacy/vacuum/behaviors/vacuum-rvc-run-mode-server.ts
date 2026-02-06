@@ -67,7 +67,7 @@ const vacuumRvcRunModeConfig = {
       VacuumState.mop_cleaning,
     ];
     const isCleaning = cleaningStates.includes(state);
-    logger.info(
+    logger.debug(
       `Vacuum state: "${state}", isCleaning: ${isCleaning}, currentMode: ${isCleaning ? "Cleaning" : "Idle"}`,
     );
     return isCleaning ? RvcSupportedRunMode.Cleaning : RvcSupportedRunMode.Idle;

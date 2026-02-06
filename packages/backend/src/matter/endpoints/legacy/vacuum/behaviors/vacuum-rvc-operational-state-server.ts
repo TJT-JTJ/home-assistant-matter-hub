@@ -48,7 +48,7 @@ export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
       }
     }
 
-    logger.info(
+    logger.debug(
       `Vacuum operationalState: "${state}" -> ${RvcOperationalState.OperationalState[operationalState]}`,
     );
     return operationalState;

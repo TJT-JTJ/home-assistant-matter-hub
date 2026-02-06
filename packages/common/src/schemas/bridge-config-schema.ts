@@ -72,6 +72,15 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
+    coverSwapOpenClose: {
+      title: "Swap Open/Close Commands for Covers",
+      description:
+        "Swap the open and close commands for covers. Enable this if Alexa voice commands are reversed " +
+        "(saying 'close' opens the blinds and vice versa). This affects open/close commands only, not percentage control.",
+      type: "boolean",
+      default: false,
+    },
+
     includeHiddenEntities: {
       title: "Include Hidden Entities",
       description:
@@ -118,11 +127,11 @@ const featureFlagSchema: JSONSchema7 = {
     },
 
     autoForceSync: {
-      title: "Auto Force Sync (Google Home workaround)",
+      title: "Auto Force Sync (Google Home & Alexa workaround)",
       description:
         "Periodically push all device states to connected controllers every 60 seconds. " +
-        "This is a workaround for Google Home which sometimes loses subscriptions and doesn't receive state updates. " +
-        "Only enable this if you experience state sync issues with Google Home.",
+        "This is a workaround for Google Home and Alexa which sometimes lose subscriptions and show devices as offline/unresponsive. " +
+        "Only enable this if you experience state sync issues or disconnections after a few hours.",
       type: "boolean",
       default: false,
     },

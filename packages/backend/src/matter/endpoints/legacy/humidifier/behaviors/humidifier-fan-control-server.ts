@@ -43,6 +43,13 @@ const config: FanControlServerConfig = {
     return mode;
   },
   supportsPercentage: () => true,
+  // Humidifiers don't typically support oscillation
+  isOscillating: () => false,
+  supportsOscillation: () => false,
+  // Humidifiers don't typically support wind modes
+  getWindMode: () => undefined,
+  supportsWind: () => false,
+
   turnOff: () => ({ action: "humidifier.turn_off" }),
   turnOn: (percent: number, agent: Agent) =>
     setHumidityFromPercent(percent, agent),
@@ -55,6 +62,8 @@ const config: FanControlServerConfig = {
     action: "humidifier.set_mode",
     data: { mode },
   }),
+  setOscillation: () => ({ action: "humidifier.turn_on" }),
+  setWindMode: () => ({ action: "humidifier.turn_on" }),
 };
 
 export const HumidifierFanControlServer = FanControlServer(config).with(

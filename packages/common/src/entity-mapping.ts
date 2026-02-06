@@ -72,6 +72,13 @@ export interface EntityMappingConfig {
    * Example: ["button.roborock_clean_kitchen", "button.roborock_clean_living_room"]
    */
   readonly roomEntities?: string[];
+  /**
+   * Optional: Disable PIN requirement for this lock.
+   * When true, the lock will not require PIN validation even if a PIN is configured.
+   * Useful when you have multiple locks and only want PIN protection on some of them.
+   * Default: false (PIN is required if configured)
+   */
+  readonly disableLockPin?: boolean;
 }
 
 export interface EntityMappingRequest {
@@ -85,6 +92,7 @@ export interface EntityMappingRequest {
   readonly humidityEntity?: string;
   readonly batteryEntity?: string;
   readonly roomEntities?: string[];
+  readonly disableLockPin?: boolean;
 }
 
 export interface EntityMappingResponse {

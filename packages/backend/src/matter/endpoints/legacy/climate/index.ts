@@ -8,6 +8,7 @@ import {
   RoomAirConditionerDevice,
   ThermostatDevice,
 } from "@matter/main/devices";
+import { EntityStateProvider } from "../../../../services/bridges/entity-state-provider.js";
 import { InvalidDeviceError } from "../../../../utils/errors/invalid-device-error.js";
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
@@ -20,7 +21,19 @@ import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
 import { ClimateThermostatServer } from "./behaviors/climate-thermostat-server.js";
 
 const ClimatePowerSourceServer = PowerSourceServer({
-  getBatteryPercent: (entity) => {
+  getBatteryPercent: (entity, agent) => {
+    // First check for battery entity from mapping (auto-assigned or manual)
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const battery = stateProvider.getNumericState(batteryEntity);
+      if (battery != null) {
+        return Math.max(0, Math.min(100, battery));
+      }
+    }
+
+    // Fallback to entity's own battery attribute
     const attrs = entity.attributes as {
       battery?: number;
       battery_level?: number;
@@ -122,8 +135,10 @@ export function ClimateDevice(
     battery_level?: number;
   };
   const supportedFeatures = attributes.supported_features ?? 0;
-  const hasBattery =
+  const hasBatteryAttr =
     attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
 
   const supportsCooling = coolingModes.some((mode) =>
     attributes.hvac_modes.includes(mode),

@@ -43,6 +43,7 @@ const usesMatterSemantics = (agent: Agent): boolean => {
  * Adjusts position when READING from HA to report to Matter controllers.
  * By default, inverts percentage (HA 80% open → Matter 20% = 80% closed).
  * With coverUseHomeAssistantPercentage flag, skips inversion for Alexa-friendly display.
+ * With coverSwapOpenClose, forces inversion to fix Alexa open/close display.
  */
 const adjustPositionForReading = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
@@ -50,6 +51,13 @@ const adjustPositionForReading = (position: number, agent: Agent) => {
     return null;
   }
   let percentValue = position;
+
+  // coverSwapOpenClose forces inversion for position reading (fixes Alexa display)
+  if (featureFlags?.coverSwapOpenClose === true) {
+    percentValue = 100 - percentValue;
+    return percentValue;
+  }
+
   // Skip inversion if:
   // 1. User explicitly set coverDoNotInvertPercentage flag, OR
   // 2. User set coverUseHomeAssistantPercentage for Alexa-friendly display, OR
@@ -68,6 +76,7 @@ const adjustPositionForReading = (position: number, agent: Agent) => {
  * Adjusts position when WRITING to HA from Matter controller commands.
  * By default, inverts percentage (Matter 80% closed → HA 20% open).
  * With coverUseHomeAssistantPercentage, also skips inversion so commands match display.
+ * With coverSwapOpenClose, forces inversion to fix Alexa open/close commands.
  */
 const adjustPositionForWriting = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
@@ -75,6 +84,14 @@ const adjustPositionForWriting = (position: number, agent: Agent) => {
     return null;
   }
   let percentValue = position;
+
+  // coverSwapOpenClose forces inversion for position commands (fixes Alexa)
+  // Alexa sends position 100% for "close" which needs to become 0% in HA
+  if (featureFlags?.coverSwapOpenClose === true) {
+    percentValue = 100 - percentValue;
+    return percentValue;
+  }
+
   // Skip inversion for writing if:
   // 1. User explicitly set coverDoNotInvertPercentage flag, OR
   // 2. User set coverUseHomeAssistantPercentage (so commands match displayed %), OR
@@ -87,6 +104,14 @@ const adjustPositionForWriting = (position: number, agent: Agent) => {
     percentValue = 100 - percentValue;
   }
   return percentValue;
+};
+
+/**
+ * Checks if open/close commands should be swapped (for Alexa compatibility).
+ */
+const shouldSwapOpenClose = (agent: Agent): boolean => {
+  const { featureFlags } = agent.env.get(BridgeDataProvider);
+  return featureFlags?.coverSwapOpenClose === true;
 };
 
 const config: WindowCoveringConfig = {
@@ -129,15 +154,33 @@ const config: WindowCoveringConfig = {
 
   stopCover: () => ({ action: "cover.stop_cover" }),
 
-  openCoverLift: () => ({ action: "cover.open_cover" }),
-  closeCoverLift: () => ({ action: "cover.close_cover" }),
+  // Open/close can be swapped via coverSwapOpenClose flag for Alexa compatibility
+  openCoverLift: (_, agent) => ({
+    action: shouldSwapOpenClose(agent)
+      ? "cover.close_cover"
+      : "cover.open_cover",
+  }),
+  closeCoverLift: (_, agent) => ({
+    action: shouldSwapOpenClose(agent)
+      ? "cover.open_cover"
+      : "cover.close_cover",
+  }),
   setLiftPosition: (position, agent) => ({
     action: "cover.set_cover_position",
     data: { position: adjustPositionForWriting(position, agent) },
   }),
 
-  openCoverTilt: () => ({ action: "cover.open_cover_tilt" }),
-  closeCoverTilt: () => ({ action: "cover.close_cover_tilt" }),
+  // Tilt open/close also respects the swap flag
+  openCoverTilt: (_, agent) => ({
+    action: shouldSwapOpenClose(agent)
+      ? "cover.close_cover_tilt"
+      : "cover.open_cover_tilt",
+  }),
+  closeCoverTilt: (_, agent) => ({
+    action: shouldSwapOpenClose(agent)
+      ? "cover.open_cover_tilt"
+      : "cover.close_cover_tilt",
+  }),
   setTiltPosition: (position, agent) => ({
     action: "cover.set_cover_tilt_position",
     data: { tilt_position: adjustPositionForWriting(position, agent) },

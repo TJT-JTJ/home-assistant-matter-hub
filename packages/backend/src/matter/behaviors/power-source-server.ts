@@ -27,6 +27,17 @@ class PowerSourceServerBase extends FeaturedBase {
 
   override async initialize() {
     await super.initialize();
+
+    // Set endpointList to include this endpoint - required for controllers to
+    // associate the power source with the device. Without this, some controllers
+    // (like Google Home) may not display the battery level.
+    const endpointNumber = this.endpoint.number;
+    if (endpointNumber != null) {
+      applyPatchState(this.state, {
+        endpointList: [endpointNumber],
+      });
+    }
+
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);

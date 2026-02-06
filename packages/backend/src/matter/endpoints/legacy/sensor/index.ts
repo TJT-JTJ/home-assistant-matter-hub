@@ -17,7 +17,10 @@ import {
   TemperatureHumiditySensorType,
   TemperatureHumiditySensorWithBatteryType,
 } from "./devices/temperature-humidity-sensor.js";
-import { TemperatureSensorType } from "./devices/temperature-sensor.js";
+import {
+  TemperatureSensorType,
+  TemperatureSensorWithBatteryType,
+} from "./devices/temperature-sensor.js";
 import { TvocSensorType } from "./devices/tvoc-sensor.js";
 
 export function SensorDevice(
@@ -39,6 +42,9 @@ export function SensorDevice(
     }
     if (hasHumidity) {
       return TemperatureHumiditySensorType.set({ homeAssistantEntity });
+    }
+    if (hasBattery) {
+      return TemperatureSensorWithBatteryType.set({ homeAssistantEntity });
     }
     return TemperatureSensorType.set({ homeAssistantEntity });
   }
