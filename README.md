@@ -90,6 +90,7 @@ of port forwarding etc.
 | **🔒 Lock without PIN** | Lock door without PIN, only unlock requires PIN ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) |
 | **🚪 Swap Open/Close** | `coverSwapOpenClose` flag for Alexa ([#117](https://github.com/RiDDiX/home-assistant-matter-hub/issues/117)) |
 | **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
+| **🤖 Ecovacs Rooms** | Room attribute parsing for Ecovacs Deebot vacuums ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
 
 </details>
 
@@ -302,6 +303,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | [@depahk](https://github.com/depahk) | 📝 Migration documentation fix ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
 | [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
 | [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
+| [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
 
 <details>
 <summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>
@@ -310,6 +312,7 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 | User | Issues |
 |------|--------|
+| [@markgaze](https://github.com/markgaze) | #118 |
 | [@BlairC1](https://github.com/BlairC1) | #117 |
 | [@Giamp96](https://github.com/Giamp96) | #116 |
 | [@NdR91](https://github.com/NdR91) | #115 #106 |
