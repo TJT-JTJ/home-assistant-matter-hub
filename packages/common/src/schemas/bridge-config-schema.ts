@@ -72,6 +72,15 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
+    coverSwapOpenClose: {
+      title: "Swap Open/Close Commands for Covers",
+      description:
+        "Swap the open and close commands for covers. Enable this if Alexa voice commands are reversed " +
+        "(saying 'close' opens the blinds and vice versa). This affects open/close commands only, not percentage control.",
+      type: "boolean",
+      default: false,
+    },
+
     includeHiddenEntities: {
       title: "Include Hidden Entities",
       description:
