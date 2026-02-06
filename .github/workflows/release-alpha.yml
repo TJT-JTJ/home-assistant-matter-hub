@@ -124,15 +124,8 @@ jobs:
           VERSION="${{ steps.version.outputs.release-version }}"
           gh release create "v$VERSION" \
             --title "v$VERSION" \
-            --notes "## Alpha Release v$VERSION
-
-          ${{ env.CHANGELOG }}
-
-          ---
-          ⚠️ **This is an alpha release** - use at your own risk!
-          " \
+            --notes-file CHANGELOG.md \
             --prerelease \
-            CHANGELOG.md \
             CHANGELOG_FULL.md
 
       - name: Package Artifact
