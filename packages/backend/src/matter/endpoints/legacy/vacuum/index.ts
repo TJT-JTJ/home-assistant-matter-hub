@@ -46,10 +46,17 @@ export function VacuumDevice(
     device = device.with(VacuumOnOffServer);
   }
   // Add PowerSource if BATTERY feature is set OR if battery attribute exists
+  // OR if a battery entity is mapped (for Roomba, Deebot, etc.)
   // Some vacuums use 'battery_level', others use 'battery' (e.g. Dreame)
   const batteryValue = attributes.battery_level ?? attributes.battery;
-  const hasBattery = batteryValue != null && typeof batteryValue === "number";
-  if (testBit(supportedFeatures, VacuumDeviceFeature.BATTERY) || hasBattery) {
+  const hasBatteryAttr =
+    batteryValue != null && typeof batteryValue === "number";
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  if (
+    testBit(supportedFeatures, VacuumDeviceFeature.BATTERY) ||
+    hasBatteryAttr ||
+    hasBatteryEntity
+  ) {
     device = device.with(VacuumPowerSourceServer);
   }
 
