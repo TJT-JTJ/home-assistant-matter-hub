@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { AirQualityServer } from "@matter/main/behaviors";
 import { AirQuality } from "@matter/main/clusters";
 import { AirQualitySensorDevice } from "@matter/main/devices";
@@ -7,6 +8,8 @@ import { BasicInformationServer } from "../../../../behaviors/basic-information-
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
 import { TvocConcentrationMeasurementServer } from "../../../../behaviors/tvoc-concentration-measurement-server.js";
+
+const logger = Logger.get("TvocSensor");
 
 const TvocAirQualityServerBase = AirQualityServer.with(
   AirQuality.Feature.Fair,
@@ -33,9 +36,13 @@ class TvocAirQualityServer extends TvocAirQualityServerBase {
     let airQuality: AirQuality.AirQualityEnum =
       AirQuality.AirQualityEnum.Unknown;
 
+    logger.debug(
+      `[${entity.entity_id}] TVOC update: state="${state}", type=${typeof state}, isNaN=${Number.isNaN(+state)}`,
+    );
+
     if (state != null && !Number.isNaN(+state)) {
       const value = +state;
-      // VOC index or ppb
+      // VOC index or ppb - thresholds based on Sensirion SGP40/41 index scale
       if (value <= 100) {
         airQuality = AirQuality.AirQualityEnum.Good;
       } else if (value <= 200) {
@@ -47,6 +54,13 @@ class TvocAirQualityServer extends TvocAirQualityServerBase {
       } else {
         airQuality = AirQuality.AirQualityEnum.VeryPoor;
       }
+      logger.debug(
+        `[${entity.entity_id}] TVOC value=${value} -> airQuality=${AirQuality.AirQualityEnum[airQuality]}`,
+      );
+    } else {
+      logger.warn(
+        `[${entity.entity_id}] TVOC state not a valid number: "${state}"`,
+      );
     }
 
     applyPatchState(this.state, { airQuality });
