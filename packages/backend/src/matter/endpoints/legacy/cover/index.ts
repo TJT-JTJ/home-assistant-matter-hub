@@ -2,9 +2,13 @@ import {
   type CoverDeviceAttributes,
   CoverSupportedFeatures,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import type { WindowCovering } from "@matter/main/clusters";
 import { WindowCoveringDevice } from "@matter/main/devices";
+
+const logger = Logger.get("CoverDevice");
+
 import { EntityStateProvider } from "../../../../services/bridges/entity-state-provider.js";
 import type { FeatureSelection } from "../../../../utils/feature-selection.js";
 import { testBit } from "../../../../utils/test-bit.js";
@@ -87,6 +91,7 @@ const CoverDeviceType = (supportedFeatures: number, hasBattery: boolean) => {
 export function CoverDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
+  const entityId = homeAssistantEntity.entity.entity_id;
   const attributes = homeAssistantEntity.entity.state
     .attributes as CoverDeviceAttributes & {
     battery?: number;
@@ -96,6 +101,14 @@ export function CoverDevice(
     attributes.battery_level != null || attributes.battery != null;
   const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
   const hasBattery = hasBatteryAttr || hasBatteryEntity;
+
+  if (hasBattery) {
+    logger.info(
+      `[${entityId}] Creating cover with PowerSource cluster, ` +
+        `batteryAttr=${hasBatteryAttr}, batteryEntity=${homeAssistantEntity.mapping?.batteryEntity ?? "none"}`,
+    );
+  }
+
   return CoverDeviceType(attributes.supported_features ?? 0, hasBattery).set({
     homeAssistantEntity,
   });
