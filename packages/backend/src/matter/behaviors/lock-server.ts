@@ -133,9 +133,15 @@ class LockServerWithPinBase extends PinCredentialBase {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = this.state.config.lock(void 0, this.agent);
 
-    // Lock does NOT require PIN - anyone can lock the door
-    // Only unlock requires PIN validation for security
-    // If a PIN was provided, just pass it through to Home Assistant (some locks may need it)
+    // Log the lock request for debugging
+    const hasPinProvided = !!request.pinCode;
+    console.log(
+      `[LockServer] lockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}`,
+    );
+
+    // Lock does NOT require PIN validation - anyone can lock the door
+    // We accept any PIN (or no PIN) and just proceed with the lock action
+    // If a PIN was provided, pass it through to Home Assistant (some locks may need it)
     if (request.pinCode) {
       const providedPin = new TextDecoder().decode(request.pinCode);
       action.data = { ...action.data, code: providedPin };
@@ -148,9 +154,16 @@ class LockServerWithPinBase extends PinCredentialBase {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = this.state.config.unlock(void 0, this.agent);
 
+    // Log the unlock request for debugging
+    const hasPinProvided = !!request.pinCode;
+    console.log(
+      `[LockServer] unlockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}`,
+    );
+
     // Validate provided PIN against stored hashed PIN
     if (this.state.requirePinForRemoteOperation) {
       if (!request.pinCode) {
+        console.log(`[LockServer] unlockDoor REJECTED - no PIN provided`);
         throw new StatusResponseError(
           "PIN code required for remote unlock",
           StatusCode.Failure,
@@ -158,8 +171,10 @@ class LockServerWithPinBase extends PinCredentialBase {
       }
       const providedPin = new TextDecoder().decode(request.pinCode);
       if (!this.verifyStoredPin(homeAssistant.entityId, providedPin)) {
+        console.log(`[LockServer] unlockDoor REJECTED - invalid PIN`);
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
+      console.log(`[LockServer] unlockDoor PIN verified successfully`);
       // Pass the provided PIN to Home Assistant (for locks that require it)
       action.data = { ...action.data, code: providedPin };
     }
