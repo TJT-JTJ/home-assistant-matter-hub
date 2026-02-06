@@ -45,8 +45,15 @@ const CoverPowerSourceServer = PowerSourceServer({
   },
 });
 
-const CoverDeviceType = (supportedFeatures: number, hasBattery: boolean) => {
+const CoverDeviceType = (
+  supportedFeatures: number,
+  hasBattery: boolean,
+  entityId: string,
+) => {
   const features: FeatureSelection<WindowCovering.Complete> = new Set();
+
+  // Always add Lift as minimum feature - a WindowCovering without Lift or Tilt
+  // may cause issues with some controllers (Apple Home showing as wrong device type)
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open)) {
     features.add("Lift");
     // Only add PositionAwareLift if the cover supports position control.
@@ -59,6 +66,13 @@ const CoverDeviceType = (supportedFeatures: number, hasBattery: boolean) => {
       features.add("PositionAwareLift");
       features.add("AbsolutePosition");
     }
+  } else {
+    // Fallback: Add Lift even if support_open is not set
+    // This ensures the WindowCovering device is always valid
+    logger.warn(
+      `[${entityId}] Cover has no support_open feature (supported_features=${supportedFeatures}), adding Lift anyway`,
+    );
+    features.add("Lift");
   }
 
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open_tilt)) {
@@ -74,6 +88,10 @@ const CoverDeviceType = (supportedFeatures: number, hasBattery: boolean) => {
       features.add("AbsolutePosition");
     }
   }
+
+  logger.info(
+    `[${entityId}] Creating WindowCovering with features: [${[...features].join(", ")}], supported_features=${supportedFeatures}`,
+  );
 
   const baseBehaviors = [
     BasicInformationServer,
@@ -113,7 +131,11 @@ export function CoverDevice(
     );
   }
 
-  return CoverDeviceType(attributes.supported_features ?? 0, hasBattery).set({
+  return CoverDeviceType(
+    attributes.supported_features ?? 0,
+    hasBattery,
+    entityId,
+  ).set({
     homeAssistantEntity,
   });
 }
