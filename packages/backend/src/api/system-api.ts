@@ -1,6 +1,9 @@
-import fs from "node:fs/promises";
+import { exec } from "node:child_process";
 import os from "node:os";
+import { promisify } from "node:util";
 import express from "express";
+
+const execAsync = promisify(exec);
 
 export interface NetworkInterface {
   name: string;
@@ -135,19 +138,33 @@ function getNetworkInterfaces(): NetworkInterface[] {
     if (!ifaceList) continue;
 
     for (const iface of ifaceList) {
-      // Only include IPv4 addresses for simplicity
+      // Include both IPv4 and IPv6 addresses
       const family = String(iface.family);
-      if (family === "IPv4" || family === "4") {
-        interfaces.push({
-          name,
-          address: iface.address,
-          family: family === "4" ? "IPv4" : family,
-          mac: iface.mac,
-          internal: iface.internal,
-        });
+      const normalizedFamily =
+        family === "4" ? "IPv4" : family === "6" ? "IPv6" : family;
+
+      // Skip link-local IPv6 addresses (fe80::) for cleaner display
+      if (normalizedFamily === "IPv6" && iface.address.startsWith("fe80:")) {
+        continue;
       }
+
+      interfaces.push({
+        name,
+        address: iface.address,
+        family: normalizedFamily,
+        mac: iface.mac,
+        internal: iface.internal,
+      });
     }
   }
+
+  // Sort: IPv4 first, then IPv6, then by interface name
+  interfaces.sort((a, b) => {
+    if (a.family !== b.family) {
+      return a.family === "IPv4" ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   return interfaces;
 }
@@ -158,66 +175,109 @@ async function getStorageInfo(): Promise<{
   free: number;
 }> {
   try {
-    // Get storage info for the current working directory
-    const _stats = await fs.stat(process.cwd());
+    // Determine the path to check - use data directory if available
+    const pathToCheck = getDataPath();
 
-    // On Windows, we need to get the drive info
     if (os.platform() === "win32") {
-      const drive = `${process.cwd().split(":")[0]}:`;
-      try {
-        // Try to get free space using Node.js built-in methods
-        const freeSpace = await getDiskFreeSpace(drive);
-        const totalSpace = 1073741824000; // 1TB default estimate for Windows
-        const usedSpace = totalSpace - freeSpace;
-
-        return {
-          total: totalSpace,
-          used: usedSpace,
-          free: freeSpace,
-        };
-      } catch {
-        // Fallback to estimates
-        return {
-          total: 1073741824000, // 1TB
-          used: 536870912000, // 500GB
-          free: 536870912000, // 500GB
-        };
-      }
+      return await getWindowsStorageInfo(pathToCheck);
     } else {
-      // For Unix-like systems, we can use statvfs if available
-      try {
-        const freeSpace = await getDiskFreeSpace("/");
-        const totalSpace = 1073741824000; // 1TB default estimate
-        const usedSpace = totalSpace - freeSpace;
-
-        return {
-          total: totalSpace,
-          used: usedSpace,
-          free: freeSpace,
-        };
-      } catch {
-        // Fallback to estimates
-        return {
-          total: 1073741824000, // 1TB
-          used: 536870912000, // 500GB
-          free: 536870912000, // 500GB
-        };
-      }
+      return await getUnixStorageInfo(pathToCheck);
     }
   } catch (error) {
     console.error("Failed to get storage info:", error);
-    // Return fallback values
-    return {
-      total: 1073741824000, // 1TB
-      used: 536870912000, // 500GB
-      free: 536870912000, // 500GB
-    };
+    return { total: 0, used: 0, free: 0 };
   }
 }
 
-async function getDiskFreeSpace(_path: string): Promise<number> {
-  // This is a simplified implementation
-  // In a real implementation, you might want to use a library like 'diskusage'
-  // For now, we'll return a reasonable estimate
-  return 536870912000; // 500GB
+/**
+ * Get the data path to check storage for.
+ * For Add-on: /data
+ * For Docker: DATA_PATH env or /data
+ * For Standalone: current working directory
+ */
+function getDataPath(): string {
+  // Home Assistant Add-on uses /data
+  if (process.env.SUPERVISOR_TOKEN || process.env.HASSIO_TOKEN) {
+    return "/data";
+  }
+  // Docker might use DATA_PATH env
+  if (process.env.DATA_PATH) {
+    return process.env.DATA_PATH;
+  }
+  // Check if /data exists (common Docker mount point)
+  try {
+    const fsSync = require("node:fs");
+    if (fsSync.existsSync("/data")) {
+      return "/data";
+    }
+  } catch {
+    // ignore
+  }
+  // Fallback to current working directory
+  return process.cwd();
+}
+
+/**
+ * Get storage info on Windows using PowerShell
+ */
+async function getWindowsStorageInfo(
+  path: string,
+): Promise<{ total: number; used: number; free: number }> {
+  try {
+    const drive = `${path.split(":")[0]}:`;
+    const { stdout } = await execAsync(
+      `powershell -Command "Get-PSDrive -Name '${drive.replace(":", "")}' | Select-Object Used,Free | ConvertTo-Json"`,
+    );
+    const data = JSON.parse(stdout.trim());
+    const used = Number(data.Used) || 0;
+    const free = Number(data.Free) || 0;
+    const total = used + free;
+    return { total, used, free };
+  } catch {
+    // Fallback: try wmic
+    try {
+      const drive = `${path.split(":")[0]}:`;
+      const { stdout } = await execAsync(
+        `wmic logicaldisk where "DeviceID='${drive}'" get Size,FreeSpace /format:csv`,
+      );
+      const lines = stdout.trim().split("\n").filter(Boolean);
+      if (lines.length >= 2) {
+        const values = lines[1].split(",");
+        const free = Number(values[1]) || 0;
+        const total = Number(values[2]) || 0;
+        const used = total - free;
+        return { total, used, free };
+      }
+    } catch {
+      // ignore
+    }
+    return { total: 0, used: 0, free: 0 };
+  }
+}
+
+/**
+ * Get storage info on Unix-like systems using df command
+ */
+async function getUnixStorageInfo(
+  path: string,
+): Promise<{ total: number; used: number; free: number }> {
+  try {
+    // Use df with 1K blocks for accuracy, -P for POSIX output
+    const { stdout } = await execAsync(`df -Pk "${path}" 2>/dev/null`);
+    const lines = stdout.trim().split("\n");
+
+    if (lines.length >= 2) {
+      // Parse df output: Filesystem 1K-blocks Used Available Use% Mounted
+      const parts = lines[1].split(/\s+/);
+      if (parts.length >= 4) {
+        const total = Number(parts[1]) * 1024; // Convert from 1K blocks to bytes
+        const used = Number(parts[2]) * 1024;
+        const free = Number(parts[3]) * 1024;
+        return { total, used, free };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { total: 0, used: 0, free: 0 };
 }
