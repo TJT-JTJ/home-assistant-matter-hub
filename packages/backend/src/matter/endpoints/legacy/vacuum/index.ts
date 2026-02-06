@@ -2,8 +2,12 @@ import {
   type VacuumDeviceAttributes,
   VacuumDeviceFeature,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import { RoboticVacuumCleanerDevice } from "@matter/main/devices";
+
+const logger = Logger.get("VacuumDevice");
+
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
@@ -33,9 +37,15 @@ export function VacuumDevice(
     return undefined;
   }
 
+  const entityId = homeAssistantEntity.entity.entity_id;
   const attributes = homeAssistantEntity.entity.state
     .attributes as VacuumDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
+
+  // Debug: Log mapping info
+  logger.info(
+    `Creating vacuum endpoint for ${entityId}, mapping: ${JSON.stringify(homeAssistantEntity.mapping ?? "none")}`,
+  );
 
   // Add RvcRunModeServer with initial supportedModes (including room modes if available)
   let device = VacuumEndpointType.with(
@@ -66,10 +76,16 @@ export function VacuumDevice(
   //               2) button entities from mapping (Roborock official integration)
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
+  logger.info(
+    `${entityId}: roomEntities=${JSON.stringify(roomEntities ?? [])}, parsedRooms=${rooms.length}`,
+  );
   if (rooms.length > 0 || (roomEntities && roomEntities.length > 0)) {
+    logger.info(`${entityId}: Adding ServiceArea cluster with rooms`);
     device = device.with(
       createVacuumServiceAreaServer(attributes, roomEntities),
     );
+  } else {
+    logger.info(`${entityId}: No rooms found, skipping ServiceArea cluster`);
   }
 
   // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
