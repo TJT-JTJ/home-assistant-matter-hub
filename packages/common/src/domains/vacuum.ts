@@ -84,7 +84,13 @@ export type DreameRoomRecord = Record<string, VacuumRoom[]>;
 /**
  * All supported formats for room/segment data across different integrations.
  */
-export type VacuumRoomsData = VacuumRoom[] | SimpleRoomRecord | EcovacsRoomRecord | DreameRoomRecord | null | undefined;
+export type VacuumRoomsData =
+  | VacuumRoom[]
+  | SimpleRoomRecord
+  | EcovacsRoomRecord
+  | DreameRoomRecord
+  | null
+  | undefined;
 
 export interface VacuumDeviceAttributes {
   supported_features?: number;

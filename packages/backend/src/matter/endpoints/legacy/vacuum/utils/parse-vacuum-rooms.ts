@@ -1,4 +1,7 @@
-import type { VacuumDeviceAttributes, VacuumRoom } from "@home-assistant-matter-hub/common";
+import type {
+  VacuumDeviceAttributes,
+  VacuumRoom,
+} from "@home-assistant-matter-hub/common";
 
 /**
  * Format a room name from snake_case to Title Case.
@@ -64,7 +67,12 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
       // The key is the map name, value is an array of room objects
       else if (Array.isArray(value)) {
         // Check if it's an array of room objects (Dreame format)
-        if (value.length > 0 && typeof value[0] === "object" && value[0] !== null && "id" in value[0]) {
+        if (
+          value.length > 0 &&
+          typeof value[0] === "object" &&
+          value[0] !== null &&
+          "id" in value[0]
+        ) {
           const nestedRooms = parseRoomData(value);
           rooms.push(...nestedRooms);
         }
@@ -94,7 +102,8 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
  * Matches patterns like "Room 1", "Room 7", "Raum 3", etc.
  * These are typically auto-generated names for unmapped/hidden rooms.
  */
-const UNNAMED_ROOM_PATTERN = /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
+const UNNAMED_ROOM_PATTERN =
+  /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
 
 /**
  * Check if a room name appears to be a generic/unnamed room.
@@ -119,7 +128,10 @@ export function isUnnamedRoom(roomName: string): boolean {
  * @param includeUnnamedRooms - If false (default), filters out rooms with generic names like "Room 7"
  * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
  */
-export function parseVacuumRooms(attributes: VacuumDeviceAttributes, includeUnnamedRooms = false): VacuumRoom[] {
+export function parseVacuumRooms(
+  attributes: VacuumDeviceAttributes,
+  includeUnnamedRooms = false,
+): VacuumRoom[] {
   // Try each attribute source in order, return first one with valid rooms
   // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
   const sources = [attributes.rooms, attributes.segments, attributes.room_list];

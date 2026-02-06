@@ -1,12 +1,15 @@
-import { describe, it, expect } from "vitest";
-import type { VacuumDeviceAttributes, VacuumRoom } from "@home-assistant-matter-hub/common";
+import type {
+  VacuumDeviceAttributes,
+  VacuumRoom,
+} from "@home-assistant-matter-hub/common";
+import { describe, expect, it } from "vitest";
 import {
-  parseVacuumRooms,
-  isUnnamedRoom,
-  getRoomModeValue,
-  isRoomMode,
   getRoomIdFromMode,
+  getRoomModeValue,
   isDreameVacuum,
+  isRoomMode,
+  isUnnamedRoom,
+  parseVacuumRooms,
   ROOM_MODE_BASE,
 } from "./parse-vacuum-rooms.js";
 
