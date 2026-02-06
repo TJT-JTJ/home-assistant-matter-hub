@@ -91,6 +91,24 @@ class LockServerWithPinBase extends PinCredentialBase {
   declare state: LockServerWithPinBase.State;
 
   override async initialize() {
+    // Set required PinCredential defaults BEFORE super.initialize() to prevent
+    // "Behaviors have errors" validation failures
+    if (this.state.numberOfPinUsersSupported === undefined) {
+      this.state.numberOfPinUsersSupported = 1;
+    }
+    if (this.state.maxPinCodeLength === undefined) {
+      this.state.maxPinCodeLength = 8;
+    }
+    if (this.state.minPinCodeLength === undefined) {
+      this.state.minPinCodeLength = 4;
+    }
+    if (this.state.sendPinOverTheAir === undefined) {
+      this.state.sendPinOverTheAir = true;
+    }
+    if (this.state.requirePinForRemoteOperation === undefined) {
+      this.state.requirePinForRemoteOperation = false;
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
