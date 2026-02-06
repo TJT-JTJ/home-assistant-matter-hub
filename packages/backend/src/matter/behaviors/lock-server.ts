@@ -80,7 +80,11 @@ namespace LockServerBase {
 const PinCredentialBase = Base.with(
   "PinCredential",
   "CredentialOverTheAirAccess",
-);
+).set({
+  // Required defaults for PinCredential feature
+  wrongCodeEntryLimit: 3,
+  userCodeTemporaryDisableTime: 10, // seconds
+});
 
 // biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
 class LockServerWithPinBase extends PinCredentialBase {
