@@ -37,8 +37,8 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.7 | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
+| **Stable** | `main` | v2.1.x | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.2.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Which version should I use?
@@ -52,45 +52,37 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.7)</strong> - Click to expand</summary>
-
-| Feature | Description |
-|---------|-------------|
-| **🔄 Force Sync** | Push device states to controllers, auto-sync every 5min ([#93](https://github.com/RiDDiX/home-assistant-matter-hub/issues/93)) |
-| **🔐 Lock PIN Security** | PBKDF2 hashed PINs, RequirePINforRemoteOperation ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) |
-| **🚪 Cover/Blinds** | Target position sync, explicit direction, garage door fix ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78), [#93](https://github.com/RiDDiX/home-assistant-matter-hub/issues/93), [#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107)) |
-| **🤖 Roborock Rooms** | Button entity mapping, auto-discovery, voice control ([#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) |
-| **🔋 Auto Entity Grouping** | Auto Battery/Humidity mapping feature flags ([#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99)) |
-| **🏷️ Labels API** | `/api/matter/labels` for label-based filtering |
-| **🔢 Device Sorting** | Column sorting with persistent preference ([#100](https://github.com/RiDDiX/home-assistant-matter-hub/issues/100)) |
-| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
-| **🌡️ Water Heater** | 70-100°C range, mapped to Thermostat |
-| **🤖 Vacuum** | Server Mode, Dreame modes, Service Area cluster |
-| **💡 Lights** | ColorTemp + HueSat fix, boundary order fix |
-| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes, Apple Home defaults |
-| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
-| **🌡️ Temp+Humidity** | Combined sensor device ([Docs](https://riddix.github.io/home-assistant-matter-hub/Devices/Temperature%20Humidity%20Sensor/)) |
-| **🎨 UI/UX** | Bridge sorting ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80)), icons in backup |
-
-</details>
-
-<details>
-<summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
-
-> [!WARNING]
-> Alpha versions are for early adopters and may contain bugs!
-
-**All Stable v2.0.7 features plus:**
+<summary><strong>📦 Stable Features (v2.1.x)</strong> - Click to expand</summary>
 
 | Feature | Description |
 |---------|-------------|
 | **🌬️ Fan Oscillation** | Rocking/oscillation via Matter ([#108](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/108)) |
-| **🌬️ Wind Modes** | Natural Wind, Sleep Wind (preset modes) |
-| **🔋 PowerSource** | Battery support for Climate, Fan devices |
-| **🔒 Lock without PIN** | Lock door without PIN, only unlock requires PIN ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) |
-| **🚪 Swap Open/Close** | `coverSwapOpenClose` flag for Alexa ([#117](https://github.com/RiDDiX/home-assistant-matter-hub/issues/117)) |
-| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
-| **🤖 Ecovacs Rooms** | Room attribute parsing for Ecovacs Deebot vacuums ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
+| **🌬️ Wind Modes** | Natural Wind, Sleep Wind preset modes |
+| **🔋 PowerSource** | Battery support for Climate, Fan, Temperature sensors |
+| **🔒 Lock PIN** | PBKDF2 hashed PINs, lock without PIN, per-lock disable option ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) |
+| **🚪 Cover/Blinds** | `coverSwapOpenClose` flag for Alexa ([#117](https://github.com/RiDDiX/home-assistant-matter-hub/issues/117)) |
+| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot/Climate/Fan ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
+| **🤖 Vacuum Rooms** | Ecovacs Deebot, Roborock, Dreame room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118), [#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) |
+| **🤖 Vacuum Cleaning Modes** | Dreame cleaning mode entity mapping ([#110](https://github.com/RiDDiX/home-assistant-matter-hub/issues/110)) |
+| **� Force Sync** | Push device states to controllers, auto-sync every 5min |
+| **�🔋 Auto Entity Grouping** | Auto Battery/Humidity mapping feature flags |
+| **🏷️ Labels API** | `/api/matter/labels` for label-based filtering |
+| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
+| **💡 Lights** | ColorTemp + HueSat fix, boundary order fix |
+| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes, Apple Home defaults |
+| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
+| **📋 Copy to Clipboard** | Copy endpoint data button in UI ([#121](https://github.com/RiDDiX/home-assistant-matter-hub/pull/121)) |
+| **🐛 Bug Fixes** | Lock initialization fix ([#122](https://github.com/RiDDiX/home-assistant-matter-hub/issues/122)), vacuum log spam fix ([#123](https://github.com/RiDDiX/home-assistant-matter-hub/issues/123)) |
+
+</details>
+
+<details>
+<summary><strong>🧪 Alpha Features (v2.2.0-alpha.x)</strong> - Click to expand</summary>
+
+> [!NOTE]
+> Alpha and Stable are currently synchronized. New alpha features will appear here.
+
+Currently all features are in stable. Check back for upcoming features!
 
 </details>
 
@@ -115,6 +107,9 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.x
+Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode
 
 ### v1.10.4
 Climate/Thermostat fixes, Cover position fix, Vacuum battery, Humidifier improvements, Entity Mapping, Alexa brightness preserve

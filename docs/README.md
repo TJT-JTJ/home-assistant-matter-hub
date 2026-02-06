@@ -53,41 +53,40 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.7) - Current</strong></summary>
-
-| Feature | Description |
-|---------|-------------|
-| **🔄 Force Sync** | Push device states to controllers, auto-sync option |
-| **🔐 Lock PIN** | PBKDF2 hashed PINs, RequirePINforRemoteOperation |
-| **🚪 Cover/Blinds** | Target position sync, explicit direction, garage door fix |
-| **🤖 Roborock Rooms** | Button entity mapping for room selection |
-| **🔋 Auto Grouping** | Auto Battery/Humidity mapping feature flags |
-| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
-| **🌡️ Water Heater** | 70-100°C range support |
-| **💡 Lights** | ColorTemp + HueSat fix |
-| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes |
-| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
-
-</details>
-
-<details>
-<summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
-
-All Stable features plus:
+<summary><strong>📦 Stable (v2.1.x) - Current</strong></summary>
 
 | Feature | Description |
 |---------|-------------|
 | **🌬️ Fan Oscillation** | Rocking/oscillation via Matter |
-| **🌬️ Wind Modes** | Natural Wind, Sleep Wind |
-| **🔋 PowerSource** | Battery for Climate, Fan devices |
-| **🔒 Lock without PIN** | Lock without PIN, only unlock requires PIN |
-| **🚪 Swap Open/Close** | `coverSwapOpenClose` flag for Alexa |
-| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot |
+| **🌬️ Wind Modes** | Natural Wind, Sleep Wind preset modes |
+| **🔋 PowerSource** | Battery support for Climate, Fan, Temperature sensors |
+| **� Lock PIN** | PBKDF2 hashed PINs, lock without PIN, per-lock disable |
+| **🚪 Cover/Blinds** | `coverSwapOpenClose` flag for Alexa |
+| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot/Climate/Fan |
+| **🤖 Vacuum Rooms** | Ecovacs Deebot, Roborock, Dreame room support |
+| **🤖 Vacuum Cleaning Modes** | Dreame cleaning mode entity mapping |
+| **🔄 Force Sync** | Push device states to controllers, auto-sync every 5min |
+| **🔋 Auto Grouping** | Auto Battery/Humidity mapping feature flags |
+| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
+| **💡 Lights** | ColorTemp + HueSat fix |
+| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes |
+| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
+| **📋 Copy to Clipboard** | Copy endpoint data button in UI |
+
+</details>
+
+<details>
+<summary><strong>🧪 Alpha (v2.2.0-alpha.x)</strong></summary>
+
+Alpha and Stable are currently synchronized. New alpha features will appear here.
 
 </details>
 
 <details>
 <summary><strong>📜 Previous Versions</strong></summary>
+
+### v2.0.x
+Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode
 
 ### v1.9.0
 Custom bridge icons, Basic Video Player, Alexa deduplication, Health Check API, WebSocket, Full backup/restore
