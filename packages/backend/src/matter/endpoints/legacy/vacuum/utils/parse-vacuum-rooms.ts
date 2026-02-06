@@ -2,16 +2,14 @@ import type {
   VacuumDeviceAttributes,
   VacuumRoom,
 } from "@home-assistant-matter-hub/common";
+import { startCase } from "lodash-es";
 
 /**
  * Format a room name from snake_case to Title Case.
  * Example: "dining_room" -> "Dining Room"
  */
 function formatRoomName(name: string): string {
-  return name
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+  return startCase(name);
 }
 
 /**
