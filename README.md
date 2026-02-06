@@ -37,8 +37,8 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.1.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.2.0-alpha.x | Pre-release with new features, for early adopters |
+| **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Which version should I use?
@@ -52,7 +52,7 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.1.x)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.x)</strong> - Click to expand</summary>
 
 | Feature | Description |
 |---------|-------------|
@@ -77,7 +77,7 @@ of port forwarding etc.
 </details>
 
 <details>
-<summary><strong>🧪 Alpha Features (v2.2.0-alpha.x)</strong> - Click to expand</summary>
+<summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
 > [!NOTE]
 > Alpha and Stable are currently synchronized. New alpha features will appear here.
