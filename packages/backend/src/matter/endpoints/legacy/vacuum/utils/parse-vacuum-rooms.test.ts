@@ -1,0 +1,266 @@
+import { describe, it, expect } from "vitest";
+import type { VacuumDeviceAttributes, VacuumRoom } from "@home-assistant-matter-hub/common";
+import {
+  parseVacuumRooms,
+  isUnnamedRoom,
+  getRoomModeValue,
+  isRoomMode,
+  getRoomIdFromMode,
+  isDreameVacuum,
+  ROOM_MODE_BASE,
+} from "./parse-vacuum-rooms.js";
+
+describe("parseVacuumRooms", () => {
+  it("should parse direct array format", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [
+        { id: 1, name: "Kitchen" },
+        { id: 2, name: "Living Room" },
+      ],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Kitchen", icon: undefined },
+      { id: 2, name: "Living Room", icon: undefined },
+    ]);
+  });
+
+  it("should parse simple object format", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        "1": "Kitchen",
+        "2": "Living Room",
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Kitchen" },
+      { id: 2, name: "Living Room" },
+    ]);
+  });
+
+  it("should parse nested/Dreame format", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        "Ground Floor": [
+          { id: 1, name: "Kitchen" },
+          { id: 2, name: "Living Room" },
+        ],
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Kitchen", icon: undefined },
+      { id: 2, name: "Living Room", icon: undefined },
+    ]);
+  });
+
+  it("should filter out unnamed rooms by default", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [
+        { id: 1, name: "Kitchen" },
+        { id: 2, name: "Room 7" },
+        { id: 3, name: "Raum 3" },
+      ],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([{ id: 1, name: "Kitchen", icon: undefined }]);
+  });
+
+  it("should include unnamed rooms when requested", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [
+        { id: 1, name: "Kitchen" },
+        { id: 2, name: "Room 7" },
+      ],
+    };
+    const result = parseVacuumRooms(attributes, true);
+    expect(result).toHaveLength(2);
+  });
+
+  it("should fallback to segments attribute", () => {
+    const attributes: VacuumDeviceAttributes = {
+      segments: [{ id: 1, name: "Kitchen" }],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([{ id: 1, name: "Kitchen", icon: undefined }]);
+  });
+
+  it("should fallback to room_list attribute", () => {
+    const attributes: VacuumDeviceAttributes = {
+      room_list: [{ id: 1, name: "Kitchen" }],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([{ id: 1, name: "Kitchen", icon: undefined }]);
+  });
+
+  it("should return empty array when no rooms found", () => {
+    const attributes: VacuumDeviceAttributes = {};
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([]);
+  });
+
+  it("should handle string IDs", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [
+        { id: "kitchen_1", name: "Kitchen" },
+        { id: "living_2", name: "Living Room" },
+      ],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toHaveLength(2);
+  });
+
+  it("should preserve icon property", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [{ id: 1, name: "Kitchen", icon: "mdi:silverware-fork-knife" }],
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result[0].icon).toBe("mdi:silverware-fork-knife");
+  });
+
+  it("should handle mixed object format with non-numeric keys", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        kitchen: "Kitchen",
+        living: "Living Room",
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: "kitchen", name: "Kitchen" },
+      { id: "living", name: "Living Room" },
+    ]);
+  });
+});
+
+describe("isUnnamedRoom", () => {
+  it("should detect English unnamed rooms", () => {
+    expect(isUnnamedRoom("Room 1")).toBe(true);
+    expect(isUnnamedRoom("Room 7")).toBe(true);
+  });
+
+  it("should detect German unnamed rooms", () => {
+    expect(isUnnamedRoom("Raum 3")).toBe(true);
+    expect(isUnnamedRoom("Zimmer 5")).toBe(true);
+  });
+
+  it("should detect French unnamed rooms", () => {
+    expect(isUnnamedRoom("Chambre 2")).toBe(true);
+  });
+
+  it("should detect Spanish unnamed rooms", () => {
+    expect(isUnnamedRoom("Habitación 4")).toBe(true);
+  });
+
+  it("should detect Italian unnamed rooms", () => {
+    expect(isUnnamedRoom("Stanza 6")).toBe(true);
+  });
+
+  it("should not match named rooms", () => {
+    expect(isUnnamedRoom("Kitchen")).toBe(false);
+    expect(isUnnamedRoom("Living Room")).toBe(false);
+    expect(isUnnamedRoom("Master Bedroom")).toBe(false);
+  });
+
+  it("should handle case insensitive matching", () => {
+    expect(isUnnamedRoom("room 1")).toBe(true);
+    expect(isUnnamedRoom("ROOM 1")).toBe(true);
+  });
+
+  it("should trim whitespace", () => {
+    expect(isUnnamedRoom("  Room 1  ")).toBe(true);
+  });
+});
+
+describe("getRoomModeValue", () => {
+  it("should calculate mode value for numeric room ID", () => {
+    const room: VacuumRoom = { id: 5, name: "Kitchen" };
+    expect(getRoomModeValue(room)).toBe(ROOM_MODE_BASE + 5);
+  });
+
+  it("should calculate mode value for string room ID", () => {
+    const room: VacuumRoom = { id: "kitchen", name: "Kitchen" };
+    const result = getRoomModeValue(room);
+    expect(result).toBeGreaterThanOrEqual(ROOM_MODE_BASE);
+  });
+
+  it("should return consistent values for same string ID", () => {
+    const room1: VacuumRoom = { id: "kitchen", name: "Kitchen" };
+    const room2: VacuumRoom = { id: "kitchen", name: "Kitchen" };
+    expect(getRoomModeValue(room1)).toBe(getRoomModeValue(room2));
+  });
+});
+
+describe("isRoomMode", () => {
+  it("should identify room modes", () => {
+    expect(isRoomMode(ROOM_MODE_BASE)).toBe(true);
+    expect(isRoomMode(ROOM_MODE_BASE + 5)).toBe(true);
+    expect(isRoomMode(ROOM_MODE_BASE + 100)).toBe(true);
+  });
+
+  it("should reject standard modes", () => {
+    expect(isRoomMode(0)).toBe(false);
+    expect(isRoomMode(1)).toBe(false);
+    expect(isRoomMode(99)).toBe(false);
+  });
+});
+
+describe("getRoomIdFromMode", () => {
+  it("should extract room ID from mode value", () => {
+    expect(getRoomIdFromMode(ROOM_MODE_BASE + 5)).toBe(5);
+    expect(getRoomIdFromMode(ROOM_MODE_BASE + 42)).toBe(42);
+  });
+
+  it("should return -1 for non-room modes", () => {
+    expect(getRoomIdFromMode(0)).toBe(-1);
+    expect(getRoomIdFromMode(1)).toBe(-1);
+    expect(getRoomIdFromMode(99)).toBe(-1);
+  });
+});
+
+describe("isDreameVacuum", () => {
+  it("should detect Dreame format", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        "Ground Floor": [
+          { id: 1, name: "Kitchen" },
+          { id: 2, name: "Living Room" },
+        ],
+      },
+    };
+    expect(isDreameVacuum(attributes)).toBe(true);
+  });
+
+  it("should not detect array format as Dreame", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: [
+        { id: 1, name: "Kitchen" },
+        { id: 2, name: "Living Room" },
+      ],
+    };
+    expect(isDreameVacuum(attributes)).toBe(false);
+  });
+
+  it("should not detect simple object format as Dreame", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        "1": "Kitchen",
+        "2": "Living Room",
+      },
+    };
+    expect(isDreameVacuum(attributes)).toBe(false);
+  });
+
+  it("should return false when no rooms attribute", () => {
+    const attributes: VacuumDeviceAttributes = {};
+    expect(isDreameVacuum(attributes)).toBe(false);
+  });
+
+  it("should return false when rooms is null", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: null,
+    };
+    expect(isDreameVacuum(attributes)).toBe(false);
+  });
+});

@@ -76,9 +76,9 @@ export interface VacuumDeviceAttributes {
    * - Roborock: May have 'rooms' or 'segments' attribute
    * - Xiaomi: May have 'room_list' attribute
    */
-  rooms?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  rooms?: VacuumRoom[] | Record<string | number, string | VacuumRoom[]> | null | undefined;
   /** Alternative attribute name used by some integrations */
-  segments?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  segments?: VacuumRoom[] | Record<string | number, string | VacuumRoom[]> | null | undefined;
   /** Alternative attribute name used by some integrations */
-  room_list?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  room_list?: VacuumRoom[] | Record<string | number, string | VacuumRoom[]> | null | undefined;
 }
