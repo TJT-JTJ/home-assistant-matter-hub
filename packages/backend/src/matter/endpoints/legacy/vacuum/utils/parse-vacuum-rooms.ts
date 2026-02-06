@@ -1,7 +1,15 @@
-import type {
-  VacuumDeviceAttributes,
-  VacuumRoom,
-} from "@home-assistant-matter-hub/common";
+import type { VacuumDeviceAttributes, VacuumRoom } from "@home-assistant-matter-hub/common";
+
+/**
+ * Format a room name from snake_case to Title Case.
+ * Example: "dining_room" -> "Dining Room"
+ */
+function formatRoomName(name: string): string {
+  return name
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
 
 /**
  * Parse a single room data source into VacuumRoom array.
@@ -9,6 +17,8 @@ import type {
  * - Direct array: [{ id: 1, name: "Kitchen" }, ...]
  * - Simple object: { 1: "Kitchen", 2: "Living Room", ... }
  * - Nested/Dreame format: { "Map Name": [{ id: 1, name: "Kitchen" }, ...] }
+ * - Ecovacs format 1: { dining_room: 0, kitchen: 4, ... }
+ * - Ecovacs format 2: { bedroom: [1, 3], corridor: 2, ... }
  */
 function parseRoomData(roomsData: unknown): VacuumRoom[] {
   if (!roomsData) {
@@ -44,11 +54,33 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
         const id = /^\d+$/.test(key) ? Number.parseInt(key, 10) : key;
         rooms.push({ id, name: value });
       }
-      // Format 2: Nested/Dreame format { "Map Name": [rooms...] }
+      // Format 2: Ecovacs format 1 { dining_room: 0, kitchen: 4, ... }
+      // Key is room name, value is numeric ID
+      else if (typeof value === "number") {
+        const name = formatRoomName(key);
+        rooms.push({ id: value, name });
+      }
+      // Format 3: Nested/Dreame format { "Map Name": [rooms...] }
       // The key is the map name, value is an array of room objects
       else if (Array.isArray(value)) {
-        const nestedRooms = parseRoomData(value);
-        rooms.push(...nestedRooms);
+        // Check if it's an array of room objects (Dreame format)
+        if (value.length > 0 && typeof value[0] === "object" && value[0] !== null && "id" in value[0]) {
+          const nestedRooms = parseRoomData(value);
+          rooms.push(...nestedRooms);
+        }
+        // Ecovacs format 2: array of numeric IDs { bedroom: [1, 3], ... }
+        else if (value.length > 0 && typeof value[0] === "number") {
+          const roomName = formatRoomName(key);
+          // If multiple IDs, append numbers: "Bedroom 1", "Bedroom 2"
+          if (value.length > 1) {
+            value.forEach((id: number, index: number) => {
+              rooms.push({ id, name: `${roomName} ${index + 1}` });
+            });
+          } else {
+            // Single ID, use room name as-is
+            rooms.push({ id: value[0], name: roomName });
+          }
+        }
       }
     }
     return rooms;
@@ -62,8 +94,7 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
  * Matches patterns like "Room 1", "Room 7", "Raum 3", etc.
  * These are typically auto-generated names for unmapped/hidden rooms.
  */
-const UNNAMED_ROOM_PATTERN =
-  /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
+const UNNAMED_ROOM_PATTERN = /^(Room|Raum|Zimmer|Chambre|Habitación|Stanza)\s+\d+$/i;
 
 /**
  * Check if a room name appears to be a generic/unnamed room.
@@ -88,10 +119,7 @@ export function isUnnamedRoom(roomName: string): boolean {
  * @param includeUnnamedRooms - If false (default), filters out rooms with generic names like "Room 7"
  * @returns Array of normalized VacuumRoom objects, or empty array if no rooms found
  */
-export function parseVacuumRooms(
-  attributes: VacuumDeviceAttributes,
-  includeUnnamedRooms = false,
-): VacuumRoom[] {
+export function parseVacuumRooms(attributes: VacuumDeviceAttributes, includeUnnamedRooms = false): VacuumRoom[] {
   // Try each attribute source in order, return first one with valid rooms
   // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
   const sources = [attributes.rooms, attributes.segments, attributes.room_list];

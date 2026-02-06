@@ -132,6 +132,97 @@ describe("parseVacuumRooms", () => {
       { id: "living", name: "Living Room" },
     ]);
   });
+
+  it("should parse Ecovacs format 1 (room_name: id)", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        dining_room: 0,
+        corridor: 1,
+        kitchen: 4,
+        bathroom: 6,
+        study: 3,
+        laundry: 5,
+        living_room: 2,
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 0, name: "Dining Room" },
+      { id: 1, name: "Corridor" },
+      { id: 4, name: "Kitchen" },
+      { id: 6, name: "Bathroom" },
+      { id: 3, name: "Study" },
+      { id: 5, name: "Laundry" },
+      { id: 2, name: "Living Room" },
+    ]);
+  });
+
+  it("should parse Ecovacs format 2 (room_name: id or [id1, id2])", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        bedroom: [1, 3],
+        corridor: 2,
+        bathroom: [4, 8],
+        default: 6,
+        study: 7,
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Bedroom 1" },
+      { id: 3, name: "Bedroom 2" },
+      { id: 2, name: "Corridor" },
+      { id: 4, name: "Bathroom 1" },
+      { id: 8, name: "Bathroom 2" },
+      { id: 6, name: "Default" },
+      { id: 7, name: "Study" },
+    ]);
+  });
+
+  it("should handle Ecovacs format with single-element array", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        bedroom: [5],
+        kitchen: 2,
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 5, name: "Bedroom" },
+      { id: 2, name: "Kitchen" },
+    ]);
+  });
+
+  it("should handle Ecovacs format with triple or more rooms", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        bedroom: [1, 2, 3, 4],
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Bedroom 1" },
+      { id: 2, name: "Bedroom 2" },
+      { id: 3, name: "Bedroom 3" },
+      { id: 4, name: "Bedroom 4" },
+    ]);
+  });
+
+  it("should properly capitalize multi-word room names", () => {
+    const attributes: VacuumDeviceAttributes = {
+      rooms: {
+        master_bedroom: 1,
+        guest_bathroom: 2,
+        home_office: 3,
+      },
+    };
+    const result = parseVacuumRooms(attributes);
+    expect(result).toEqual([
+      { id: 1, name: "Master Bedroom" },
+      { id: 2, name: "Guest Bathroom" },
+      { id: 3, name: "Home Office" },
+    ]);
+  });
 });
 
 describe("isUnnamedRoom", () => {
