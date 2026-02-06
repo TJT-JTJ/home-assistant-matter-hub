@@ -133,13 +133,11 @@ class LockServerWithPinBase extends PinCredentialBase {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = this.state.config.lock(void 0, this.agent);
 
-    // If a PIN was provided by the controller, validate it against the hashed PIN
+    // Lock does NOT require PIN - anyone can lock the door
+    // Only unlock requires PIN validation for security
+    // If a PIN was provided, just pass it through to Home Assistant (some locks may need it)
     if (request.pinCode) {
       const providedPin = new TextDecoder().decode(request.pinCode);
-      if (!this.verifyStoredPin(homeAssistant.entityId, providedPin)) {
-        throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
-      }
-      // Pass the provided PIN to Home Assistant (for locks that require it)
       action.data = { ...action.data, code: providedPin };
     }
 
