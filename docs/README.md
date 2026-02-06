@@ -98,7 +98,6 @@ All previous features plus:
 - **Ingress Compatibility** - Fixed routing for Home Assistant Ingress
 - **Full Backup/Restore** - Complete backups including entity mappings
 - **Entity Mapping** - Override Matter device types per entity
-- **Filter Preview** - Preview entity matches before saving
 
 ### Stable (v2.0.x) - Current 🎉
 
