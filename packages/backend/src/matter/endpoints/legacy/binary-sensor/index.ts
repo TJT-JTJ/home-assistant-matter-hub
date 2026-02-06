@@ -16,7 +16,12 @@ import {
   OnOffSensorType,
   OnOffSensorWithBatteryType,
 } from "./on-off-sensor.js";
-import { CoAlarmType, SmokeAlarmType } from "./smoke-co-alarm.js";
+import {
+  CoAlarmType,
+  CoAlarmWithBatteryType,
+  SmokeAlarmType,
+  SmokeAlarmWithBatteryType,
+} from "./smoke-co-alarm.js";
 import { WaterLeakDetectorType } from "./water-leak-detector.js";
 
 type CombinedType =
@@ -67,6 +72,8 @@ const batteryTypes = new Map<CombinedType, CombinedType>([
   [ContactSensorType, ContactSensorWithBatteryType],
   [OccupancySensorType, OccupancySensorWithBatteryType],
   [OnOffSensorType, OnOffSensorWithBatteryType],
+  [SmokeAlarmType, SmokeAlarmWithBatteryType],
+  [CoAlarmType, CoAlarmWithBatteryType],
 ]);
 
 export function BinarySensorDevice(
