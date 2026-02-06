@@ -53,7 +53,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.1.x) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.x) - Current</strong></summary>
 
 | Feature | Description |
 |---------|-------------|
@@ -76,7 +76,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 </details>
 
 <details>
-<summary><strong>🧪 Alpha (v2.2.0-alpha.x)</strong></summary>
+<summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
 Alpha and Stable are currently synchronized. New alpha features will appear here.
 
