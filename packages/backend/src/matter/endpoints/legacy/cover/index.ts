@@ -107,6 +107,10 @@ export function CoverDevice(
       `[${entityId}] Creating cover with PowerSource cluster, ` +
         `batteryAttr=${hasBatteryAttr}, batteryEntity=${homeAssistantEntity.mapping?.batteryEntity ?? "none"}`,
     );
+  } else {
+    logger.debug(
+      `[${entityId}] Creating cover without battery (batteryAttr=${hasBatteryAttr}, batteryEntity=${homeAssistantEntity.mapping?.batteryEntity ?? "none"})`,
+    );
   }
 
   return CoverDeviceType(attributes.supported_features ?? 0, hasBattery).set({
