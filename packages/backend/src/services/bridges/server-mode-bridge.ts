@@ -11,6 +11,9 @@ import type {
 } from "./bridge-data-provider.js";
 import type { ServerModeEndpointManager } from "./server-mode-endpoint-manager.js";
 
+// Auto Force Sync interval in milliseconds (60 seconds)
+const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
+
 /**
  * ServerModeBridge exposes a single device as a standalone Matter device.
  * This is required for Apple Home to properly support Siri voice commands
@@ -23,6 +26,8 @@ export class ServerModeBridge {
     code: BridgeStatus.Stopped,
     reason: undefined,
   };
+
+  private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   get id(): string {
     return this.dataProvider.id;
@@ -72,6 +77,7 @@ export class ServerModeBridge {
       this.endpointManager.startObserving();
       await this.server.start();
       this.status = { code: BridgeStatus.Running };
+      this.startAutoForceSyncIfEnabled();
       this.log.info("Server mode bridge started successfully");
     } catch (e) {
       const reason = "Failed to start server mode bridge due to error:";
@@ -84,6 +90,7 @@ export class ServerModeBridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ): Promise<void> {
+    this.stopAutoForceSync();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();
@@ -100,6 +107,10 @@ export class ServerModeBridge {
     try {
       this.dataProvider.update(update);
       await this.refreshDevices();
+      // Re-evaluate auto force sync setting after config update
+      if (this.status.code === BridgeStatus.Running) {
+        this.startAutoForceSyncIfEnabled();
+      }
     } catch (e) {
       const reason = "Failed to update server mode bridge due to error:";
       this.log.error(reason, e);
@@ -114,6 +125,29 @@ export class ServerModeBridge {
     await this.server.factoryReset();
     this.status = { code: BridgeStatus.Stopped };
     await this.start();
+  }
+
+  private startAutoForceSyncIfEnabled() {
+    // Stop any existing timer first
+    this.stopAutoForceSync();
+
+    if (this.dataProvider.featureFlags?.autoForceSync) {
+      this.log.info(
+        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`,
+      );
+      this.autoForceSyncTimer = setInterval(() => {
+        this.forceSync().catch((e) => {
+          this.log.warn("Auto force sync failed:", e);
+        });
+      }, AUTO_FORCE_SYNC_INTERVAL_MS);
+    }
+  }
+
+  private stopAutoForceSync() {
+    if (this.autoForceSyncTimer) {
+      clearInterval(this.autoForceSyncTimer);
+      this.autoForceSyncTimer = null;
+    }
   }
 
   async delete(): Promise<void> {
