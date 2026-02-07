@@ -35,7 +35,7 @@ class Pm10AirQualityServer extends Pm10AirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const value = +state;
-      // PM10 in µg/m³ (US EPA scale)
+      // PM10 in µg/m³ (US EPA AQI breakpoints)
       if (value <= 54) {
         airQuality = AirQuality.AirQualityEnum.Good;
       } else if (value <= 154) {
@@ -44,8 +44,10 @@ class Pm10AirQualityServer extends Pm10AirQualityServerBase {
         airQuality = AirQuality.AirQualityEnum.Moderate;
       } else if (value <= 354) {
         airQuality = AirQuality.AirQualityEnum.Poor;
-      } else {
+      } else if (value <= 424) {
         airQuality = AirQuality.AirQualityEnum.VeryPoor;
+      } else {
+        airQuality = AirQuality.AirQualityEnum.ExtremelyPoor;
       }
     }
 

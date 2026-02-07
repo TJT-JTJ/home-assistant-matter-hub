@@ -73,7 +73,7 @@ class AirQualitySensorServerImpl extends AirQualityServerWithFeatures {
           airQuality = AirQuality.AirQualityEnum.ExtremelyPoor;
         }
       } else if (deviceClass === "pm10") {
-        // PM10 in µg/m³
+        // PM10 in µg/m³ (US EPA AQI breakpoints)
         if (value <= 54) {
           airQuality = AirQuality.AirQualityEnum.Good;
         } else if (value <= 154) {
@@ -82,8 +82,10 @@ class AirQualitySensorServerImpl extends AirQualityServerWithFeatures {
           airQuality = AirQuality.AirQualityEnum.Moderate;
         } else if (value <= 354) {
           airQuality = AirQuality.AirQualityEnum.Poor;
-        } else {
+        } else if (value <= 424) {
           airQuality = AirQuality.AirQualityEnum.VeryPoor;
+        } else {
+          airQuality = AirQuality.AirQualityEnum.ExtremelyPoor;
         }
       }
     }
