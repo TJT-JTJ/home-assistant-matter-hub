@@ -45,10 +45,14 @@ class RvcRunModeServerBase extends Base {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    if (homeAssistant.state.managedByEndpoint) {
+      homeAssistant.registerUpdate(this.callback(this.update));
+    } else {
+      this.reactTo(homeAssistant.onChange, this.update);
+    }
   }
 
-  private update(entity: HomeAssistantEntityInformation) {
+  public update(entity: HomeAssistantEntityInformation) {
     if (!entity.state) {
       return;
     }

@@ -45,10 +45,14 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    if (homeAssistant.state.managedByEndpoint) {
+      homeAssistant.registerUpdate(this.callback(this.update));
+    } else {
+      this.reactTo(homeAssistant.onChange, this.update);
+    }
   }
 
-  private update({ state }: HomeAssistantEntityInformation) {
+  public update({ state }: HomeAssistantEntityInformation) {
     const config = this.state.config;
 
     // For speakers, use 0-254 range (Google Home calculates: currentLevel / 254 * 100)

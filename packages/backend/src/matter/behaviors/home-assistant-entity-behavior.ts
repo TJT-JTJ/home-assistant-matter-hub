@@ -16,6 +16,10 @@ export class HomeAssistantEntityBehavior extends Behavior {
   declare state: HomeAssistantEntityBehavior.State;
   declare events: HomeAssistantEntityBehavior.Events;
 
+  private _updateCallbacks: Array<
+    (entity: HomeAssistantEntityInformation) => void
+  > = [];
+
   get entityId(): string {
     return this.entity.entity_id;
   }
@@ -39,6 +43,27 @@ export class HomeAssistantEntityBehavior extends Behavior {
     const actions = this.env.get(HomeAssistantActions);
     actions.call(action, this.entityId);
   }
+
+  /**
+   * Register a behavior update callback for Phase 2 endpoint-driven updates.
+   * Called by behaviors during initialize() when managedByEndpoint is true.
+   */
+  registerUpdate(
+    callback: (entity: HomeAssistantEntityInformation) => void,
+  ): void {
+    this._updateCallbacks.push(callback);
+  }
+
+  /**
+   * Dispatch entity state update to all registered behaviors.
+   * Called by DomainEndpoint after setting the entity state.
+   */
+  dispatchUpdate(): void {
+    const entity = this.entity;
+    for (const callback of this._updateCallbacks) {
+      callback(entity);
+    }
+  }
 }
 
 export namespace HomeAssistantEntityBehavior {
@@ -47,6 +72,9 @@ export namespace HomeAssistantEntityBehavior {
     customName?: string;
     /** Entity mapping configuration (optional, used for advanced features like filter life sensor) */
     mapping?: EntityMappingConfig;
+    /** When true, the DomainEndpoint orchestrates behavior updates (Vision 1 Phase 2).
+     *  Behaviors skip self-subscribing to onChange and instead get updated by the endpoint. */
+    managedByEndpoint?: boolean;
   }
 
   export class Events extends EventEmitter {

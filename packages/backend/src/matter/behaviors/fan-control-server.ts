@@ -70,7 +70,11 @@ export class FanControlServerBase extends FeaturedBase {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    if (homeAssistant.state.managedByEndpoint) {
+      homeAssistant.registerUpdate(this.callback(this.update));
+    } else {
+      this.reactTo(homeAssistant.onChange, this.update);
+    }
     this.reactTo(
       this.events.percentSetting$Changed,
       this.targetPercentSettingChanged,
@@ -102,7 +106,7 @@ export class FanControlServerBase extends FeaturedBase {
     }
   }
 
-  private update(entity: HomeAssistantEntityInformation) {
+  public update(entity: HomeAssistantEntityInformation) {
     if (!entity.state) {
       return;
     }

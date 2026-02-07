@@ -28,12 +28,13 @@ const logger = Logger.get("DomainEndpoint");
  * - Coordinated updates across behaviors
  * - Domain-specific parsing logic in one place instead of scattered across behaviors
  *
- * Phase 1 (current): Behaviors still self-update via HomeAssistantEntityBehavior.onChange.
- *   The DomainEndpoint updates HomeAssistantEntityBehavior.entity, which triggers behaviors.
- *   Domain endpoints CAN additionally set behavior state directly for cross-entity features.
+ * When managedByEndpoint is true (Phase 2), behaviors register their update
+ * callbacks via HomeAssistantEntityBehavior.registerUpdate() instead of
+ * self-subscribing to onChange. The DomainEndpoint dispatches updates to all
+ * registered behaviors after setting the entity state.
  *
- * Phase 2 (future): Behaviors become passive. DomainEndpoint sets behavior state directly.
- *   Behaviors only handle commands (on/off, moveToLevel, etc.).
+ * When managedByEndpoint is false (Phase 1 / legacy fallback), behaviors
+ * self-subscribe to onChange as before. This provides backward compatibility.
  */
 export abstract class DomainEndpoint extends EntityEndpoint {
   protected readonly registry: BridgeRegistry;
@@ -78,16 +79,20 @@ export abstract class DomainEndpoint extends EntityEndpoint {
 
     try {
       // Update HomeAssistantEntityBehavior so behaviors and commands
-      // have access to the latest entity state (Phase 1 compatibility)
+      // have access to the latest entity state.
       const current = this.stateOf(HomeAssistantEntityBehavior).entity;
       await this.setStateOf(HomeAssistantEntityBehavior, {
         entity: { ...current, state },
       });
 
-      // Call the domain-specific update hook.
-      // In Phase 1 this is used for cross-entity / multi-entity features.
-      // In Phase 2 this will be the primary state update mechanism.
-      // Read the entity from behavior state to get the correctly typed object.
+      // Phase 2: Dispatch update to all behaviors that registered via
+      // registerUpdate() during initialize(). In Phase 1 (managedByEndpoint=false),
+      // no callbacks are registered and this is a no-op.
+      await this.act((agent) => {
+        agent.get(HomeAssistantEntityBehavior).dispatchUpdate();
+      });
+
+      // Call the domain-specific update hook for cross-entity features.
       // Cast needed: Matter.js state returns readonly properties.
       const updatedEntity = this.stateOf(HomeAssistantEntityBehavior)
         .entity as HomeAssistantEntityInformation;

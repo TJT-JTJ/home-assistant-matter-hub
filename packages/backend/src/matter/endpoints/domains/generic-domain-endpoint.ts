@@ -62,6 +62,7 @@ export class GenericDomainEndpoint extends DomainEndpoint {
       },
       customName: mapping?.customName,
       mapping,
+      managedByEndpoint: true,
     };
 
     const type = factory(haState);
