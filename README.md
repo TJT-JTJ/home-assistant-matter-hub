@@ -232,6 +232,65 @@ configuration options, known issues, limitations and guides.
 
 ---
 
+## 🔧 Network Troubleshooting
+
+<details>
+<summary><strong>⚠️ "No Response" / Connection Drops — Common Network Causes</strong> (click to expand)</summary>
+
+### The Problem
+
+Your Matter devices suddenly show **"No Response"** (Apple Home), **"Unavailable"** (Google Home), or become **unresponsive** after some time — even though the bridge is still running and other controllers (e.g., Alexa) continue to work fine.
+
+### Root Cause: Network Equipment Blocking mDNS/Multicast
+
+Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reachability. Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic** — which breaks Matter communication silently.
+
+> **💡 This was confirmed and documented thanks to the excellent systematic testing by [@omerfaruk-aran](https://github.com/omerfaruk-aran) in [#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129).** The issue was traced to a TP-Link Archer AX50 (in AP mode) sitting between the Apple TV and the network — its default settings were blocking/limiting mDNS/Bonjour traffic over time.
+
+### What to Check on Your Network Equipment
+
+1. **IGMP Snooping** — Disable or configure it to allow mDNS (`224.0.0.251` / `ff02::fb`)
+2. **Multicast Optimization / Multicast Enhancement** — Disable (often called "Airtime Fairness" or "Multicast to Unicast")
+3. **AP Isolation / Client Isolation** — Must be **disabled** so devices on the same network can communicate
+4. **mDNS / Bonjour Forwarding** — Enable if available (some enterprise APs have this)
+5. **DHCP Server on secondary devices** — Disable DHCP on access points / switches that are NOT your main router (multiple DHCP servers cause IP conflicts)
+6. **Firmware Updates** — Update your router/AP firmware, as multicast handling is frequently improved
+
+### Affected Equipment (Known Cases)
+
+| Device | Issue | Fix |
+|--------|-------|-----|
+| **TP-Link Archer AX50** (AP mode) | mDNS traffic blocked/limited over time | Firmware update + disable DHCP on the AP |
+| **Ubiquiti UniFi APs** | IGMP Snooping can filter mDNS | Disable IGMP Snooping or enable mDNS Reflector |
+| **Managed Switches** (various) | Multicast filtering enabled by default | Allow mDNS multicast groups |
+
+### Quick Diagnostic Steps
+
+1. **Does Alexa still work when Apple Home shows "No Response"?**
+   - **Yes** → Bridge is online, the issue is network path / mDNS related
+   - **No** → Bridge may actually be down, check HAMH logs
+
+2. **Does removing a Home Hub (HomePod/Apple TV) fix it?**
+   - **Yes** → The hub's network path is affected (AP/switch between hub and bridge)
+   - **No** → May be a different issue
+
+3. **Try binding mDNS to a specific interface:**
+   ```
+   --mdns-network-interface eth0
+   ```
+   (or `end0`, `enp0s18`, etc. — check your system)
+
+### Network Topology Tips
+
+- **Keep the path simple**: Avoid placing access points or managed switches between your Matter bridge (Home Assistant) and your Home Hub (HomePod/Apple TV)
+- **Use wired connections** where possible for Home Hubs and the Home Assistant host
+- **Same subnet**: All Matter devices, controllers, and the bridge must be on the same Layer 2 network / subnet
+- **IPv6**: Matter uses IPv6 link-local addresses — make sure IPv6 is not disabled on your network
+
+</details>
+
+---
+
 ## Migration from t0bst4r
 
 Migrating from the original `t0bst4r/home-assistant-matter-hub` is straightforward. **Your Matter fabric connections and paired devices will be preserved!**
@@ -299,6 +358,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
 | [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
 | [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
+| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🔧 **Network Debugging Expert** - Systematic mDNS/multicast root cause analysis for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
 
 <details>
 <summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>
@@ -307,6 +367,7 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 | User | Issues |
 |------|--------|
+| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | #129 |
 | [@markgaze](https://github.com/markgaze) | #118 |
 | [@BlairC1](https://github.com/BlairC1) | #117 |
 | [@Giamp96](https://github.com/Giamp96) | #116 |
