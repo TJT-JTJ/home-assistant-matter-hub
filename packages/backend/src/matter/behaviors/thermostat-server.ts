@@ -429,21 +429,18 @@ export class ThermostatServerBase extends FeaturedBase {
           currentMode === Thermostat.SystemMode.Cool ||
           currentMode === Thermostat.SystemMode.Precooling;
 
-        // In Auto mode: heating setpoint handles the update, so skip here to avoid double-update
+        // In Auto mode: BOTH heating and cooling setpoint should update temperature (#71)
         // In Cool mode: cooling setpoint updates temperature
         // In Heat mode: let heatingSetpointChanging handle this
-        if (isAutoMode) {
+        if (!isAutoMode && !isCoolingMode) {
           logger.debug(
-            `coolingSetpointChanging: skipping - auto mode handled by heatingSetpointChanging (haMode=${haHvacMode})`,
-          );
-          return; // heatingSetpointChanging handles auto mode
-        }
-        if (!isCoolingMode) {
-          logger.debug(
-            `coolingSetpointChanging: skipping - not in cooling mode (mode=${currentMode}, haMode=${haHvacMode})`,
+            `coolingSetpointChanging: skipping - not in cooling/auto mode (mode=${currentMode}, haMode=${haHvacMode})`,
           );
           return; // Let heatingSetpointChanging handle this
         }
+        logger.debug(
+          `coolingSetpointChanging: proceeding - isAutoMode=${isAutoMode}, isCoolingMode=${isCoolingMode}, haMode=${haHvacMode}`,
+        );
       }
 
       const heatingSetpoint = this.state.occupiedHeatingSetpoint;
