@@ -9,44 +9,42 @@ import { useMemo } from "react";
 
 interface ControllerLimit {
   name: string;
+  vendorIds: number[];
   warnAt: number;
   maxRecommended: number;
   infoUrl: string;
 }
 
-const controllerLimits: Record<string, ControllerLimit> = {
-  apple: {
+const controllerLimits: ControllerLimit[] = [
+  {
     name: "Apple Home (HomePod mini)",
+    vendorIds: [0x1349, 0x1384],
     warnAt: 20,
     maxRecommended: 30,
     infoUrl: "https://support.apple.com/en-us/102135",
   },
-  google: {
+  {
     name: "Google Home",
+    vendorIds: [0x6006],
     warnAt: 80,
     maxRecommended: 100,
     infoUrl: "https://support.google.com/googlenest/answer/12391458",
   },
-  amazon: {
+  {
     name: "Amazon Alexa",
+    vendorIds: [0x1217],
     warnAt: 80,
     maxRecommended: 100,
     infoUrl:
       "https://www.amazon.com/gp/help/customer/display.html?nodeId=GX3RKEYSQR4BUXDJ",
   },
-};
+];
 
 function detectControllers(bridge: BridgeDataWithMetadata): ControllerLimit[] {
   const fabrics = bridge.commissioning?.fabrics ?? [];
-  const detected: ControllerLimit[] = [];
-
-  for (const [key, limit] of Object.entries(controllerLimits)) {
-    if (fabrics.some((f) => f.label?.toLowerCase().includes(key))) {
-      detected.push(limit);
-    }
-  }
-
-  return detected;
+  return controllerLimits.filter((limit) =>
+    fabrics.some((f) => limit.vendorIds.includes(f.rootVendorId)),
+  );
 }
 
 export interface DeviceLimitWarningProps {
