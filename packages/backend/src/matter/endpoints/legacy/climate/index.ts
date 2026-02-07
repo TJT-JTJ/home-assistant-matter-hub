@@ -8,15 +8,43 @@ import {
   RoomAirConditionerDevice,
   ThermostatDevice,
 } from "@matter/main/devices";
+import { EntityStateProvider } from "../../../../services/bridges/entity-state-provider.js";
 import { InvalidDeviceError } from "../../../../utils/errors/invalid-device-error.js";
 import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
 import { ClimateFanControlServer } from "./behaviors/climate-fan-control-server.js";
 import { ClimateHumidityMeasurementServer } from "./behaviors/climate-humidity-measurement-server.js";
 import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
 import { ClimateThermostatServer } from "./behaviors/climate-thermostat-server.js";
+
+const ClimatePowerSourceServer = PowerSourceServer({
+  getBatteryPercent: (entity, agent) => {
+    // First check for battery entity from mapping (auto-assigned or manual)
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const battery = stateProvider.getNumericState(batteryEntity);
+      if (battery != null) {
+        return Math.max(0, Math.min(100, battery));
+      }
+    }
+
+    // Fallback to entity's own battery attribute
+    const attrs = entity.attributes as {
+      battery?: number;
+      battery_level?: number;
+    };
+    const level = attrs.battery_level ?? attrs.battery;
+    if (level == null || Number.isNaN(Number(level))) {
+      return null;
+    }
+    return Number(level);
+  },
+});
 
 /**
  * Initial thermostat state extracted from Home Assistant entity.
@@ -36,7 +64,7 @@ const ClimateDeviceType = (
   supportsOnOff: boolean,
   supportsHumidity: boolean,
   supportsFanMode: boolean,
-  initialState: InitialThermostatState,
+  hasBattery: boolean,
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
 
@@ -46,10 +74,13 @@ const ClimateDeviceType = (
   if (supportsHumidity) {
     additionalClusters.push(ClimateHumidityMeasurementServer);
   }
+  if (hasBattery) {
+    additionalClusters.push(ClimatePowerSourceServer);
+  }
 
-  // CRITICAL: Pass initial state values to ThermostatServer so they are set
-  // via .set() BEFORE Matter.js validation runs. This prevents NaN errors.
-  const thermostatServer = ClimateThermostatServer(initialState);
+  // Use ClimateThermostatServer without initial state - state will be set
+  // at the endpoint level via .set() to ensure Matter.js sees the values.
+  const thermostatServer = ClimateThermostatServer();
 
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
@@ -81,6 +112,11 @@ const heatingModes: ClimateHvacMode[] = [
 ];
 // Auto-only thermostats (no explicit heat/cool) should be treated as heating
 const autoOnlyMode: ClimateHvacMode[] = [ClimateHvacMode.auto];
+// Ventilation-only devices (e.g. Ambientika CMV) that only support fan_only/dry
+const ventilationOnlyModes: ClimateHvacMode[] = [
+  ClimateHvacMode.fan_only,
+  ClimateHvacMode.dry,
+];
 
 /**
  * Convert HA temperature to Matter temperature (0.01°C units).
@@ -99,8 +135,15 @@ export function ClimateDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
   const attributes = homeAssistantEntity.entity.state
-    .attributes as ClimateDeviceAttributes;
+    .attributes as ClimateDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
   const supportedFeatures = attributes.supported_features ?? 0;
+  const hasBatteryAttr =
+    attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
 
   const supportsCooling = coolingModes.some((mode) =>
     attributes.hvac_modes.includes(mode),
@@ -114,12 +157,21 @@ export function ClimateDevice(
     !hasExplicitHeating &&
     !supportsCooling &&
     autoOnlyMode.some((mode) => attributes.hvac_modes.includes(mode));
-  const supportsHeating = hasExplicitHeating || isAutoOnly;
+  // Treat ventilation-only devices (fan_only/dry, no heat/cool/auto) as heating
+  // devices. This allows CMVs like Ambientika (#130) to be exposed as Matter
+  // thermostats. The actual mode control works via SystemMode.FanOnly/Dry.
+  const isVentilationOnly =
+    !hasExplicitHeating &&
+    !supportsCooling &&
+    !isAutoOnly &&
+    ventilationOnlyModes.some((mode) => attributes.hvac_modes.includes(mode));
+  const supportsHeating = hasExplicitHeating || isAutoOnly || isVentilationOnly;
 
-  // Validate that at least one of heating or cooling is supported
+  // Validate that at least one usable mode is supported
   if (!supportsCooling && !supportsHeating) {
     throw new InvalidDeviceError(
-      'Climates have to support either "heating" or "cooling". Just "auto" is not enough.',
+      `Climates have to support at least one of: heat, cool, heat_cool, auto, fan_only, or dry. ` +
+        `Found: [${attributes.hvac_modes.join(", ")}]`,
     );
   }
 
@@ -163,10 +215,30 @@ export function ClimateDevice(
     maxCoolSetpointLimit: 5000,
   };
 
+  // Pass thermostat state at the endpoint type level using the behavior ID.
+  // This ensures Matter.js's internal validation sees the values.
   return ClimateDeviceType(
     supportsOnOff,
     supportsHumidity,
     supportsFanMode,
-    initialState,
-  ).set({ homeAssistantEntity });
+    hasBattery,
+  ).set({
+    homeAssistantEntity,
+    // Set thermostat values at endpoint level - this is the key fix!
+    // Matter.js reads from this location during validation.
+    thermostat: {
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      minSetpointDeadBand: 0, // Allow same setpoint for heating and cooling
+    },
+  });
 }

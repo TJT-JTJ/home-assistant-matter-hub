@@ -10,7 +10,7 @@ const logger = Logger.get("ServiceAreaServer");
  * - Only override command handlers
  * - State is set via .set() at endpoint creation time
  */
-class ServiceAreaServerBase extends ServiceAreaBehavior {
+export class ServiceAreaServerBase extends ServiceAreaBehavior {
   declare state: ServiceAreaServerBase.State;
 
   override selectAreas(
@@ -62,7 +62,7 @@ class ServiceAreaServerBase extends ServiceAreaBehavior {
   }
 }
 
-namespace ServiceAreaServerBase {
+export namespace ServiceAreaServerBase {
   export class State extends ServiceAreaBehavior.State {}
 }
 

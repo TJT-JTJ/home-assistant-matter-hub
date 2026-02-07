@@ -7,6 +7,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import InfoIcon from "@mui/icons-material/Info";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import RemoveIcon from "@mui/icons-material/Remove";
+import SyncIcon from "@mui/icons-material/Sync";
 import WifiIcon from "@mui/icons-material/Wifi";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
@@ -16,6 +17,7 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -28,7 +30,10 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
+import { forceSyncBridge } from "../../api/bridges.ts";
 import { FabricList } from "../fabric/FabricList.tsx";
+import { useNotifications } from "../notifications/use-notifications.ts";
+import { DeviceLimitWarning } from "./DeviceLimitWarning.tsx";
 
 export interface BridgeDetailsProps {
   readonly bridge: BridgeDataWithMetadata;
@@ -45,6 +50,9 @@ export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
       </Grid>
       <Grid size={{ xs: 12, md: 4 }}>
         <FabricsCard bridge={bridge} />
+      </Grid>
+      <Grid size={{ xs: 12 }}>
+        <DeviceLimitWarning bridge={bridge} />
       </Grid>
       <Grid size={{ xs: 12 }}>
         <FiltersCard bridge={bridge} />
@@ -245,6 +253,26 @@ const InfoCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
 
 const FabricsCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
   const fabrics = bridge.commissioning?.fabrics ?? [];
+  const [syncing, setSyncing] = useState(false);
+  const notification = useNotifications();
+
+  const handleForceSync = async () => {
+    setSyncing(true);
+    try {
+      const result = await forceSyncBridge(bridge.id);
+      notification.show({
+        message: `Synced ${result.syncedCount} devices to controllers`,
+        severity: "success",
+      });
+    } catch (e) {
+      notification.show({
+        message: `Force sync failed: ${e instanceof Error ? e.message : String(e)}`,
+        severity: "error",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <Card sx={{ height: "100%" }}>
@@ -266,7 +294,23 @@ const FabricsCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
             controller to pair this bridge.
           </Typography>
         ) : (
-          <FabricList fabrics={fabrics} />
+          <Stack spacing={2}>
+            <FabricList fabrics={fabrics} />
+            <Tooltip title="Push all current device states to connected controllers">
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={
+                  syncing ? <CircularProgress size={16} /> : <SyncIcon />
+                }
+                onClick={handleForceSync}
+                disabled={syncing}
+                fullWidth
+              >
+                {syncing ? "Syncing..." : "Force Sync"}
+              </Button>
+            </Tooltip>
+          </Stack>
         )}
       </CardContent>
     </Card>

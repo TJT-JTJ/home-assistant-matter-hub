@@ -2,12 +2,30 @@ import {
   type BinarySensorDeviceAttributes,
   BinarySensorDeviceClass,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
-import { ContactSensorType } from "./contact-sensor.js";
-import { OccupancySensorType } from "./occupancy-sensor.js";
-import { OnOffSensorType } from "./on-off-sensor.js";
-import { CoAlarmType, SmokeAlarmType } from "./smoke-co-alarm.js";
+
+const logger = Logger.get("BinarySensorDevice");
+
+import {
+  ContactSensorType,
+  ContactSensorWithBatteryType,
+} from "./contact-sensor.js";
+import {
+  OccupancySensorType,
+  OccupancySensorWithBatteryType,
+} from "./occupancy-sensor.js";
+import {
+  OnOffSensorType,
+  OnOffSensorWithBatteryType,
+} from "./on-off-sensor.js";
+import {
+  CoAlarmType,
+  CoAlarmWithBatteryType,
+  SmokeAlarmType,
+  SmokeAlarmWithBatteryType,
+} from "./smoke-co-alarm.js";
 import { WaterLeakDetectorType } from "./water-leak-detector.js";
 
 type CombinedType =
@@ -53,17 +71,51 @@ const deviceClasses: Partial<Record<BinarySensorDeviceClass, CombinedType>> = {
   [BinarySensorDeviceClass.Moisture]: WaterLeakDetectorType,
 };
 
+// Mapping from normal type to battery type
+const batteryTypes = new Map<CombinedType, CombinedType>([
+  [ContactSensorType, ContactSensorWithBatteryType],
+  [OccupancySensorType, OccupancySensorWithBatteryType],
+  [OnOffSensorType, OnOffSensorWithBatteryType],
+  [SmokeAlarmType, SmokeAlarmWithBatteryType],
+  [CoAlarmType, CoAlarmWithBatteryType],
+]);
+
 export function BinarySensorDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
 ): EndpointType {
+  const entityId = homeAssistantEntity.entity.entity_id;
   const defaultDeviceType = OnOffSensorType;
 
   const attributes = homeAssistantEntity.entity.state
-    .attributes as BinarySensorDeviceAttributes;
+    .attributes as BinarySensorDeviceAttributes & {
+    battery?: number;
+    battery_level?: number;
+  };
   const deviceClass = attributes.device_class;
-  const type =
+  const hasBatteryAttr =
+    attributes.battery_level != null || attributes.battery != null;
+  const hasBatteryEntity = !!homeAssistantEntity.mapping?.batteryEntity;
+  const hasBattery = hasBatteryAttr || hasBatteryEntity;
+
+  let type: CombinedType =
     deviceClass && deviceClasses[deviceClass]
       ? deviceClasses[deviceClass]
       : defaultDeviceType;
+
+  const originalTypeName = type.name;
+
+  // Use battery variant if available
+  if (hasBattery && batteryTypes.has(type)) {
+    type = batteryTypes.get(type)!;
+    logger.info(
+      `[${entityId}] Using battery variant: ${originalTypeName} -> ${type.name}, ` +
+        `batteryAttr=${hasBatteryAttr}, batteryEntity=${homeAssistantEntity.mapping?.batteryEntity ?? "none"}`,
+    );
+  } else if (hasBattery) {
+    logger.warn(
+      `[${entityId}] Has battery but no variant available for ${originalTypeName}`,
+    );
+  }
+
   return type.set({ homeAssistantEntity });
 }

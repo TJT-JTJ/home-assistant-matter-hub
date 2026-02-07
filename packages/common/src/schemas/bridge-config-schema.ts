@@ -12,6 +12,8 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     },
     value: {
       title: "Value",
+      description:
+        "For labels, use the label_id (slug), not the display name. Example: 'my_smart_lights' instead of 'My Smart Lights'. Check /api/matter/labels for available labels.",
       type: "string",
       minLength: 1,
     },
@@ -70,6 +72,15 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
+    coverSwapOpenClose: {
+      title: "Swap Open/Close Commands for Covers",
+      description:
+        "Swap the open and close commands for covers. Enable this if Alexa voice commands are reversed " +
+        "(saying 'close' opens the blinds and vice versa). This affects open/close commands only, not percentage control.",
+      type: "boolean",
+      default: false,
+    },
+
     includeHiddenEntities: {
       title: "Include Hidden Entities",
       description:
@@ -83,6 +94,44 @@ const featureFlagSchema: JSONSchema7 = {
       description:
         "Workaround for Alexa resetting light brightness to 100% after subscription renewal. " +
         "When enabled, the bridge ignores brightness commands that set lights to 100% immediately after a turn-on command.",
+      type: "boolean",
+      default: false,
+    },
+
+    serverMode: {
+      title: "Server Mode (for Robot Vacuums)",
+      description:
+        "Expose the device as a standalone Matter device instead of a bridged device. " +
+        "This is required for Apple Home to properly support Siri voice commands for Robot Vacuums. " +
+        "IMPORTANT: Only ONE device should be in this bridge when server mode is enabled.",
+      type: "boolean",
+      default: false,
+    },
+
+    autoBatteryMapping: {
+      title: "Auto Battery Mapping",
+      description:
+        "Automatically assign battery sensors from the same Home Assistant device to the main entity. " +
+        "When enabled, battery sensors will be merged into their parent devices instead of appearing as separate devices.",
+      type: "boolean",
+      default: false,
+    },
+
+    autoHumidityMapping: {
+      title: "Auto Humidity Mapping",
+      description:
+        "Automatically combine humidity sensors with temperature sensors from the same Home Assistant device. " +
+        "When enabled, humidity sensors will be merged into temperature sensors to create combined TemperatureHumiditySensor devices.",
+      type: "boolean",
+      default: true,
+    },
+
+    autoForceSync: {
+      title: "Auto Force Sync (Google Home & Alexa workaround)",
+      description:
+        "Periodically push all device states to connected controllers every 60 seconds. " +
+        "This is a workaround for Google Home and Alexa which sometimes lose subscriptions and show devices as offline/unresponsive. " +
+        "Only enable this if you experience state sync issues or disconnections after a few hours.",
       type: "boolean",
       default: false,
     },

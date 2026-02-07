@@ -48,6 +48,27 @@ export function matterApi(
     }
   });
 
+  // IMPORTANT: This route MUST be defined BEFORE /bridges/:bridgeId
+  // because Express matches routes in definition order, and ":bridgeId"
+  // would capture "priorities" as a parameter value.
+  router.put("/bridges/priorities", async (req, res) => {
+    const body = req.body as {
+      updates: Array<{ id: string; priority: number }>;
+    };
+    if (!body.updates || !Array.isArray(body.updates)) {
+      res.status(400).json({ error: "Invalid request body" });
+      return;
+    }
+    try {
+      await bridgeService.updatePriorities(body.updates);
+      res.status(200).json({ success: true });
+    } catch (e) {
+      res.status(500).json({
+        error: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
+  });
+
   router.put("/bridges/:bridgeId", async (req, res) => {
     const bridgeId = req.params.bridgeId;
     const body = req.body as UpdateBridgeRequest;
@@ -70,24 +91,6 @@ export function matterApi(
     const bridgeId = req.params.bridgeId;
     await bridgeService.delete(bridgeId);
     res.status(204).send();
-  });
-
-  router.put("/bridges/priorities", async (req, res) => {
-    const body = req.body as {
-      updates: Array<{ id: string; priority: number }>;
-    };
-    if (!body.updates || !Array.isArray(body.updates)) {
-      res.status(400).json({ error: "Invalid request body" });
-      return;
-    }
-    try {
-      await bridgeService.updatePriorities(body.updates);
-      res.status(200).json({ success: true });
-    } catch (e) {
-      res.status(500).json({
-        error: e instanceof Error ? e.message : "Unknown error",
-      });
-    }
   });
 
   router.post("/bridges/:bridgeId/actions/factory-reset", async (req, res) => {
@@ -156,9 +159,29 @@ export function matterApi(
     }
   });
 
+  router.post("/bridges/:bridgeId/actions/force-sync", async (req, res) => {
+    const bridgeId = req.params.bridgeId;
+    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+    if (bridge) {
+      const syncedCount = await bridge.forceSync();
+      res.status(200).json({ syncedCount, bridge: bridge.data });
+    } else {
+      res.status(404).send("Not Found");
+    }
+  });
+
   router.get("/next-port", (_, res) => {
     const port = bridgeService.getNextAvailablePort();
     res.status(200).json({ port });
+  });
+
+  router.get("/labels", async (_, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+    // Return labels with both label_id and display name to help users
+    res.status(200).json(haRegistry.labels);
   });
 
   router.post("/filter-preview", async (req, res) => {

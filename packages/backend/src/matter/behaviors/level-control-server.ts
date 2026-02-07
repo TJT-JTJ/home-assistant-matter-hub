@@ -89,9 +89,9 @@ export class LevelControlServerBase extends FeaturedBase {
     });
   }
 
-  // Fix for Google Home: it sends moveToLevel/moveToLevelWithOnOff with transitionTime as null or omitted.
-  // According to Matter spec, transitionTime is nullable, but Matter.js validation fails on null/undefined.
-  // We provide a default value of 0 (instant transition) to prevent validation errors.
+  // Fix for Google Home (#41): it sends moveToLevel/moveToLevelWithOnOff/step commands
+  // with transitionTime as null or completely omitted. The TLV schema is patched at startup
+  // (see patch-level-control-tlv.ts) to accept omitted fields. Here we default to 0 (instant).
   override async moveToLevel(request: LevelControl.MoveToLevelRequest) {
     if (request.transitionTime == null) {
       request.transitionTime = 0;
@@ -106,6 +106,20 @@ export class LevelControlServerBase extends FeaturedBase {
       request.transitionTime = 0;
     }
     return super.moveToLevelWithOnOff(request);
+  }
+
+  override step(request: LevelControl.StepRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.step(request);
+  }
+
+  override stepWithOnOff(request: LevelControl.StepRequest) {
+    if (request.transitionTime == null) {
+      request.transitionTime = 0;
+    }
+    return super.stepWithOnOff(request);
   }
 
   override moveToLevelLogic(level: number) {

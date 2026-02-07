@@ -6,7 +6,11 @@ import {
   domainToDefaultMatterTypes,
   matterDeviceTypeLabels,
 } from "@home-assistant-matter-hub/common";
+import Autocomplete from "@mui/material/Autocomplete";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -18,7 +22,14 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+
+interface RelatedButton {
+  entity_id: string;
+  friendly_name?: string;
+  clean_name: string;
+}
 
 interface EntityMappingDialogProps {
   open: boolean;
@@ -45,6 +56,12 @@ export function EntityMappingDialog({
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
+  const [humidityEntity, setHumidityEntity] = useState("");
+  const [batteryEntity, setBatteryEntity] = useState("");
+  const [roomEntities, setRoomEntities] = useState<string[]>([]);
+  const [disableLockPin, setDisableLockPin] = useState(false);
+  const [availableButtons, setAvailableButtons] = useState<RelatedButton[]>([]);
+  const [loadingButtons, setLoadingButtons] = useState(false);
 
   const isNewMapping = !entityId;
 
@@ -56,8 +73,39 @@ export function EntityMappingDialog({
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
+      setHumidityEntity(currentMapping?.humidityEntity || "");
+      setBatteryEntity(currentMapping?.batteryEntity || "");
+      setRoomEntities(currentMapping?.roomEntities || []);
+      setDisableLockPin(currentMapping?.disableLockPin || false);
+      setAvailableButtons([]);
     }
   }, [open, entityId, currentMapping]);
+
+  // Load available button entities for vacuum domain
+  useEffect(() => {
+    if (!open || !entityId || domain !== "vacuum") {
+      return;
+    }
+
+    const loadButtons = async () => {
+      setLoadingButtons(true);
+      try {
+        const response = await fetch(
+          `api/home-assistant/related-buttons/${encodeURIComponent(entityId)}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableButtons(data.buttons || []);
+        }
+      } catch (error) {
+        console.error("Failed to load related buttons:", error);
+      } finally {
+        setLoadingButtons(false);
+      }
+    };
+
+    loadButtons();
+  }, [open, entityId, domain]);
 
   const currentDomain = editEntityId.split(".")[0] || domain;
 
@@ -70,6 +118,10 @@ export function EntityMappingDialog({
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
+      humidityEntity: humidityEntity.trim() || undefined,
+      batteryEntity: batteryEntity.trim() || undefined,
+      roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
+      disableLockPin: disableLockPin || undefined,
     });
   }, [
     editEntityId,
@@ -78,6 +130,10 @@ export function EntityMappingDialog({
     disabled,
     filterLifeEntity,
     cleaningModeEntity,
+    humidityEntity,
+    batteryEntity,
+    roomEntities,
+    disableLockPin,
     onSave,
   ]);
 
@@ -88,6 +144,18 @@ export function EntityMappingDialog({
 
   // Show cleaning mode entity field for vacuums
   const showCleaningModeField = currentDomain === "vacuum";
+
+  // Show room entities field for vacuums (Roborock room selection)
+  const showRoomEntitiesField = currentDomain === "vacuum";
+
+  // Show humidity/battery entity fields for temperature sensors
+  const showHumidityBatteryFields =
+    matterDeviceType === "temperature_sensor" ||
+    (currentDomain === "sensor" && !matterDeviceType);
+
+  // Show PIN disable option for locks
+  const showLockPinField =
+    matterDeviceType === "door_lock" || currentDomain === "lock";
 
   const availableTypes = Object.entries(matterDeviceTypeLabels) as [
     MatterDeviceType,
@@ -183,6 +251,114 @@ export function EntityMappingDialog({
             value={cleaningModeEntity}
             onChange={(e) => setCleaningModeEntity(e.target.value)}
             helperText="Select entity that controls the vacuum cleaning mode (e.g., select.r2_d2_cleaning_mode for Dreame vacuums)"
+          />
+        )}
+
+        {showRoomEntitiesField && (
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Room Button Entities (Roborock)
+            </Typography>
+            <Autocomplete
+              multiple
+              options={availableButtons}
+              getOptionLabel={(option) =>
+                typeof option === "string"
+                  ? option
+                  : option.friendly_name || option.clean_name
+              }
+              value={availableButtons.filter((btn) =>
+                roomEntities.includes(btn.entity_id),
+              )}
+              onChange={(_, newValue) => {
+                setRoomEntities(
+                  newValue.map((v) =>
+                    typeof v === "string" ? v : v.entity_id,
+                  ),
+                );
+              }}
+              loading={loadingButtons}
+              freeSolo
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    label={
+                      typeof option === "string"
+                        ? option
+                        : option.friendly_name || option.clean_name
+                    }
+                    size="small"
+                    {...getTagProps({ index })}
+                    key={typeof option === "string" ? option : option.entity_id}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  placeholder={
+                    loadingButtons
+                      ? "Loading buttons..."
+                      : "Select room buttons or type entity ID"
+                  }
+                  helperText="Select button entities that trigger room cleaning (e.g., button.roborock_clean_kitchen). These appear as rooms in Apple Home."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingButtons ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+            {availableButtons.length === 0 && !loadingButtons && (
+              <Typography variant="caption" color="text.secondary">
+                No button entities found for this device. You can manually enter
+                entity IDs.
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        {showHumidityBatteryFields && (
+          <>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Humidity Sensor (optional)"
+              placeholder="sensor.h_t_bad_humidity"
+              value={humidityEntity}
+              onChange={(e) => setHumidityEntity(e.target.value)}
+              helperText="Combine with a humidity sensor to create a single Temperature+Humidity device"
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Battery Sensor (optional)"
+              placeholder="sensor.h_t_bad_battery"
+              value={batteryEntity}
+              onChange={(e) => setBatteryEntity(e.target.value)}
+              helperText="Include battery level from a separate sensor entity"
+            />
+          </>
+        )}
+
+        {showLockPinField && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={disableLockPin}
+                onChange={(e) => setDisableLockPin(e.target.checked)}
+              />
+            }
+            label="Disable PIN requirement for this lock"
+            sx={{ mt: 1, display: "block" }}
           />
         )}
 

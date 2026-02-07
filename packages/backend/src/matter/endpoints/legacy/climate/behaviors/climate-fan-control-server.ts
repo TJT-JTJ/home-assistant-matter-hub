@@ -25,6 +25,12 @@ const config: FanControlServerConfig = {
     return attributes(entity).fan_mode ?? undefined;
   },
   supportsPercentage: () => false,
+  // Climate devices don't typically support oscillation
+  isOscillating: () => false,
+  supportsOscillation: () => false,
+  // Climate devices don't typically support wind modes
+  getWindMode: () => undefined,
+  supportsWind: () => false,
 
   turnOff: () => ({
     action: "climate.set_fan_mode",
@@ -44,6 +50,12 @@ const config: FanControlServerConfig = {
   setPresetMode: (presetMode) => ({
     action: "climate.set_fan_mode",
     data: { fan_mode: presetMode },
+  }),
+  setOscillation: () => ({
+    action: "homeassistant.turn_on",
+  }),
+  setWindMode: () => ({
+    action: "homeassistant.turn_on",
   }),
 };
 

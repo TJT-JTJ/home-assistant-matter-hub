@@ -53,6 +53,32 @@ export interface EntityMappingConfig {
    * Example: "select.r2_d2_cleaning_mode"
    */
   readonly cleaningModeEntity?: string;
+  /**
+   * Optional: Entity ID of a humidity sensor to combine with a temperature sensor.
+   * Creates a combined Temperature+Humidity sensor in Matter instead of separate devices.
+   * Example: "sensor.h_t_bad_humidity"
+   */
+  readonly humidityEntity?: string;
+  /**
+   * Optional: Entity ID of a battery sensor to include with any sensor.
+   * Adds PowerSource cluster to show battery level in Matter controllers.
+   * Example: "sensor.h_t_bad_battery"
+   */
+  readonly batteryEntity?: string;
+  /**
+   * Optional: Array of button entity IDs for room-based cleaning (Roborock, etc.).
+   * Each button entity represents a room/scene in the vacuum app.
+   * When a room is selected via Matter, the corresponding button will be pressed.
+   * Example: ["button.roborock_clean_kitchen", "button.roborock_clean_living_room"]
+   */
+  readonly roomEntities?: string[];
+  /**
+   * Optional: Disable PIN requirement for this lock.
+   * When true, the lock will not require PIN validation even if a PIN is configured.
+   * Useful when you have multiple locks and only want PIN protection on some of them.
+   * Default: false (PIN is required if configured)
+   */
+  readonly disableLockPin?: boolean;
 }
 
 export interface EntityMappingRequest {
@@ -63,6 +89,10 @@ export interface EntityMappingRequest {
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
+  readonly humidityEntity?: string;
+  readonly batteryEntity?: string;
+  readonly roomEntities?: string[];
+  readonly disableLockPin?: boolean;
 }
 
 export interface EntityMappingResponse {

@@ -78,15 +78,20 @@ Mapped to **OnOffPlugInUnit** - a simple on/off controllable outlet.
 Mapped to **DoorLock** with PIN code support where available.
 
 **Supported Actions:**
-- Lock
-- Unlock
+- Lock (no PIN required)
+- Unlock (PIN required if configured)
 
 **Supported Attributes:**
 - `is_locked` → Matter Lock State
 
+**Feature Flags:**
+- **PIN Credentials** - Configure PIN codes via Entity Mapping UI
+- **Lock without PIN** - Locking is always allowed, only unlock requires PIN (Alpha)
+
 **Controller Notes:**
 - PIN code entry may not be supported by all controllers
 - Some controllers may require additional confirmation for unlock
+- Google Home has disabled voice unlock for Matter locks (Google policy)
 
 ---
 
@@ -101,6 +106,13 @@ Mapped to **WindowCovering** supporting position and tilt control.
 | `set_position` | Lift percentage (0-100%) |
 | `set_tilt_position` | Tilt percentage (0-100%) |
 | `stop` | Stop movement |
+
+**Feature Flags (Bridge Settings):**
+| Flag | Description |
+|------|-------------|
+| `coverDoNotInvertPercentage` | Skip percentage inversion (not Matter compliant) |
+| `coverUseHomeAssistantPercentage` | Display HA percentages in Matter (Alexa-friendly) |
+| `coverSwapOpenClose` | Swap open/close commands (fixes reversed Alexa commands) |
 
 **Supported Device Classes:**
 - `blind`
@@ -152,6 +164,18 @@ Mapped to **Fan** device with speed and direction control.
 | Speed percentage | FanControl SpeedPercent |
 | Preset modes | FanControl FanMode |
 | Direction | FanControl AirflowDirection |
+| Oscillation | FanControl Rocking (Alpha) |
+
+**Alpha Features:**
+| Feature | Description |
+|---------|-------------|
+| **Oscillation** | Maps `oscillating` attribute to Matter Rocking |
+| **Natural Wind** | Maps "Natural" preset mode to naturalWind |
+| **Sleep Wind** | Maps "Sleep" preset mode to sleepWind |
+
+**Entity Mapping:**
+- Can be mapped to **Air Purifier** device type via Entity Mapping UI
+- Air Purifier supports `filterLifeEntity` for HEPA filter monitoring
 
 **Speed Mapping:**
 - HA percentage (0-100%) → Matter percentage (0-100)
@@ -301,12 +325,30 @@ Mapped to **RoboticVacuumCleaner**.
 **Supported Features:**
 - Start/Stop cleaning
 - Return to dock
-- Operating mode
+- Operating mode (Idle, Cleaning)
+- Room selection (if supported by vacuum)
+- Battery level (if available)
+
+**Entity Mapping Options:**
+| Option | Description |
+|--------|-------------|
+| `roomEntities` | Array of button entity IDs for room selection (Roborock) |
+| `batteryEntity` | External battery sensor entity (Roomba, Deebot) |
+| `cleaningModeEntity` | Select entity for cleaning mode (Dreame) |
+
+**Feature Flags (Bridge Settings):**
+| Flag | Description |
+|------|-------------|
+| `serverMode` | Expose as standalone device (required for Apple Home/Alexa) |
+| `vacuumIncludeUnnamedRooms` | Include rooms without names in room selection |
 
 **Important Limitations:**
-- | **Apple Home only** - Not supported by Google or Alexa yet
-- | **Must be the ONLY device** in its bridge
-- | Requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
+- **Server Mode recommended** - For full voice command support (Siri, Alexa)
+- **Server Mode = one device per bridge** - The vacuum must be the only device
+- **Apple Home** requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
+- **Google Home** does not support RVC device types yet
+
+See [Robot Vacuum Guide](./Devices/Robot%20Vacuum.md) for detailed setup instructions.
 
 ---
 

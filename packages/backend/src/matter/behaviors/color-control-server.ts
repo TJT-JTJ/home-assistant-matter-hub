@@ -137,20 +137,43 @@ export class ColorControlServerBase extends FeaturedBase {
     // are within [colorTempPhysicalMinMireds, colorTempPhysicalMaxMireds].
     // If we set values before boundaries, validation fails with "Behaviors have errors".
     if (this.features.colorTemperature) {
-      // Step 1: Set the physical boundaries FIRST
+      // Step 0: Clamp existing colorTemperatureMireds to the new range BEFORE
+      // updating boundaries. Without this, Matter.js validation fails when the
+      // boundaries are tightened and the current value is outside the new range.
+      // This happens e.g. when the default (250 mireds) is below the device's
+      // actual minimum (e.g. 275 mireds for narrow-range CT lights like #92).
+      const existingMireds = this.state.colorTemperatureMireds;
+      if (existingMireds != null) {
+        const clampedExisting = Math.max(
+          Math.min(existingMireds, maxMireds),
+          minMireds,
+        );
+        if (clampedExisting !== existingMireds) {
+          applyPatchState(this.state, {
+            colorTemperatureMireds: clampedExisting,
+          });
+        }
+      }
+
+      // Step 1: Set the physical boundaries
       applyPatchState(this.state, {
         colorTempPhysicalMinMireds: minMireds,
         colorTempPhysicalMaxMireds: maxMireds,
       });
 
-      // Step 2: Now set the values that depend on those boundaries
+      // Step 2: Now set the values that depend on those boundaries.
+      // When the light is OFF (currentMireds is null), clamp colorTemperatureMireds
+      // to the valid range to prevent it staying at an out-of-range default.
+      const effectiveMireds =
+        currentMireds ??
+        Math.max(
+          Math.min(this.state.colorTemperatureMireds ?? minMireds, maxMireds),
+          minMireds,
+        );
       applyPatchState(this.state, {
         coupleColorTempToLevelMinMireds: minMireds,
         startUpColorTemperatureMireds: startUpMireds,
-        // Only update colorTemperatureMireds if we have a valid value.
-        ...(currentMireds != null
-          ? { colorTemperatureMireds: currentMireds }
-          : {}),
+        colorTemperatureMireds: effectiveMireds,
       });
     }
 

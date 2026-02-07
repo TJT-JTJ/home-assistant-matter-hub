@@ -35,17 +35,20 @@ class Co2AirQualityServer extends Co2AirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const value = +state;
-      // CO2 in ppm
-      if (value < 400) {
+      // CO2 in ppm – thresholds based on German UBA / ASHRAE indoor air quality guidelines.
+      // Outdoor CO2 is ~420 ppm (2024+), well-ventilated indoor ~450-600 ppm.
+      if (value <= 800) {
         airQuality = AirQuality.AirQualityEnum.Good;
-      } else if (value < 1000) {
+      } else if (value <= 1000) {
         airQuality = AirQuality.AirQualityEnum.Fair;
-      } else if (value < 2000) {
+      } else if (value <= 1400) {
         airQuality = AirQuality.AirQualityEnum.Moderate;
-      } else if (value < 5000) {
+      } else if (value <= 2000) {
         airQuality = AirQuality.AirQualityEnum.Poor;
-      } else {
+      } else if (value <= 5000) {
         airQuality = AirQuality.AirQualityEnum.VeryPoor;
+      } else {
+        airQuality = AirQuality.AirQualityEnum.ExtremelyPoor;
       }
     }
 

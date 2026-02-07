@@ -61,6 +61,37 @@ export interface VacuumRoom {
   icon?: string;
 }
 
+/**
+ * Simple room mapping format: { "1": "Kitchen", "2": "Living Room" }
+ * Key is the room ID, value is the room name.
+ */
+export type SimpleRoomRecord = Record<string | number, string>;
+
+/**
+ * Ecovacs room format: { dining_room: 0, bedroom: [1, 3], ... }
+ * Key is the snake_case room name, value is either:
+ * - A single numeric ID for one room
+ * - An array of numeric IDs for multiple rooms with the same name
+ */
+export type EcovacsRoomRecord = Record<string, number | number[]>;
+
+/**
+ * Dreame nested room format: { "Ground Floor": [{ id: 1, name: "Kitchen" }, ...] }
+ * Key is the map name, value is an array of room objects.
+ */
+export type DreameRoomRecord = Record<string, VacuumRoom[]>;
+
+/**
+ * All supported formats for room/segment data across different integrations.
+ */
+export type VacuumRoomsData =
+  | VacuumRoom[]
+  | SimpleRoomRecord
+  | EcovacsRoomRecord
+  | DreameRoomRecord
+  | null
+  | undefined;
+
 export interface VacuumDeviceAttributes {
   supported_features?: number;
   battery_level?: number | string | null | undefined;
@@ -75,10 +106,11 @@ export interface VacuumDeviceAttributes {
    * - Dreame: Often separate entities, but some have 'rooms' attribute
    * - Roborock: May have 'rooms' or 'segments' attribute
    * - Xiaomi: May have 'room_list' attribute
+   * - Ecovacs: { room_name: id } or { room_name: [id1, id2] }
    */
-  rooms?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  rooms?: VacuumRoomsData;
   /** Alternative attribute name used by some integrations */
-  segments?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  segments?: VacuumRoomsData;
   /** Alternative attribute name used by some integrations */
-  room_list?: VacuumRoom[] | Record<string | number, string> | null | undefined;
+  room_list?: VacuumRoomsData;
 }

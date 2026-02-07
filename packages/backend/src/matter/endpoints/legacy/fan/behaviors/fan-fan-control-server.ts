@@ -33,6 +33,29 @@ const fanControlConfig: FanControlServerConfig = {
       attributes(state).supported_features ?? 0,
       FanDeviceFeature.SET_SPEED,
     ),
+  // Rocking (oscillation) support
+  isOscillating: (state) => attributes(state).oscillating ?? false,
+  supportsOscillation: (state) =>
+    testBit(
+      attributes(state).supported_features ?? 0,
+      FanDeviceFeature.OSCILLATE,
+    ),
+  // Wind mode support - check if preset_modes contains natural/sleep
+  getWindMode: (state) => {
+    const mode = attributes(state).preset_mode?.toLowerCase();
+    if (mode === "natural" || mode === "nature") return "natural";
+    if (mode === "sleep") return "sleep";
+    return undefined;
+  },
+  supportsWind: (state) => {
+    const modes = attributes(state).preset_modes ?? [];
+    return modes.some(
+      (m) =>
+        m.toLowerCase() === "natural" ||
+        m.toLowerCase() === "nature" ||
+        m.toLowerCase() === "sleep",
+    );
+  },
 
   turnOff: () => ({ action: "fan.turn_off" }),
   turnOn: (percentage) => ({ action: "fan.turn_on", data: { percentage } }),
@@ -49,6 +72,17 @@ const fanControlConfig: FanControlServerConfig = {
   setPresetMode: (presetMode) => ({
     action: "fan.set_preset_mode",
     data: { preset_mode: presetMode },
+  }),
+  setOscillation: (oscillating) => ({
+    action: "fan.oscillate",
+    data: { oscillating },
+  }),
+  setWindMode: (mode) => ({
+    action: "fan.set_preset_mode",
+    data: {
+      preset_mode:
+        mode === "natural" ? "Natural" : mode === "sleep" ? "Sleep" : "Normal",
+    },
   }),
 };
 

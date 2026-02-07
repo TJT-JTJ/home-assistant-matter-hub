@@ -6,7 +6,43 @@ Robot vacuums are exposed as Matter **Robotic Vacuum Cleaner** devices with the 
 - **RVC Operational State** - Current state (idle, running, docked, error)
 - **RVC Run Mode** - Cleaning modes including room-specific cleaning
 - **Service Area** - Room selection for Apple Home (Matter 1.4)
+- **RVC Clean Mode** - Cleaning type selection (Sweeping, Mopping, etc.)
 - **Power Source** - Battery level (if available)
+
+## Server Mode (Recommended for Apple Home & Alexa)
+
+:::{important}
+**Apple Home and Alexa do not properly support bridged robot vacuums.** They require the vacuum to appear as a **standalone Matter device**, not as part of a bridge.
+
+If your vacuum shows "Updating" in Apple Home, doesn't respond to Siri commands, or isn't discovered by Alexa, you need to use **Server Mode**.
+:::
+
+### What is Server Mode?
+
+Server Mode exposes a single device as a **standalone Matter device** instead of a bridged device. This is required because:
+
+- Apple Home doesn't support Siri voice commands for bridged RVCs
+- Alexa doesn't discover bridged RVCs at all
+- The vacuum shows "Updating" or "Not Responding" in Apple Home
+
+### How to Enable Server Mode
+
+1. **Create a new bridge** in the Matter Hub web interface
+2. **Enable "Server Mode"** checkbox in the bridge creation wizard
+3. Add **only your vacuum** to this bridge (Server Mode supports exactly 1 device)
+4. **Pair the new bridge** with Apple Home or Alexa
+5. Your other devices stay on your regular bridge(s)
+
+:::{note}
+Server Mode bridges can only contain **one device**. This is a Matter protocol requirement for standalone devices.
+:::
+
+### After Enabling Server Mode
+
+- Your vacuum will appear as a native Matter device (not bridged)
+- Siri voice commands like "Hey Siri, start the vacuum" will work
+- Alexa will discover and control the vacuum
+- Room selection via Service Area will work in Apple Home
 
 ## Room Selection
 
@@ -48,28 +84,24 @@ rooms:
       name: Living Room
 ```
 
-## Apple Home Limitations
+## Apple Home & Alexa Limitations
 
-Apple Home has specific limitations with robot vacuums over Matter:
+Apple Home and Alexa have specific limitations with robot vacuums over Matter:
 
-### Bridge Limitation
+### Why Bridged Vacuums Don't Work
 
-**Important:** Apple Home currently only supports robot vacuums as:
-- A **single device** (not in a bridge), OR
-- The **only device** in a bridge
+Both Apple Home and Alexa expect robot vacuums to be **standalone Matter devices**. When exposed through a bridge (with `BridgedDeviceBasicInformation` cluster), they:
 
-If your vacuum is in a bridge with other devices, Apple Home may not display it correctly or may crash.
+- **Apple Home**: Shows "Updating", Siri commands fail, room selection doesn't work
+- **Alexa**: Doesn't discover the vacuum at all
 
-### Workaround: Separate Bridge
+### Solution: Use Server Mode
 
-If you experience issues with your vacuum in Apple Home:
+**Server Mode** is the recommended solution. See [Server Mode](#server-mode-recommended-for-apple-home--alexa) above for setup instructions.
 
-1. Create a **new bridge** in Home Assistant Matter Hub
-2. Add **only** the vacuum to this bridge
-3. Pair this bridge separately with Apple Home
-4. Your other devices remain on the main bridge
-
-This ensures the vacuum works correctly with Apple Home while your other devices continue to work on the main bridge.
+:::{tip}
+Server Mode was added specifically to fix these issues. It exposes the vacuum as a native Matter device without the bridge wrapper, making it fully compatible with Apple Home and Alexa.
+:::
 
 ## Supported Integrations
 
@@ -77,16 +109,47 @@ Room selection works with any integration that exposes room data as attributes:
 
 | Integration | Room Attribute | Notes |
 |-------------|---------------|-------|
-| Roborock | `rooms` or `segments` | Native support |
+| Roborock (Official) | Button entities | Use Entity Mapping UI (see below) |
+| Roborock (Xiaomi Miot) | `rooms` or `segments` | Native support |
 | Dreame | `rooms` | Nested format with map name |
 | Xiaomi | `rooms` | May require custom integration |
 | Ecovacs | `rooms` | Varies by model |
+
+### Roborock (Official Integration)
+
+The official **Roborock integration** does not expose room data as attributes. Instead, it creates **button entities** for each room/scene configured in the Roborock app.
+
+**Example button entities:**
+- `button.roborock_clean_kitchen`
+- `button.roborock_clean_living_room`
+- `button.roborock_clean_bedroom`
+
+#### Setting up Room Selection for Roborock
+
+1. **Open the Entity Mapping page** in the Matter Hub web UI
+2. **Edit your Roborock vacuum entity** (e.g., `vacuum.roborock_qrevo`)
+3. In the **"Room Button Entities"** field, select the button entities for each room
+   - The UI will auto-discover button entities belonging to the same device
+   - You can also manually enter entity IDs
+4. **Save** the mapping
+5. **Restart the bridge** or re-pair to apply changes
+
+#### How it works
+
+When you select a room in Apple Home and start cleaning:
+1. HAMH identifies which room was selected
+2. Presses the corresponding button entity in Home Assistant
+3. The Roborock integration triggers the room cleaning via the Roborock cloud
+
+:::{tip}
+You can also create **multi-room scenes** in the Roborock app (e.g., "Kitchen + Living Room") and map those button entities for combined room cleaning.
+:::
 
 ### Dreame Integration Note
 
 The Dreame integration exposes room data in a nested format. As of version 1.x-alpha.150+, this format is fully supported.
 
-If your vacuum uses separate `select` entities for room selection instead of attributes, room selection via Matter is not currently supported.
+If your vacuum uses separate `select` entities for room selection instead of attributes, you may need to use the `cleaningModeEntity` mapping instead.
 
 ## Troubleshooting
 

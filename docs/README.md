@@ -52,74 +52,52 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 
 ## What's New
 
-### Stable (v1.5.x)
+<details>
+<summary><strong>📦 Stable (v2.0.x) - Current</strong></summary>
 
-- **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
-- **Automatic Recovery** - Auto-restart failed bridges
-- **Bridge Wizard** - Guided setup for creating multiple bridges
-- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
-- **Improved Fan Control** - Better speed control compatibility with Matter controllers
-- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
+| Feature | Description |
+|---------|-------------|
+| **🌬️ Fan Oscillation** | Rocking/oscillation via Matter |
+| **🌬️ Wind Modes** | Natural Wind, Sleep Wind preset modes |
+| **🔋 PowerSource** | Battery support for Climate, Fan, Temperature sensors |
+| **� Lock PIN** | PBKDF2 hashed PINs, lock without PIN, per-lock disable |
+| **🚪 Cover/Blinds** | `coverSwapOpenClose` flag for Alexa |
+| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot/Climate/Fan |
+| **🤖 Vacuum Rooms** | Ecovacs Deebot, Roborock, Dreame room support |
+| **🤖 Vacuum Cleaning Modes** | Dreame cleaning mode entity mapping |
+| **🔄 Force Sync** | Push device states to controllers, auto-sync every 5min |
+| **🔋 Auto Grouping** | Auto Battery/Humidity mapping feature flags |
+| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
+| **💡 Lights** | ColorTemp + HueSat fix |
+| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes |
+| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
+| **📋 Copy to Clipboard** | Copy endpoint data button in UI |
 
-### Stable (v1.8.x) - NEW! 🎉
+</details>
 
-- **Graceful Crash Handler** - Failed entities no longer crash the bridge
-  - Problematic entities are automatically skipped during boot
-  - Failed entities are displayed in the UI with detailed error messages
-  - Bridge continues to run with remaining healthy entities
-- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
-- **Access Control Fix** - Fixed attribute write issues ([Matter.js #3105](https://github.com/matter-js/matter.js/issues/3105))
-- **Water Valve Support** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors for smoke and CO alarms
-- **Pressure/Flow Sensors** - Atmospheric pressure and flow measurements
+<details>
+<summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-### Stable (v1.9.0) - NEW! 🎉
+Alpha and Stable are currently synchronized. New alpha features will appear here.
 
-All previous features plus:
+</details>
 
-**Bridge Icons & UI**
-- **Custom Bridge Icons** - Upload your own PNG, JPG, GIF, WebP, or SVG icons
-- **Domain-based Icons** - Automatic icon assignment based on bridge domain
-- **20 Preset Icons** - Quick selection dropdown in bridge editor
-- **Entity Mapping Button** - Quick access from bridge card view
+<details>
+<summary><strong>📜 Previous Versions</strong></summary>
 
-**Media & Devices**
-- **Basic Video Player** - TV and media player support for Apple Home
-- **Alexa Deduplication** - UniqueId prevents duplicate devices
+### v2.0.x
+Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode
 
-**Thermostat Improvements**
-- **Auto-only Thermostat Support** - Thermostats with only "auto" mode now work
-- **Heating+Cooling Fixes** - Proper Matter.js deadband handling
-- **Google Home Fix** - Handle null transitionTime
+### v1.9.0
+Custom bridge icons, Basic Video Player, Alexa deduplication, Health Check API, WebSocket, Full backup/restore
 
-**Infrastructure**
-- **Health Check API** - REST endpoints for monitoring (`api/health`)
-- **WebSocket Live Updates** - Real-time status updates (`api/ws`)
-- **Ingress Compatibility** - Fixed routing for Home Assistant Ingress
-- **Full Backup/Restore** - Complete backups including entity mappings
-- **Entity Mapping** - Override Matter device types per entity
-- **Filter Preview** - Preview entity matches before saving
+### v1.8.x
+Graceful crash handler, PM2.5/PM10 sensors, Water Valve, Smoke/CO Detector, Pressure/Flow sensors
 
-### Stable (v2.0.x) - Current 🎉
+### v1.5.x
+Health Monitoring, Bridge Wizard, AirQuality sensors, Fan control, Media playback
 
-**Major Fixes:**
-- **Light Entity Fixes** - Fixed "Behaviors have errors" for lights with ColorTemperature + HueSaturation
-  - Proper initialization order for color temperature boundaries
-  - Fixed LevelControlServer validation errors during initialization
-- **Concentration Sensors** - Fixed PM2.5, PM10, CO2, and TVOC sensors
-  - Correct feature configuration (NumericMeasurement only)
-  - Proper default values for Apple Home compatibility
-- **Dreame Vacuum Support** - Full support for Dreame robot vacuums with nested room format
-
-**Device Documentation:**
-- New [Robot Vacuum](./Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
-- New [Air Purifier](./Devices/Air%20Purifier.md) guide
-
-### Alpha (v2.0.x-alpha)
-
-Currently synced with Stable v2.0.x - same features and fixes.
-
-See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for detailed documentation.
+</details>
 
 ## Getting started
 

@@ -2,11 +2,14 @@ import type {
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { PowerSourceServer as Base } from "@matter/main/behaviors";
 import { PowerSource } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("PowerSourceServer");
 
 export interface PowerSourceConfig {
   /**
@@ -27,7 +30,35 @@ class PowerSourceServerBase extends FeaturedBase {
 
   override async initialize() {
     await super.initialize();
+
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
+    const entityId = homeAssistant.entityId;
+
+    // Set endpointList to include this endpoint - required for controllers to
+    // associate the power source with the device. Without this, some controllers
+    // (like Google Home) may not display the battery level.
+    const endpointNumber = this.endpoint.number;
+    if (endpointNumber != null) {
+      applyPatchState(this.state, {
+        endpointList: [endpointNumber],
+      });
+      logger.debug(
+        `[${entityId}] PowerSource initialized with endpointList=[${endpointNumber}]`,
+      );
+    } else {
+      logger.warn(
+        `[${entityId}] PowerSource endpoint number is null during initialize - endpointList will be empty!`,
+      );
+    }
+
+    // Log battery entity mapping for debugging
+    const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
+    if (batteryEntity) {
+      logger.debug(
+        `[${entityId}] PowerSource using mapped battery entity: ${batteryEntity}`,
+      );
+    }
+
     this.update(homeAssistant.entity);
     this.reactTo(homeAssistant.onChange, this.update);
   }

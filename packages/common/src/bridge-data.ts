@@ -3,9 +3,39 @@ import type { HomeAssistantFilter } from "./home-assistant-filter.js";
 interface AllBridgeFeatureFlags {
   readonly coverDoNotInvertPercentage: boolean;
   readonly coverUseHomeAssistantPercentage: boolean;
+  readonly coverSwapOpenClose: boolean;
   readonly includeHiddenEntities: boolean;
   readonly alexaPreserveBrightnessOnTurnOn: boolean;
   readonly vacuumIncludeUnnamedRooms: boolean;
+  /**
+   * Server Mode: Expose devices directly as standalone Matter devices instead of bridged devices.
+   * This is required for Apple Home to properly support Siri voice commands for Robot Vacuums (RVC).
+   * When enabled, only ONE device should be in this bridge - it will be exposed as the root device.
+   * Multiple devices in server mode will cause errors.
+   */
+  readonly serverMode: boolean;
+  /**
+   * Auto Battery Mapping: Automatically assign battery sensors from the same Home Assistant device
+   * to the main entity. When enabled, battery sensors will be merged into their parent devices
+   * instead of appearing as separate devices in Matter controllers.
+   * Default: false (disabled)
+   */
+  readonly autoBatteryMapping: boolean;
+  /**
+   * Auto Humidity Mapping: Automatically combine humidity sensors with temperature sensors
+   * from the same Home Assistant device. When enabled, humidity sensors will be merged into
+   * temperature sensors to create combined TemperatureHumiditySensor devices.
+   * Default: true (enabled)
+   */
+  readonly autoHumidityMapping: boolean;
+  /**
+   * Auto Force Sync: Periodically push all device states to connected controllers.
+   * This is a workaround for Google Home and Alexa which sometimes lose subscriptions
+   * and show devices as offline/unresponsive after a few hours.
+   * When enabled, the bridge will push all device states every 60 seconds.
+   * Default: false (disabled)
+   */
+  readonly autoForceSync: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

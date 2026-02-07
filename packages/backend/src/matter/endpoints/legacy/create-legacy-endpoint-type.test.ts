@@ -69,6 +69,12 @@ const testEntities: Record<
       hvac_mode: ClimateHvacMode.off,
       hvac_action: ClimateHvacAction.off,
     }),
+    // Ventilation-only device (e.g. Ambientika CMV, #130)
+    createEntity<ClimateDeviceAttributes>("climate.cl5", "on", {
+      hvac_modes: [ClimateHvacMode.fan_only, ClimateHvacMode.off],
+      hvac_mode: ClimateHvacMode.off,
+      hvac_action: ClimateHvacAction.off,
+    }),
   ],
   [HomeAssistantDomain.cover]: [
     createEntity<CoverDeviceAttributes>("cover.co1", "on", {

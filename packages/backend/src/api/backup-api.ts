@@ -49,12 +49,24 @@ export function backupApi(
         }
       }
 
+      // Check if bridge icons exist before creating backupData
+      let includesIcons = false;
+      const iconsDir = path.join(storageLocation, "bridge-icons");
+      if (includeIdentity && fs.existsSync(iconsDir)) {
+        const iconFiles = fs.readdirSync(iconsDir);
+        includesIcons = iconFiles.some((iconFile) => {
+          const bridgeId = iconFile.split(".")[0];
+          return bridges.some((b) => b.id === bridgeId);
+        });
+      }
+
       const backupData: BackupData = {
         version: 2,
         createdAt: new Date().toISOString(),
         bridges,
         entityMappings,
         includesIdentity: includeIdentity,
+        includesIcons,
       };
 
       const archive = archiver("zip", { zlib: { level: 9 } });
@@ -74,7 +86,7 @@ export function backupApi(
         name: "backup.json",
       });
       archive.append(
-        `Home Assistant Matter Hub Backup\nCreated: ${backupData.createdAt}\nBridges: ${bridges.length}\nIncludes Identity: ${includeIdentity}\n\nWARNING: ${includeIdentity ? "This backup contains sensitive Matter identity data (keypairs, fabric credentials). Keep it secure!" : "This backup does NOT include Matter identity data. Bridges will need to be re-commissioned after restore."}\n`,
+        `Home Assistant Matter Hub Backup\nCreated: ${backupData.createdAt}\nBridges: ${bridges.length}\nIncludes Identity: ${includeIdentity}\nIncludes Icons: ${includesIcons}\n\nWARNING: ${includeIdentity ? "This backup contains sensitive Matter identity data (keypairs, fabric credentials). Keep it secure!" : "This backup does NOT include Matter identity data. Bridges will need to be re-commissioned after restore."}\n`,
         { name: "README.txt" },
       );
 
@@ -87,8 +99,7 @@ export function backupApi(
         }
 
         // Include bridge icons
-        const iconsDir = path.join(storageLocation, "bridge-icons");
-        if (fs.existsSync(iconsDir)) {
+        if (includesIcons) {
           const iconFiles = fs.readdirSync(iconsDir);
           for (const iconFile of iconFiles) {
             const bridgeId = iconFile.split(".")[0];
@@ -97,7 +108,6 @@ export function backupApi(
               archive.file(iconPath, { name: `bridge-icons/${iconFile}` });
             }
           }
-          backupData.includesIcons = true;
         }
       }
 
@@ -204,6 +214,9 @@ export function backupApi(
                     disabled: config.disabled,
                     filterLifeEntity: config.filterLifeEntity,
                     cleaningModeEntity: config.cleaningModeEntity,
+                    humidityEntity: config.humidityEntity,
+                    batteryEntity: config.batteryEntity,
+                    roomEntities: config.roomEntities,
                   });
                   mappingsRestored++;
                 }

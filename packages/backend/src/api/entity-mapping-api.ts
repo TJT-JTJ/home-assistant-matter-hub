@@ -35,6 +35,9 @@ export function entityMappingApi(
       disabled: body.disabled,
       filterLifeEntity: body.filterLifeEntity,
       cleaningModeEntity: body.cleaningModeEntity,
+      humidityEntity: body.humidityEntity,
+      batteryEntity: body.batteryEntity,
+      roomEntities: body.roomEntities,
     };
 
     const config = await mappingStorage.setMapping(request);

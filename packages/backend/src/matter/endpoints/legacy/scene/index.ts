@@ -5,6 +5,11 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { OnOffServer } from "../../../behaviors/on-off-server.js";
 
+/**
+ * Scene-specific OnOffServer that always shows as OFF.
+ * Scenes are momentary actions - they activate and immediately reset.
+ * Using isOn: () => false ensures scenes never appear "stuck on" in controllers.
+ */
 const SceneOnOffServer = OnOffServer({
   isOn: () => false,
   turnOn: () => ({

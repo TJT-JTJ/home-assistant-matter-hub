@@ -84,7 +84,7 @@ const CLEANING_MODE_ALIASES: Record<DreameCleaningMode, string[]> = {
     "vacuum",
     "sweeping",
   ],
-  [DreameCleaningMode.Mopping]: ["Mopping", "Mop", "mopping", "mop"],
+  [DreameCleaningMode.Mopping]: ["Mopping", "Mop", "mopping", "mop", "wet_mop"],
   [DreameCleaningMode.SweepingAndMopping]: [
     "Sweeping and mopping",
     "Vacuum and mop",
@@ -95,6 +95,7 @@ const CLEANING_MODE_ALIASES: Record<DreameCleaningMode, string[]> = {
   ],
   [DreameCleaningMode.MoppingAfterSweeping]: [
     "Mopping after sweeping",
+    "mopping_after_sweeping",
     "Vacuum then mop",
     "Mop after vacuum",
     "vacuum_then_mop",
@@ -124,12 +125,13 @@ function findMatchingOption(
     if (match) return match;
   }
 
-  // Try partial match
+  // Try partial match - only check if option contains alias, not vice versa
+  // This prevents "Mopping after sweeping" from matching "Sweeping" because the alias contains the option
   for (const alias of aliases) {
     const match = availableOptions.find((opt) => {
       const optLower = opt.toLowerCase();
       const aliasLower = alias.toLowerCase();
-      return optLower.includes(aliasLower) || aliasLower.includes(optLower);
+      return optLower.includes(aliasLower);
     });
     if (match) return match;
   }
@@ -197,13 +199,31 @@ function getCleaningModeSelectEntity(agent: Agent): string {
 }
 
 const vacuumRvcCleanModeConfig = {
-  getCurrentMode: (entity: { attributes: unknown }) => {
+  getCurrentMode: (entity: { attributes: unknown }, agent: Agent): number => {
+    // First: try the vacuum entity's own cleaning_mode attribute (reactive via onChange)
+    // Some Dreame vacuums expose this directly on the vacuum entity
     const attributes = entity.attributes as VacuumDeviceAttributes & {
       cleaning_mode?: string;
     };
-    const currentMode = parseDreameCleaningMode(attributes.cleaning_mode);
+    if (attributes.cleaning_mode) {
+      const currentMode = parseDreameCleaningMode(attributes.cleaning_mode);
+      logger.debug(
+        `Current cleaning mode from vacuum entity: "${attributes.cleaning_mode}" -> ${getDreameCleaningModeString(currentMode)}`,
+      );
+      return currentMode;
+    }
+
+    // Fallback: read from the separate select entity via EntityStateProvider
+    // Note: This is NOT reactive — updates only arrive when the vacuum entity itself changes
+    const selectEntityId = getCleaningModeSelectEntity(agent);
+    const stateProvider = agent.env.get(EntityStateProvider);
+    const selectState = stateProvider.getState(selectEntityId);
+
+    const currentOption = selectState?.state as string | undefined;
+    const currentMode = parseDreameCleaningMode(currentOption);
+
     logger.debug(
-      `Current cleaning mode: "${attributes.cleaning_mode}" -> ${getDreameCleaningModeString(currentMode)}`,
+      `Current cleaning mode from ${selectEntityId}: "${currentOption}" -> ${getDreameCleaningModeString(currentMode)}`,
     );
     return currentMode;
   },

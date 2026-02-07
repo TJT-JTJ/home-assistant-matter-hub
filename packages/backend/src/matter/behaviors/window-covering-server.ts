@@ -150,6 +150,11 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
     const currentTilt100ths = currentTilt != null ? currentTilt * 100 : null;
 
+    // When cover is stopped, target position MUST equal current position.
+    // This is critical for Matter controllers to correctly display the cover state.
+    // Without this, Google Home and other controllers may show stale positions.
+    const isStopped = movementStatus === MovementStatus.Stopped;
+
     logger.debug(
       `Cover update for ${entity.entity_id}: state=${state.state}, lift=${currentLift}%, tilt=${currentTilt}%, movement=${MovementStatus[movementStatus]}`,
     );
@@ -192,16 +197,22 @@ export class WindowCoveringServerBase extends FeaturedBase {
           ? {
               currentPositionLiftPercentage: currentLift,
               currentPositionLiftPercent100ths: currentLift100ths,
-              targetPositionLiftPercent100ths:
-                this.state.targetPositionLiftPercent100ths ?? currentLift100ths,
+              // When stopped, target MUST equal current for controllers to show correct state
+              targetPositionLiftPercent100ths: isStopped
+                ? currentLift100ths
+                : (this.state.targetPositionLiftPercent100ths ??
+                  currentLift100ths),
             }
           : {}),
         ...(this.features.positionAwareTilt
           ? {
               currentPositionTiltPercentage: currentTilt,
               currentPositionTiltPercent100ths: currentTilt100ths,
-              targetPositionTiltPercent100ths:
-                this.state.targetPositionTiltPercent100ths ?? currentTilt100ths,
+              // When stopped, target MUST equal current for controllers to show correct state
+              targetPositionTiltPercent100ths: isStopped
+                ? currentTilt100ths
+                : (this.state.targetPositionTiltPercent100ths ??
+                  currentTilt100ths),
             }
           : {}),
       },
@@ -222,27 +233,45 @@ export class WindowCoveringServerBase extends FeaturedBase {
   ) {
     const currentLift = this.state.currentPositionLiftPercent100ths ?? 0;
     const currentTilt = this.state.currentPositionTiltPercent100ths ?? 0;
+
+    logger.info(
+      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}, absolutePosition=${this.features.absolutePosition}`,
+    );
+
     if (type === MovementType.Lift) {
       if (targetPercent100ths != null && this.features.absolutePosition) {
         this.handleGoToLiftPosition(targetPercent100ths);
-      } else if (
-        direction === MovementDirection.Close ||
-        (targetPercent100ths != null && targetPercent100ths > currentLift)
-      ) {
-        this.handleLiftClose();
       } else if (direction === MovementDirection.Open) {
+        // Explicit open command - always open regardless of target position
         this.handleLiftOpen();
+      } else if (direction === MovementDirection.Close) {
+        // Explicit close command - always close regardless of target position
+        this.handleLiftClose();
+      } else if (targetPercent100ths != null) {
+        // Fallback: No explicit direction, use target position to determine direction
+        // In Matter: 0% = open, 100% = closed
+        if (targetPercent100ths > currentLift) {
+          this.handleLiftClose();
+        } else if (targetPercent100ths < currentLift) {
+          this.handleLiftOpen();
+        }
       }
     } else if (type === MovementType.Tilt) {
       if (targetPercent100ths != null && this.features.absolutePosition) {
         this.handleGoToTiltPosition(targetPercent100ths);
-      } else if (
-        direction === MovementDirection.Close ||
-        (targetPercent100ths != null && targetPercent100ths > currentTilt)
-      ) {
-        this.handleTiltClose();
       } else if (direction === MovementDirection.Open) {
+        // Explicit open command - always open regardless of target position
         this.handleTiltOpen();
+      } else if (direction === MovementDirection.Close) {
+        // Explicit close command - always close regardless of target position
+        this.handleTiltClose();
+      } else if (targetPercent100ths != null) {
+        // Fallback: No explicit direction, use target position to determine direction
+        if (targetPercent100ths > currentTilt) {
+          this.handleTiltClose();
+        } else if (targetPercent100ths < currentTilt) {
+          this.handleTiltOpen();
+        }
       }
     }
   }
@@ -254,16 +283,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
 
   private handleLiftOpen() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      this.state.config.openCoverLift(void 0, this.agent),
-    );
+    const action = this.state.config.openCoverLift(void 0, this.agent);
+    logger.info(`handleLiftOpen: calling action=${action.action}`);
+    homeAssistant.callAction(action);
   }
 
   private handleLiftClose() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    homeAssistant.callAction(
-      this.state.config.closeCoverLift(void 0, this.agent),
-    );
+    const action = this.state.config.closeCoverLift(void 0, this.agent);
+    logger.info(`handleLiftClose: calling action=${action.action}`);
+    homeAssistant.callAction(action);
   }
 
   private handleGoToLiftPosition(targetPercent100ths: number) {

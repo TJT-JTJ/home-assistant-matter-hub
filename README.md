@@ -12,7 +12,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/RiDDiX/home-assistant-matter-hub)](https://github.com/RiDDiX/home-assistant-matter-hub/stargazers)
 [![License](https://img.shields.io/github/license/RiDDiX/home-assistant-matter-hub)](LICENSE)
 
-[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
+[📖 Documentation](https://riddix.github.io/home-assistant-matter-hub) • [� Discord](https://discord.gg/Kubv7sSGyW) • [�🐛 Report Bug](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=bug) • [💡 Request Feature](https://github.com/RiDDiX/home-assistant-matter-hub/issues/new?labels=enhancement)
 
 </div>
 
@@ -38,16 +38,8 @@ of port forwarding etc.
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
 | **Stable** | `main` | v2.0.x | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.0.x-alpha | Pre-release with new features, for early adopters |
+| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
-
-### Semantic Versioning
-
-We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic versioning:
-
-- `fix:` commits → Patch version bump (1.7.**x**)
-- `feat:` commits → Minor version bump (1.**x**.0)
-- `BREAKING CHANGE:` → Major version bump (**x**.0.0)
 
 ### Which version should I use?
 
@@ -55,177 +47,151 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) for automatic ve
 - **Early adopters**: Use **Alpha** (`alpha` branch) - new features, occasional bugs
 - **Developers/Testers**: Use **Testing** (`testing` branch) - bleeding edge, expect breakage
 
-### Stable Features (v2.0.x) - Current 🎉
+---
 
-**💡 Light Entity Fixes**
-- **ColorTemperature + HueSaturation** - Fixed "Behaviors have errors" for lights supporting both color modes
-- **Boundary Order Fix** - Color temperature boundaries are now set before values to prevent validation errors
-- **LevelControlServer** - Fixed validation errors during initialization
-
-**🌡️ Concentration Sensors**
-- **PM2.5, PM10, CO2, TVOC** - Fixed "Behaviors have errors" for all concentration measurement sensors
-- **Feature Configuration** - Corrected to use `NumericMeasurement` only (not `LevelIndication`)
-- **Apple Home Compatibility** - Proper default values for seamless Apple Home integration
-
-**🌡️ New Device Support**
-- **Water Heater** - New `water_heater` domain mapped to Thermostat device (Heating only) ([#14](https://github.com/RiDDiX/home-assistant-matter-hub/issues/14))
-
-**🤖 Vacuum Enhancements**
-- **Apple Home Room Selection** - Matter 1.4 Service Area cluster for native room selection
-- **Dreame Vacuum Support** - Full support for nested room format (`rooms: { "Map Name": [...] }`)
-- **Room Selection** - Vacuum room/segment selection via RvcRunMode cluster ([#49](https://github.com/RiDDiX/home-assistant-matter-hub/issues/49))
-
-**🏷️ Entity Mapping**
-- **Sensor Type Override** - Entity mapping now correctly overrides sensor device types ([#73](https://github.com/RiDDiX/home-assistant-matter-hub/issues/73))
-
-**�️ Backup & Restore**
-- **Bridge Icons in Backup** - Full backup now includes bridge icons when exporting with identity
-
-**🌬️ Air Purifier**
-- **HEPA Filter Life Monitoring** - Filter life via HepaFilterMonitoring cluster
-- **Filter Life Sensor Mapping** - Map sensor entities via Entity Mapping UI
-
-**🚪 Cover/Blinds**
-- **Binary Cover Fix** - Garage doors show Open/Close buttons in Apple Home ([#78](https://github.com/RiDDiX/home-assistant-matter-hub/issues/78))
-- **WindowCover Position** - Prevent duplicate commands ([#76](https://github.com/RiDDiX/home-assistant-matter-hub/issues/76))
-
-**🎨 UI/UX**
-- **Bridge Sorting** - Sort dropdown on Bridge Status page ([#80](https://github.com/RiDDiX/home-assistant-matter-hub/issues/80))
-
-**� Documentation**
-- New [Robot Vacuum](docs/Devices/Robot%20Vacuum.md) guide with Apple Home workarounds
-- New [Air Purifier](docs/Devices/Air%20Purifier.md) guide
+## 🎉 What's New
 
 <details>
-<summary><strong>📦 Previous Stable Versions</strong> (click to expand)</summary>
+<summary><strong>📦 Stable Features (v2.0.x)</strong> - Click to expand</summary>
 
-### Stable Features (v1.5.x)
-
-- **Matter Bridge** - Expose Home Assistant entities to Matter controllers
-- **Multi-Fabric Support** - Connect to multiple ecosystems (Apple, Google, Alexa)
-- **Graceful Error Handling** - Skips problematic entities without crashing
-- **Failed Entity Reporting** - Shows which entities couldn't be loaded and why
-- **Health Monitoring Dashboard** - Real-time bridge and fabric status monitoring
-- **Automatic Recovery** - Auto-restart failed bridges with configurable intervals
-- **Bridge Wizard** - Guided setup for creating multiple bridges with automatic port assignment
-- **AirQuality Sensors** - Support for AQI, PM2.5, PM10, CO2, and VOC sensors
-- **Improved Fan Control** - Better speed control compatibility with Matter controllers
-- **Media Player Playback** - Play/Pause/Stop/Next/Previous track controls
-- **Node.js 24** - Latest LTS runtime
-- **64-bit Only** - Supports `amd64` and `arm64` (aarch64)
-
-### Stable Features (v1.7.x)
-
-- **Dark Mode Toggle** - Switch between light and dark theme
-- **Device List Sorting** - Sort endpoints by name, type, or ID
-
-### Stable Features (v1.8.x)
-
-- **Graceful Crash Handler** - Failed entities no longer crash the bridge
-- **PM2.5/PM10 Numeric Sensors** - Real concentration values in µg/m³
-- **Access Control Fix** - Fixed attribute write issues using `asLocalActor`
-- **Water Valve Support** - Control water valves via Matter
-- **Smoke/CO Detector** - Binary sensors for smoke and carbon monoxide alarms
-- **Pressure Sensor** - Atmospheric pressure measurements
-- **Flow Sensor** - Volume flow rate measurements
-- **Air Purifier** - Map fans to Air Purifier device type
-- **Pump Device** - Map switches/valves to Pump device type
-
-### Stable Features (v1.9.0)
-
-- **Custom Bridge Icons** - Upload your own icons
-- **Domain-based Icons** - Automatic icon assignment
-- **Basic Video Player** - TV and media player support for Apple Home
-- **Alexa Deduplication** - UniqueId prevents duplicate devices
-- **Auto-only Thermostat Support** - Thermostats with only "auto" mode work correctly
-- **Health Check API** - System status and Kubernetes-ready probes
-- **WebSocket Live Updates** - Real-time bridge status
-- **Full Backup/Restore** - Complete backups including entity mappings
-
-### Stable Features (v1.10.4)
-
-- **Climate/Thermostat Fixes** - Humidity sensor, HVAC auto mode mapping, thermostat limits
-- **Cover/Blinds Fixes** - Position fix, percentage consistency
-- **Vacuum Battery Support** - Battery level for vacuums
-- **Humidifier Improvements** - Humidity sensor, auto mode, FanDevice type
-- **Entity Mapping** - Custom name support, auto-refresh
-- **Alexa Brightness Preserve** - Prevent brightness reset on turn on
-- **UI Improvements** - Icon selection, button state fixes
+| Feature | Description |
+|---------|-------------|
+| **🌬️ Fan Oscillation** | Rocking/oscillation via Matter ([#108](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/108)) |
+| **🌬️ Wind Modes** | Natural Wind, Sleep Wind preset modes |
+| **🔋 PowerSource** | Battery support for Climate, Fan, Temperature sensors |
+| **🔒 Lock PIN** | PBKDF2 hashed PINs, lock without PIN, per-lock disable option ([#95](https://github.com/RiDDiX/home-assistant-matter-hub/issues/95)) |
+| **🚪 Cover/Blinds** | `coverSwapOpenClose` flag for Alexa ([#117](https://github.com/RiDDiX/home-assistant-matter-hub/issues/117)) |
+| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot/Climate/Fan ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
+| **🤖 Vacuum Rooms** | Ecovacs Deebot, Roborock, Dreame room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118), [#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) |
+| **🤖 Vacuum Cleaning Modes** | Dreame cleaning mode entity mapping ([#110](https://github.com/RiDDiX/home-assistant-matter-hub/issues/110)) |
+| **� Force Sync** | Push device states to controllers, auto-sync every 5min |
+| **�🔋 Auto Entity Grouping** | Auto Battery/Humidity mapping feature flags |
+| **🏷️ Labels API** | `/api/matter/labels` for label-based filtering |
+| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
+| **💡 Lights** | ColorTemp + HueSat fix, boundary order fix |
+| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes, Apple Home defaults |
+| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
+| **📋 Copy to Clipboard** | Copy endpoint data button in UI ([#121](https://github.com/RiDDiX/home-assistant-matter-hub/pull/121)) |
+| **🐛 Bug Fixes** | Lock initialization fix ([#122](https://github.com/RiDDiX/home-assistant-matter-hub/issues/122)), vacuum log spam fix ([#123](https://github.com/RiDDiX/home-assistant-matter-hub/issues/123)) |
 
 </details>
 
-### Alpha Features (v2.0.1-alpha) 🧪
+<details>
+<summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-> [!WARNING]
-> Alpha versions are for early adopters and may contain bugs!
+> [!NOTE]
+> Alpha and Stable are currently synchronized. New alpha features will appear here.
 
-Currently synced with Stable v2.0.x - same features and fixes.
+Currently all features are in stable. Check back for upcoming features!
 
-### Testing Features (v4.1.0-testing) ⚠️
+</details>
+
+<details>
+<summary><strong>⚠️ Testing Features (v4.1.0-testing)</strong> - Click to expand</summary>
 
 > [!CAUTION]
 > Testing versions are **highly unstable** and intended for developers only!
-> Features may be incomplete, broken, or removed without notice.
 
 **🏗️ Vision 1: Callback-based Architecture**
 
-Complete refactoring of the behavior system from self-updating to callback-based:
-
 | Old (Legacy) | New (Vision 1) |
 |--------------|----------------|
-| Behaviors update themselves via `reactTo(homeAssistant.onChange)` | Endpoint updates behaviors via `setStateOf()` |
-| Behaviors call HA actions directly | Behaviors notify endpoint via `notifyEndpoint()` |
-| Endpoint has no control over behaviors | Endpoint handles all HA action calls |
+| Behaviors update themselves | Endpoint updates behaviors via `setStateOf()` |
+| Behaviors call HA actions directly | Behaviors notify via `notifyEndpoint()` |
 
-**New Callback-Behaviors:**
-- `OnOffBehavior` - On/Off control for lights, switches, buttons, valves, scenes
-- `LevelControlBehavior` - Brightness/level control for dimmable lights, humidifiers
-- `LockBehavior` - Lock/unlock for door locks
-- `CoverBehavior` - Open/close/position for covers and blinds
-- `FanBehavior` - Speed control for fans
-- `ColorControlBehavior` - Color and temperature control for lights
-- `VacuumRunModeBehavior` - Run mode control for vacuums
-- `VacuumOperationalStateBehavior` - Operational state for vacuums
+**New Callback-Behaviors:** OnOff, LevelControl, Lock, Cover, Fan, ColorControl, VacuumRunMode, VacuumOperationalState
 
-**Updated DomainEndpoints with Vision 1:**
-- ✅ SwitchEndpoint, LockEndpoint, CoverEndpoint
-- ✅ VacuumEndpoint, ButtonEndpoint, ValveEndpoint
-- ✅ SceneEndpoint, HumidifierEndpoint
-- ✅ LightEndpoint (OnOff + Dimmable)
-- ✅ FanEndpoint
+**Updated Endpoints:** Switch, Lock, Cover, Vacuum, Button, Valve, Scene, Humidifier, Light, Fan
 
-**Benefits:**
-- Endpoint has full control over all HA service calls
-- Behaviors are simpler and easier to test
-- Enables future multi-entity scenarios (nested endpoints, neighbor entity access)
-- Clean separation between Matter protocol and HA logic
+</details>
 
-**🖼️ Bridge Icons in Backup**
-- Full backup now includes bridge icons when exporting with identity
-- Icons are automatically restored during backup import
+<details>
+<summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
 
-Experimental features being actively developed before promotion to alpha.
+### v2.0.x
+Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode
+
+### v1.10.4
+Climate/Thermostat fixes, Cover position fix, Vacuum battery, Humidifier improvements, Entity Mapping, Alexa brightness preserve
+
+### v1.9.0
+Custom bridge icons, Basic Video Player (TV), Alexa deduplication, Auto-only thermostat, Health Check API, WebSocket, Full backup/restore
+
+### v1.8.x
+Graceful crash handler, PM2.5/PM10 sensors, Water Valve, Smoke/CO Detector, Pressure/Flow sensors, Air Purifier, Pump device
+
+### v1.7.x
+Dark Mode toggle, Device list sorting
+
+### v1.5.x
+Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQuality sensors, Fan control, Media playback
+
+</details>
 
 ---
 
 ## Supported Device Types
 
-| Home Assistant Domain | Matter Device Type |
-|-----------------------|-------------------|
-| `light` | On/Off, Dimmable, Color Temperature, Extended Color Light |
-| `switch`, `input_boolean` | On/Off Plug-in Unit |
-| `lock` | Door Lock |
-| `cover` | Window Covering |
-| `climate` | Thermostat |
-| `fan` | Fan |
-| `binary_sensor` | Contact, Occupancy, Smoke/CO Alarm, Water Leak Sensor |
-| `sensor` | Temperature, Humidity, Pressure, Flow, Light, AirQuality Sensor |
-| `button`, `input_button` | Generic Switch |
-| `media_player` | Speaker, Basic Video Player (TV) |
-| `valve` | Water Valve |
-| `vacuum` | Robot Vacuum Cleaner |
-| `humidifier` | Humidifier/Dehumidifier |
-| `automation`, `script`, `scene` | On/Off Switch |
+| Home Assistant Domain | Matter Device Type | Feature Flags |
+|-----------------------|-------------------|---------------|
+| `light` | On/Off, Dimmable, Color Temp, Extended Color | |
+| `switch`, `input_boolean` | On/Off Plug-in Unit | |
+| `lock` | Door Lock | PIN Credentials |
+| `cover` | Window Covering | `coverSwapOpenClose` |
+| `climate` | Thermostat | Battery via `batteryEntity` |
+| `fan` | Fan, Air Purifier | Oscillation, Wind Modes |
+| `binary_sensor` | Contact, Occupancy, Smoke/CO, Water Leak | |
+| `sensor` | Temperature, Humidity, Pressure, Flow, Light, AirQuality | `batteryEntity`, `humidityEntity` |
+| `button`, `input_button` | Generic Switch | |
+| `media_player` | Speaker, Basic Video Player (TV) | |
+| `valve` | Water Valve, Pump | |
+| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity` |
+| `humidifier` | Humidifier/Dehumidifier | |
+| `water_heater` | Thermostat (Heating) | |
+| `automation`, `script`, `scene` | On/Off Switch | |
+
+> 📖 See [Supported Device Types Documentation](https://riddix.github.io/home-assistant-matter-hub/Supported%20Device%20Types/) for details
+
+---
+
+## 🤖 Robot Vacuum Server Mode
+
+<details>
+<summary><strong>⚠️ Important: Apple Home & Alexa require Server Mode for Robot Vacuums</strong> (click to expand)</summary>
+
+### The Problem
+
+Apple Home and Alexa **do not properly support bridged robot vacuums**. When your vacuum is exposed through a standard Matter bridge, you may experience:
+
+- **Apple Home**: "Updating" status, Siri commands don't work, room selection fails
+- **Alexa**: Vacuum is not discovered at all
+
+This is because these platforms expect robot vacuums to be **standalone Matter devices**, not bridged devices.
+
+### The Solution: Server Mode
+
+**Server Mode** exposes your vacuum as a standalone Matter device without the bridge wrapper. This makes it fully compatible with Apple Home and Alexa.
+
+### Setup Instructions
+
+1. **Create a new bridge** in the Matter Hub web interface
+2. **Enable "Server Mode"** checkbox in the bridge creation wizard
+3. Add **only your vacuum** to this bridge
+4. **Pair the new Server Mode bridge** with Apple Home or Alexa
+5. Your other devices stay on your regular bridge(s)
+
+### Important Notes
+
+- Server Mode bridges support **exactly one device**
+- Your vacuum needs its own dedicated Server Mode bridge
+- Other device types (lights, switches, sensors) work fine on regular bridges
+- After switching to Server Mode, Siri commands like "Hey Siri, start the vacuum" will work
+
+### Documentation
+
+For more details, see the [Robot Vacuum Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Robot%20Vacuum/).
+
+</details>
 
 ---
 
@@ -263,6 +229,65 @@ For alpha versions, use tag `alpha` instead of `latest`.
 
 Please see the [documentation](https://riddix.github.io/home-assistant-matter-hub) for detailed installation instructions,
 configuration options, known issues, limitations and guides.
+
+---
+
+## 🔧 Network Troubleshooting
+
+<details>
+<summary><strong>⚠️ "No Response" / Connection Drops — Common Network Causes</strong> (click to expand)</summary>
+
+### The Problem
+
+Your Matter devices suddenly show **"No Response"** (Apple Home), **"Unavailable"** (Google Home), or become **unresponsive** after some time — even though the bridge is still running and other controllers (e.g., Alexa) continue to work fine.
+
+### Root Cause: Network Equipment Blocking mDNS/Multicast
+
+Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reachability. Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic** — which breaks Matter communication silently.
+
+> **💡 This was confirmed and documented thanks to the excellent systematic testing by [@omerfaruk-aran](https://github.com/omerfaruk-aran) in [#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129).** The issue was traced to a TP-Link Archer AX50 (in AP mode) sitting between the Apple TV and the network — its default settings were blocking/limiting mDNS/Bonjour traffic over time.
+
+### What to Check on Your Network Equipment
+
+1. **IGMP Snooping** — Disable or configure it to allow mDNS (`224.0.0.251` / `ff02::fb`)
+2. **Multicast Optimization / Multicast Enhancement** — Disable (often called "Airtime Fairness" or "Multicast to Unicast")
+3. **AP Isolation / Client Isolation** — Must be **disabled** so devices on the same network can communicate
+4. **mDNS / Bonjour Forwarding** — Enable if available (some enterprise APs have this)
+5. **DHCP Server on secondary devices** — Disable DHCP on access points / switches that are NOT your main router (multiple DHCP servers cause IP conflicts)
+6. **Firmware Updates** — Update your router/AP firmware, as multicast handling is frequently improved
+
+### Affected Equipment (Known Cases)
+
+| Device | Issue | Fix |
+|--------|-------|-----|
+| **TP-Link Archer AX50** (AP mode) | mDNS traffic blocked/limited over time | Firmware update + disable DHCP on the AP |
+| **Ubiquiti UniFi APs** | IGMP Snooping can filter mDNS | Disable IGMP Snooping or enable mDNS Reflector |
+| **Managed Switches** (various) | Multicast filtering enabled by default | Allow mDNS multicast groups |
+
+### Quick Diagnostic Steps
+
+1. **Does Alexa still work when Apple Home shows "No Response"?**
+   - **Yes** → Bridge is online, the issue is network path / mDNS related
+   - **No** → Bridge may actually be down, check HAMH logs
+
+2. **Does removing a Home Hub (HomePod/Apple TV) fix it?**
+   - **Yes** → The hub's network path is affected (AP/switch between hub and bridge)
+   - **No** → May be a different issue
+
+3. **Try binding mDNS to a specific interface:**
+   ```
+   --mdns-network-interface eth0
+   ```
+   (or `end0`, `enp0s18`, etc. — check your system)
+
+### Network Topology Tips
+
+- **Keep the path simple**: Avoid placing access points or managed switches between your Matter bridge (Home Assistant) and your Home Hub (HomePod/Apple TV)
+- **Use wired connections** where possible for Home Hubs and the Home Assistant host
+- **Same subnet**: All Matter devices, controllers, and the bridge must be on the same Layer 2 network / subnet
+- **IPv6**: Matter uses IPv6 link-local addresses — make sure IPv6 is not disabled on your network
+
+</details>
 
 ---
 
@@ -326,33 +351,53 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | Contributor | Contributions |
 |-------------|---------------|
 | [@codyc1515](https://github.com/codyc1515) | 🥇 **Top Reporter** - Climate/thermostat bugs (#52, #24, #21, #20), extensive testing feedback |
+| [@Hatton920](https://github.com/Hatton920) | 🤖 **Vacuum Expert** - Intensive testing of Robot Vacuum Server Mode, Apple Home & Siri validation |
 | [@Chrulf](https://github.com/Chrulf) | 🔍 Google Home brightness debugging (#41), detailed logs & testing |
 | [@SH1FT-W](https://github.com/SH1FT-W) | 💎 **Sponsor** + Vacuum room selection feature request (#49) |
 | [@depahk](https://github.com/depahk) | 📝 Migration documentation fix ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
 | [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
-| [@razzietheman](https://github.com/razzietheman) | 💡 Feature requests: Preserve commissioned state (#31), alphabetical sorting (#30) |
+| [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
+| [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
+| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🔧 **Network Debugging Expert** - Systematic mDNS/multicast root cause analysis for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
 
-### 📋 Issue Tracker - All Contributors
+<details>
+<summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>
 
 Thank you to everyone who helps improve this project by reporting issues!
 
-| User | Issues | Type |
-|------|--------|------|
-| [@marksev1](https://github.com/marksev1) | [#62](https://github.com/RiDDiX/home-assistant-matter-hub/issues/62) | 💡 Aliases support |
-| [@smacpi](https://github.com/smacpi) | [#60](https://github.com/RiDDiX/home-assistant-matter-hub/issues/60) | 💡 Battery sensor |
-| [@semonR](https://github.com/semonR) | [#58](https://github.com/RiDDiX/home-assistant-matter-hub/issues/58) | 🐛 Dehumidifier |
-| [@mrbluebrett](https://github.com/mrbluebrett) | [#53](https://github.com/RiDDiX/home-assistant-matter-hub/issues/53) | 🐛 Alexa duplicates |
-| [@anpak](https://github.com/anpak) | [#45](https://github.com/RiDDiX/home-assistant-matter-hub/issues/45) | 💡 TV media player |
-| [@alondin](https://github.com/alondin) | [#43](https://github.com/RiDDiX/home-assistant-matter-hub/issues/43) | 💡 Air Purifier |
-| [@Chrulf](https://github.com/Chrulf) | [#41](https://github.com/RiDDiX/home-assistant-matter-hub/issues/41) | 🐛 Google brightness |
-| [@Weske90](https://github.com/Weske90) | [#40](https://github.com/RiDDiX/home-assistant-matter-hub/issues/40) | 💡 Harmony remote |
-| [@didiht](https://github.com/didiht) | [#37](https://github.com/RiDDiX/home-assistant-matter-hub/issues/37) | 🐛 Alexa brightness |
-| [@Dixiland20](https://github.com/Dixiland20) | [#34](https://github.com/RiDDiX/home-assistant-matter-hub/issues/34) | 🐛 Somfy shutters |
-| [@chromaxx7](https://github.com/chromaxx7) | [#29](https://github.com/RiDDiX/home-assistant-matter-hub/issues/29) | 🐛 Climate crash |
-| [@Tomyk9991](https://github.com/Tomyk9991) | [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28) | 🐛 Heat/Cool startup |
-| [@datvista](https://github.com/datvista) | [#27](https://github.com/RiDDiX/home-assistant-matter-hub/issues/27) | 🐛 Add-on start |
-| [@bwynants](https://github.com/bwynants) | [#23](https://github.com/RiDDiX/home-assistant-matter-hub/issues/23) | 🐛 OccupancySensor |
-| [@Pozzi831](https://github.com/Pozzi831) | [#22](https://github.com/RiDDiX/home-assistant-matter-hub/issues/22) | 🐛 AC problems |
+| User | Issues |
+|------|--------|
+| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | #129 |
+| [@markgaze](https://github.com/markgaze) | #118 |
+| [@BlairC1](https://github.com/BlairC1) | #117 |
+| [@Giamp96](https://github.com/Giamp96) | #116 |
+| [@NdR91](https://github.com/NdR91) | #115 #106 |
+| [@Fry7](https://github.com/Fry7) | #114 |
+| [@siobhanellis](https://github.com/siobhanellis) | #112 |
+| [@Hatton920](https://github.com/Hatton920) | #110 |
+| [@gette](https://github.com/gette) | #95 |
+| [@400HPMustang](https://github.com/400HPMustang) | #103 |
+| [@vandir](https://github.com/vandir) | #102 |
+| [@razzietheman](https://github.com/razzietheman) | #101 #100 #80 #31 #30 |
+| [@semonR](https://github.com/semonR) | #99 #58 |
+| [@italoc](https://github.com/italoc) | #78 |
+| [@marksev1](https://github.com/marksev1) | #62 |
+| [@smacpi](https://github.com/smacpi) | #60 |
+| [@mrbluebrett](https://github.com/mrbluebrett) | #53 |
+| [@anpak](https://github.com/anpak) | #45 |
+| [@alondin](https://github.com/alondin) | #43 |
+| [@Chrulf](https://github.com/Chrulf) | #41 |
+| [@Weske90](https://github.com/Weske90) | #40 |
+| [@didiht](https://github.com/didiht) | #37 |
+| [@Dixiland20](https://github.com/Dixiland20) | #34 |
+| [@chromaxx7](https://github.com/chromaxx7) | #29 |
+| [@Tomyk9991](https://github.com/Tomyk9991) | #28 |
+| [@datvista](https://github.com/datvista) | #27 |
+| [@bwynants](https://github.com/bwynants) | #23 |
+| [@Pozzi831](https://github.com/Pozzi831) | #22 |
+| [@codyc1515](https://github.com/codyc1515) | #52 #24 #21 #20 |
+
+</details>
 
 ### 💖 Sponsors
 
@@ -364,15 +409,10 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@SH1FT-W](https://github.com/SH1FT-W) | 💎 Thank you for your generous support! |
 | [@ilGaspa](https://github.com/ilGaspa) | 💎 Thank you for your generous support! |
 | [@linux4life798](https://github.com/linux4life798) | 💎 Thank you for your generous support! |
+| [@torandreroland](https://github.com/torandreroland) | 💎 Thank you for your generous support! |
 | *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
 
-### � UI/UX Contributors
-
-| Contributor | Contribution |
-|-------------|--------------|
-| [@razzietheman](https://github.com/razzietheman) | 💡 Countless ideas for UI/UX improvements - making this project more user-friendly! |
-
-### �🌟 Original Author
+### 🌟 Original Author
 
 - **[@t0bst4r](https://github.com/t0bst4r)** - Creator of the original Home-Assistant-Matter-Hub project
 

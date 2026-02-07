@@ -4,6 +4,7 @@ import type { StartOptions } from "./start-options.js";
 
 export function startOptionsBuilder(yargs: Argv): Argv<StartOptions> {
   return yargs
+    .env("HAMH")
     .version(false)
     .config(
       "config",

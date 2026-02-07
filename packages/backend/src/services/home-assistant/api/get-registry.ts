@@ -19,3 +19,18 @@ export async function getDeviceRegistry(
     type: "config/device_registry/list",
   });
 }
+
+export interface HomeAssistantLabel {
+  label_id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+}
+
+export async function getLabelRegistry(
+  connection: Connection,
+): Promise<HomeAssistantLabel[]> {
+  return connection.sendMessagePromise<HomeAssistantLabel[]>({
+    type: "config/label_registry/list",
+  });
+}

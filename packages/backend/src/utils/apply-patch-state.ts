@@ -8,16 +8,26 @@ const logger = Logger.get("ApplyPatchState");
  * Wraps the state update in Transaction.act() to properly acquire locks
  * asynchronously, avoiding "synchronous-transaction-conflict" errors when
  * called from within reactors or other transaction contexts.
+ *
+ * @param state - The state object to patch
+ * @param patch - The partial state to apply
+ * @param options - Optional settings
+ * @param options.force - If true, applies all values even if unchanged (triggers subscription updates)
  */
 export function applyPatchState<T extends object>(
   state: T,
   patch: Partial<T>,
+  options?: { force?: boolean },
 ): Partial<T> {
-  return applyPatch(state, patch);
+  return applyPatch(state, patch, options?.force);
 }
 
-function applyPatch<T extends object>(state: T, patch: Partial<T>): Partial<T> {
-  // Only include values that need to be changed
+function applyPatch<T extends object>(
+  state: T,
+  patch: Partial<T>,
+  force = false,
+): Partial<T> {
+  // Only include values that need to be changed (unless force is true)
   const actualPatch: Partial<T> = {};
 
   for (const key in patch) {
@@ -27,7 +37,8 @@ function applyPatch<T extends object>(state: T, patch: Partial<T>): Partial<T> {
       if (patchValue !== undefined) {
         const stateValue = state[key];
 
-        if (!deepEqual(stateValue, patchValue)) {
+        // In force mode, include all defined values to trigger subscription updates
+        if (force || !deepEqual(stateValue, patchValue)) {
           actualPatch[key] = patchValue;
         }
       }

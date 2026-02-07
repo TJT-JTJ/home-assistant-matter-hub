@@ -1,4 +1,8 @@
-import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import {
+  type HomeAssistantEntityInformation,
+  type SensorDeviceAttributes,
+  SensorDeviceClass,
+} from "@home-assistant-matter-hub/common";
 import { TotalVolatileOrganicCompoundsConcentrationMeasurementServer as Base } from "@matter/main/behaviors";
 import { ConcentrationMeasurement } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
@@ -6,10 +10,28 @@ import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js
 
 // Use only NumericMeasurement feature.
 // Using both NumericMeasurement and LevelIndication together causes "Behaviors have errors".
-// Apple Home requires Ugm3 for TVOC cluster.
 const TvocConcentrationMeasurementServerBase = Base.with(
   ConcentrationMeasurement.Feature.NumericMeasurement,
 );
+
+/**
+ * Determine the correct Matter MeasurementUnit based on the HA device_class.
+ * - volatile_organic_compounds: reports in µg/m³ → Ugm3
+ * - volatile_organic_compounds_parts: reports in ppb → Ppb
+ * Defaults to Ugm3 for maximum controller compatibility (Apple Home requires Ugm3).
+ */
+function getMeasurementUnit(
+  entity: HomeAssistantEntityInformation,
+): ConcentrationMeasurement.MeasurementUnit {
+  const attributes = entity.state.attributes as SensorDeviceAttributes;
+  if (
+    attributes.device_class ===
+    SensorDeviceClass.volatile_organic_compounds_parts
+  ) {
+    return ConcentrationMeasurement.MeasurementUnit.Ppb;
+  }
+  return ConcentrationMeasurement.MeasurementUnit.Ugm3;
+}
 
 export class TvocConcentrationMeasurementServer extends TvocConcentrationMeasurementServerBase {
   override async initialize() {
@@ -29,7 +51,7 @@ export class TvocConcentrationMeasurementServer extends TvocConcentrationMeasure
     }
     if (this.state.measurementUnit === undefined) {
       this.state.measurementUnit =
-        ConcentrationMeasurement.MeasurementUnit.Ugm3; // Apple Home requires Ugm3
+        ConcentrationMeasurement.MeasurementUnit.Ugm3;
     }
     if (this.state.measurementMedium === undefined) {
       this.state.measurementMedium =
@@ -55,6 +77,7 @@ export class TvocConcentrationMeasurementServer extends TvocConcentrationMeasure
 
     applyPatchState(this.state, {
       measuredValue,
+      measurementUnit: getMeasurementUnit(entity),
     });
   }
 }

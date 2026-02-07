@@ -11,6 +11,9 @@ import type {
 } from "./bridge-data-provider.js";
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 
+// Auto Force Sync interval in milliseconds (60 seconds)
+const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
+
 export class Bridge {
   private readonly log: Logger;
   readonly server: BridgeServerNode;
@@ -19,6 +22,8 @@ export class Bridge {
     code: BridgeStatus.Stopped,
     reason: undefined,
   };
+
+  private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   get id() {
     return this.dataProvider.id;
@@ -76,6 +81,7 @@ export class Bridge {
       this.endpointManager.startObserving();
       await this.server.start();
       this.status = { code: BridgeStatus.Running };
+      this.startAutoForceSyncIfEnabled();
     } catch (e) {
       const reason = "Failed to start bridge due to error:";
       this.log.error(reason, e);
@@ -87,6 +93,7 @@ export class Bridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ) {
+    this.stopAutoForceSync();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();
@@ -101,10 +108,37 @@ export class Bridge {
     this.status = { code, reason };
   }
 
+  private startAutoForceSyncIfEnabled() {
+    // Stop any existing timer first
+    this.stopAutoForceSync();
+
+    if (this.dataProvider.featureFlags?.autoForceSync) {
+      this.log.info(
+        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`,
+      );
+      this.autoForceSyncTimer = setInterval(() => {
+        this.forceSync().catch((e) => {
+          this.log.warn("Auto force sync failed:", e);
+        });
+      }, AUTO_FORCE_SYNC_INTERVAL_MS);
+    }
+  }
+
+  private stopAutoForceSync() {
+    if (this.autoForceSyncTimer) {
+      clearInterval(this.autoForceSyncTimer);
+      this.autoForceSyncTimer = null;
+    }
+  }
+
   async update(update: UpdateBridgeRequest) {
     try {
       this.dataProvider.update(update);
       await this.refreshDevices();
+      // Re-evaluate auto force sync setting after config update
+      if (this.status.code === BridgeStatus.Running) {
+        this.startAutoForceSyncIfEnabled();
+      }
     } catch (e) {
       const reason = "Failed to update bridge due to error:";
       this.log.error(reason, e);
@@ -119,6 +153,64 @@ export class Bridge {
     await this.server.factoryReset();
     this.status = { code: BridgeStatus.Stopped };
     await this.start();
+  }
+
+  /**
+   * Force sync all device states to connected controllers.
+   * This triggers a state refresh for all endpoints, pushing current values
+   * to all subscribed Matter controllers without requiring re-pairing.
+   *
+   * This works by re-emitting the current entity state, which causes all
+   * behavior servers to re-apply their state patches. Matter.js then sends
+   * subscription updates to all controllers for any changed attributes.
+   */
+  async forceSync(): Promise<number> {
+    if (this.status.code !== BridgeStatus.Running) {
+      this.log.warn("Cannot force sync - bridge is not running");
+      return 0;
+    }
+
+    this.log.info("Force sync: Pushing all device states to controllers...");
+
+    // Import dynamically to avoid circular dependencies
+    const { HomeAssistantEntityBehavior } = await import(
+      "../../matter/behaviors/home-assistant-entity-behavior.js"
+    );
+
+    const endpoints = this.aggregator.parts;
+    let syncedCount = 0;
+
+    for (const endpoint of endpoints) {
+      try {
+        // Check if this endpoint has the HomeAssistantEntityBehavior
+        if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
+          continue;
+        }
+
+        // Get the current entity state and re-emit it
+        // This triggers all behaviors listening to onChange to re-apply their state
+        const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
+        const currentEntity = behavior.entity;
+
+        if (currentEntity?.state) {
+          // Re-set the state to trigger the entity$Changed event
+          // Even setting to the same value will cause behaviors to re-evaluate
+          await endpoint.setStateOf(HomeAssistantEntityBehavior, {
+            entity: {
+              ...currentEntity,
+              // Add a timestamp to force Matter.js to consider this a change
+              state: { ...currentEntity.state },
+            },
+          });
+          syncedCount++;
+        }
+      } catch (e) {
+        this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
+      }
+    }
+
+    this.log.info(`Force sync: Completed for ${syncedCount} devices`);
+    return syncedCount;
   }
 
   async delete() {

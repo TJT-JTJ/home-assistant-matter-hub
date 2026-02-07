@@ -9,10 +9,13 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckIcon from "@mui/icons-material/Check";
 import DevicesIcon from "@mui/icons-material/Devices";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
@@ -25,6 +28,7 @@ import StepLabel from "@mui/material/StepLabel";
 import Stepper from "@mui/material/Stepper";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
 import { createBridge as apiCreateBridge } from "../../api/bridges.js";
@@ -38,6 +42,7 @@ interface BridgeWizardProps {
 interface WizardBridge {
   name: string;
   port: number;
+  serverMode: boolean;
   filter: {
     include: HomeAssistantMatcher[];
     exclude: HomeAssistantMatcher[];
@@ -54,6 +59,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const [currentBridge, setCurrentBridge] = useState<WizardBridge>({
     name: "",
     port: 5540,
+    serverMode: false,
     filter: { include: [], exclude: [] },
   });
   const [useWildcard, setUseWildcard] = useState(true);
@@ -82,6 +88,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       setCurrentBridge({
         name: "",
         port: nextPort,
+        serverMode: false,
         filter: { include: [], exclude: [] },
       });
       setUseWildcard(true);
@@ -147,6 +154,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     setCurrentBridge({
       name: "",
       port: newPort,
+      serverMode: false,
       filter: { include: [], exclude: [] },
     });
     setActiveStep(0);
@@ -163,6 +171,9 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         name: currentBridge.name,
         port: currentBridge.port,
         filter: currentBridge.filter,
+        featureFlags: currentBridge.serverMode
+          ? { serverMode: true }
+          : undefined,
       };
       await apiCreateBridge(request);
       return true;
@@ -213,6 +224,36 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         margin="normal"
         helperText="Automatically assigned to next available port"
       />
+      <Tooltip
+        title="Required for Robot Vacuums to work with Apple Home (Siri) and Alexa. Server Mode bridges support only ONE device."
+        placement="right"
+      >
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={currentBridge.serverMode}
+              onChange={(e) =>
+                setCurrentBridge((prev) => ({
+                  ...prev,
+                  serverMode: e.target.checked,
+                }))
+              }
+              icon={<SmartToyIcon />}
+              checkedIcon={<SmartToyIcon color="primary" />}
+            />
+          }
+          label="Server Mode (for Robot Vacuums)"
+          sx={{ mt: 1 }}
+        />
+      </Tooltip>
+      {currentBridge.serverMode && (
+        <Alert severity="info" sx={{ mt: 1 }}>
+          <strong>Server Mode enabled:</strong> This bridge will expose a single
+          device as a standalone Matter device. Add only ONE device (e.g., your
+          vacuum) to this bridge. This is required for Apple Home Siri commands
+          and Alexa discovery.
+        </Alert>
+      )}
       {bridges.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" color="text.secondary">
@@ -289,6 +330,15 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
           <Typography variant="body2" color="text.secondary">
             Port: {currentBridge.port}
           </Typography>
+          {currentBridge.serverMode && (
+            <Chip
+              icon={<SmartToyIcon />}
+              label="Server Mode"
+              color="primary"
+              size="small"
+              sx={{ mt: 1 }}
+            />
+          )}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Include:{" "}
             {currentBridge.filter.include.length > 0

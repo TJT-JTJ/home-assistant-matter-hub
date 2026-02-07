@@ -21,6 +21,7 @@ project:
       children:
         - file: "Devices/Robot Vacuum.md"
         - file: "Devices/Air Purifier.md"
+        - file: "Devices/Temperature Humidity Sensor.md"
     - file: Frequently Asked Questions.md
     - title: Developer Documentation
       children:
