@@ -132,7 +132,8 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
-          // Vision 1: Try domain-specific endpoint first, fall back to legacy
+          // Vision 1: All known domains use DomainEndpoint.
+          // LegacyEndpoint kept as fallback for unknown/future domains only.
           endpoint =
             createDomainEndpoint(this.registry, entityId, mapping) ??
             (await LegacyEndpoint.create(this.registry, entityId, mapping));
