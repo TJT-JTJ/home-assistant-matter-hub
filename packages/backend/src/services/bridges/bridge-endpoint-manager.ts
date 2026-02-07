@@ -6,6 +6,7 @@ import type { Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
+import { createDomainEndpoint } from "../../matter/endpoints/domains/create-domain-endpoint.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
@@ -131,11 +132,10 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
-          endpoint = await LegacyEndpoint.create(
-            this.registry,
-            entityId,
-            mapping,
-          );
+          // Vision 1: Try domain-specific endpoint first, fall back to legacy
+          endpoint =
+            createDomainEndpoint(this.registry, entityId, mapping) ??
+            (await LegacyEndpoint.create(this.registry, entityId, mapping));
         } catch (e) {
           // Handle all endpoint creation errors gracefully to prevent boot crashes
           const reason = this.extractErrorReason(e);
