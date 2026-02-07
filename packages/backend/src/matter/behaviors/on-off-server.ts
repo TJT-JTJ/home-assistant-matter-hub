@@ -45,7 +45,7 @@ class OnOffServerBase extends FeaturedBase {
   }
 
   override on() {
-    const { turnOn } = this.state.config;
+    const { turnOn, turnOff } = this.state.config;
     if (turnOn === null) {
       setTimeout(this.callback(this.autoReset), 1000);
       return;
@@ -58,6 +58,11 @@ class OnOffServerBase extends FeaturedBase {
     // Notify LevelControlServer about turn-on for Alexa brightness workaround
     notifyLightTurnedOn(homeAssistant.entityId);
     homeAssistant.callAction(action);
+    // Auto-reset for momentary actions (scenes, automations) so controllers
+    // don't show a permanently "on" state after activation
+    if (turnOff === null) {
+      setTimeout(this.callback(this.autoReset), 1000);
+    }
   }
 
   override off() {

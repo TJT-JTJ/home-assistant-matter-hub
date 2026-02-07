@@ -4,6 +4,7 @@ import { WebApi } from "../../api/web-api.js";
 import { configureDefaultEnvironment } from "../../core/app/configure-default-environment.js";
 import { Options } from "../../core/app/options.js";
 import { AppEnvironment } from "../../core/ioc/app-environment.js";
+import { patchLevelControlTlv } from "../../matter/patches/patch-level-control-tlv.js";
 import { BridgeService } from "../../services/bridges/bridge-service.js";
 import { EntityIsolationService } from "../../services/bridges/entity-isolation-service.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
@@ -88,6 +89,10 @@ export async function startHandler(
   Object.assign(globalThis, {
     WebSocket: globalThis.WebSocket ?? ws.WebSocket,
   });
+
+  // Patch Matter.js TLV schemas before any clusters are instantiated
+  patchLevelControlTlv();
+
   const options = new Options({ ...startOptions, webUiDist });
   const rootEnv = configureDefaultEnvironment(options);
   const appEnvironment = await AppEnvironment.create(rootEnv, options);

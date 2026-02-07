@@ -199,14 +199,26 @@ function getCleaningModeSelectEntity(agent: Agent): string {
 }
 
 const vacuumRvcCleanModeConfig = {
-  getCurrentMode: (_entity: { attributes: unknown }, agent: Agent): number => {
-    // Read the cleaning mode from the select entity, not the vacuum entity
-    // The vacuum entity doesn't have cleaning_mode attribute - it's on a separate select entity
+  getCurrentMode: (entity: { attributes: unknown }, agent: Agent): number => {
+    // First: try the vacuum entity's own cleaning_mode attribute (reactive via onChange)
+    // Some Dreame vacuums expose this directly on the vacuum entity
+    const attributes = entity.attributes as VacuumDeviceAttributes & {
+      cleaning_mode?: string;
+    };
+    if (attributes.cleaning_mode) {
+      const currentMode = parseDreameCleaningMode(attributes.cleaning_mode);
+      logger.debug(
+        `Current cleaning mode from vacuum entity: "${attributes.cleaning_mode}" -> ${getDreameCleaningModeString(currentMode)}`,
+      );
+      return currentMode;
+    }
+
+    // Fallback: read from the separate select entity via EntityStateProvider
+    // Note: This is NOT reactive — updates only arrive when the vacuum entity itself changes
     const selectEntityId = getCleaningModeSelectEntity(agent);
     const stateProvider = agent.env.get(EntityStateProvider);
     const selectState = stateProvider.getState(selectEntityId);
 
-    // The select entity's state is the current option value
     const currentOption = selectState?.state as string | undefined;
     const currentMode = parseDreameCleaningMode(currentOption);
 
