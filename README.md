@@ -216,10 +216,13 @@ docker run -d \
   --name home-assistant-matter-hub \
   --network host \
   -v /path/to/data:/data \
-  -e HOME_ASSISTANT_URL=http://homeassistant.local:8123 \
-  -e HOME_ASSISTANT_ACCESS_TOKEN=your_token \
+  -e HAMH_HOME_ASSISTANT_URL=http://192.168.178.123:8123 \
+  -e HAMH_HOME_ASSISTANT_ACCESS_TOKEN=your_long_lived_access_token \
   ghcr.io/riddix/home-assistant-matter-hub:latest
 ```
+
+> **Note:** All environment variables require the `HAMH_` prefix.
+> See the [Installation Guide](docs/Getting%20Started/Installation.md) for all available options.
 
 For alpha versions, use tag `alpha` instead of `latest`.
 
