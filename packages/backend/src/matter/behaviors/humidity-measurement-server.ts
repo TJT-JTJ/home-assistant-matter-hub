@@ -42,7 +42,7 @@ class HumidityMeasurementServerBase extends Base {
     if (humidity == null) {
       return null;
     }
-    return humidity * 100;
+    return Math.round(humidity * 100);
   }
 }
 
