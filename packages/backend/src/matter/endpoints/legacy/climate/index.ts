@@ -112,6 +112,11 @@ const heatingModes: ClimateHvacMode[] = [
 ];
 // Auto-only thermostats (no explicit heat/cool) should be treated as heating
 const autoOnlyMode: ClimateHvacMode[] = [ClimateHvacMode.auto];
+// Ventilation-only devices (e.g. Ambientika CMV) that only support fan_only/dry
+const ventilationOnlyModes: ClimateHvacMode[] = [
+  ClimateHvacMode.fan_only,
+  ClimateHvacMode.dry,
+];
 
 /**
  * Convert HA temperature to Matter temperature (0.01°C units).
@@ -152,12 +157,21 @@ export function ClimateDevice(
     !hasExplicitHeating &&
     !supportsCooling &&
     autoOnlyMode.some((mode) => attributes.hvac_modes.includes(mode));
-  const supportsHeating = hasExplicitHeating || isAutoOnly;
+  // Treat ventilation-only devices (fan_only/dry, no heat/cool/auto) as heating
+  // devices. This allows CMVs like Ambientika (#130) to be exposed as Matter
+  // thermostats. The actual mode control works via SystemMode.FanOnly/Dry.
+  const isVentilationOnly =
+    !hasExplicitHeating &&
+    !supportsCooling &&
+    !isAutoOnly &&
+    ventilationOnlyModes.some((mode) => attributes.hvac_modes.includes(mode));
+  const supportsHeating = hasExplicitHeating || isAutoOnly || isVentilationOnly;
 
-  // Validate that at least one of heating or cooling is supported
+  // Validate that at least one usable mode is supported
   if (!supportsCooling && !supportsHeating) {
     throw new InvalidDeviceError(
-      'Climates have to support either "heating" or "cooling". Just "auto" is not enough.',
+      `Climates have to support at least one of: heat, cool, heat_cool, auto, fan_only, or dry. ` +
+        `Found: [${attributes.hvac_modes.join(", ")}]`,
     );
   }
 
