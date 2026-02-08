@@ -13,7 +13,7 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     value: {
       title: "Value",
       description:
-        "For labels, use the label_id (slug), not the display name. Example: 'my_smart_lights' instead of 'My Smart Lights'. Check /api/matter/labels for available labels.",
+        "For labels, use the label_id (slug), not the display name. You can find the label_id in Home Assistant under Settings > Labels. Example: 'my_smart_lights' instead of 'My Smart Lights'.",
       type: "string",
       minLength: 1,
     },
