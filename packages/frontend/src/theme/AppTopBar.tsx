@@ -3,6 +3,7 @@ import BugReportIcon from "@mui/icons-material/BugReport";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DevicesIcon from "@mui/icons-material/Devices";
 import HubIcon from "@mui/icons-material/Hub";
+import LabelIcon from "@mui/icons-material/Label";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LockIcon from "@mui/icons-material/Lock";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
@@ -91,6 +92,15 @@ export const AppTopBar = () => {
                   sx={{ color: "inherit" }}
                 >
                   <LockIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Labels & Areas">
+                <IconButton
+                  component={Link}
+                  to={navigation.labels}
+                  sx={{ color: "inherit" }}
+                >
+                  <LabelIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title={mode === "dark" ? "Light Mode" : "Dark Mode"}>
