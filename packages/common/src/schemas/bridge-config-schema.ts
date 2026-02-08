@@ -90,12 +90,12 @@ const featureFlagSchema: JSONSchema7 = {
     },
 
     alexaPreserveBrightnessOnTurnOn: {
-      title: "Alexa: Preserve Brightness on Turn-On",
+      title: "Alexa: Preserve Brightness on Turn-On (Deprecated)",
       description:
-        "Workaround for Alexa resetting light brightness to 100% after subscription renewal. " +
-        "When enabled, the bridge ignores brightness commands that set lights to 100% immediately after a turn-on command.",
+        "This workaround is now always active and this setting has no effect. " +
+        "The bridge automatically ignores brightness commands that set lights to 100% immediately after a turn-on command.",
       type: "boolean",
-      default: false,
+      default: true,
     },
 
     serverMode: {
