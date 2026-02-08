@@ -89,10 +89,15 @@ export class BridgeRegistry {
 
   /**
    * Check if auto humidity mapping is enabled for this bridge.
-   * Default: true (enabled by default)
+   * Default: false (disabled by default, user must explicitly enable).
+   * When enabled, humidity sensors on the same device as a temperature sensor
+   * are combined into a single TemperatureHumiditySensor endpoint.
+   * Note: Apple Home does not display humidity on TemperatureSensorDevice
+   * endpoints, so users on Apple Home should keep this disabled.
+   * See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/133
    */
   isAutoHumidityMappingEnabled(): boolean {
-    return this.dataProvider.featureFlags?.autoHumidityMapping !== false;
+    return this.dataProvider.featureFlags?.autoHumidityMapping === true;
   }
 
   /**
