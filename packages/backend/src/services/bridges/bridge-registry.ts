@@ -142,6 +142,32 @@ export class BridgeRegistry {
     this.refresh();
   }
 
+  /**
+   * Get the area name for an entity, resolving from HA area registry.
+   * Priority: entity area_id > device area_id > undefined
+   */
+  getAreaName(entityId: string): string | undefined {
+    const entity = this._entities[entityId];
+    if (!entity) return undefined;
+
+    // Entity-level area takes priority
+    const entityAreaId = entity.area_id;
+    if (entityAreaId) {
+      const name = this.registry.areas.get(entityAreaId);
+      if (name) return name;
+    }
+
+    // Fallback to device-level area
+    const device = this._devices[entity.device_id];
+    const deviceAreaId = device?.area_id as string | undefined;
+    if (deviceAreaId) {
+      const name = this.registry.areas.get(deviceAreaId);
+      if (name) return name;
+    }
+
+    return undefined;
+  }
+
   refresh() {
     // Clear used entities on refresh to allow re-assignment
     this._usedBatteryEntities.clear();

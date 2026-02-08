@@ -115,7 +115,8 @@ export class LegacyEndpoint extends EntityEndpoint {
       registry: entity,
       deviceRegistry,
     };
-    const type = createLegacyEndpointType(payload, effectiveMapping);
+    const areaName = registry.getAreaName(entityId);
+    const type = createLegacyEndpointType(payload, effectiveMapping, areaName);
     if (!type) {
       return;
     }
