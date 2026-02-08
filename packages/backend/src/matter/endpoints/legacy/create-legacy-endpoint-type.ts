@@ -35,6 +35,7 @@ import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
 import { PressureSensorType } from "./sensor/devices/pressure-sensor.js";
 import { TemperatureSensorType } from "./sensor/devices/temperature-sensor.js";
+import { TvocSensorType } from "./sensor/devices/tvoc-sensor.js";
 import { SensorDevice } from "./sensor/index.js";
 import { SwitchDevice } from "./switch/index.js";
 import { VacuumDevice } from "./vacuum/index.js";
@@ -157,6 +158,10 @@ const matterDeviceTypeFactories: Partial<
     }),
   battery_storage: (ha) =>
     BatterySensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  tvoc_sensor: (ha) =>
+    TvocSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   water_valve: ValveDevice,
