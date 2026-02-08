@@ -188,18 +188,15 @@ export function ClimateDevice(
     ClimateDeviceFeature.FAN_MODE,
   );
 
-  // WORKAROUND: Due to Matter.js architecture, .set() values on behaviors are lost
-  // when ThermostatDevice.with() is called. This causes the limits from HA to be set
-  // but the setpoints remain undefined, leading to NaN validation errors.
-  //
-  // Until this is fixed upstream or we find a better solution, we DO NOT use custom
-  // limits from HA. Instead, we use the standard limits (0-50°C) which are compatible
-  // with the default setpoints (20°C heating, 24°C cooling) defined in ThermostatServerBase.
-  //
-  // The actual temperature control still works correctly through HA - only the Matter-side
-  // limits are restricted to the safe default range.
+  // Extract initial thermostat state from HA entity attributes.
+  // These values are passed to Matter.js during registration to prevent
+  // NaN validation errors (Matter.js validates BEFORE our initialize() runs).
   const initialState: InitialThermostatState = {
-    localTemperature: toMatterTemp(attributes.current_temperature),
+    // When current_temperature is unavailable (common for AC controllers),
+    // fall back to the target setpoint (matching HA's UI behavior)
+    localTemperature:
+      toMatterTemp(attributes.current_temperature) ??
+      toMatterTemp(attributes.temperature),
     occupiedHeatingSetpoint:
       toMatterTemp(attributes.target_temp_low) ??
       toMatterTemp(attributes.temperature) ??
@@ -208,11 +205,11 @@ export function ClimateDevice(
       toMatterTemp(attributes.target_temp_high) ??
       toMatterTemp(attributes.temperature) ??
       2400,
-    // Use standard limits (0-50°C) to ensure compatibility with default setpoints
-    minHeatSetpointLimit: 0,
-    maxHeatSetpointLimit: 5000,
-    minCoolSetpointLimit: 0,
-    maxCoolSetpointLimit: 5000,
+    // Use HA's actual min/max limits, fall back to wide range (0-50°C) if not provided
+    minHeatSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
+    maxHeatSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
+    minCoolSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
+    maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
   };
 
   // Pass thermostat state at the endpoint type level using the behavior ID.

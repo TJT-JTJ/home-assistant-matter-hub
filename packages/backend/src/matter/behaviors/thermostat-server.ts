@@ -195,7 +195,7 @@ export class ThermostatServerBase extends FeaturedBase {
     const maxSetpointLimit = isAvailable
       ? config.getMaxTemperature(entity.state, this.agent)?.celsius(true)
       : (this.state.maxHeatSetpointLimit ?? this.state.maxCoolSetpointLimit);
-    const localTemperature = isAvailable
+    const currentTemperature = isAvailable
       ? config.getCurrentTemperature(entity.state, this.agent)?.celsius(true)
       : this.state.localTemperature;
     const targetHeatingTemperature = isAvailable
@@ -216,15 +216,18 @@ export class ThermostatServerBase extends FeaturedBase {
       ? config.getRunningMode(entity.state, this.agent)
       : Thermostat.ThermostatRunningMode.Off;
 
-    // Temperature limit handling:
-    // - For SINGLE-MODE (heat-only or cool-only): Use HA's actual min/max limits directly
-    // - For DUAL-MODE (heat + cool): Use wide limits (0-50°C) to avoid
-    //   Matter.js deadband constraint issues. HA will validate actual values.
-    //
-    // This ensures Apple Home shows the correct temperature range for single-mode thermostats
-    // while still working correctly for dual-mode thermostats.
+    // When current_temperature is not available (common for AC controllers),
+    // fall back to the target setpoint temperature (matching HA's UI behavior)
+    const localTemperature =
+      currentTemperature ??
+      targetHeatingTemperature ??
+      targetCoolingTemperature ??
+      this.state.localTemperature;
 
-    // Wide limits used as fallback when HA doesn't provide limits (0-50°C = 0-5000 in 0.01°C units)
+    // Temperature limit handling:
+    // Use HA's actual min/max limits for ALL modes (single and dual).
+    // With minSetpointDeadBand: 0, there are no deadband constraints to worry about.
+    // Fall back to wide limits (0-50°C) only when HA doesn't provide limits.
     const WIDE_MIN = 0; // 0°C
     const WIDE_MAX = 5000; // 50°C
 
@@ -233,41 +236,27 @@ export class ThermostatServerBase extends FeaturedBase {
     let maxHeatLimit: number | undefined;
     let maxCoolLimit: number | undefined;
 
-    if (this.features.heating && this.features.cooling) {
-      // DUAL-MODE: Use wide limits
-      // This avoids Matter.js deadband constraints and lets HA do the validation
-      minHeatLimit = WIDE_MIN;
-      maxHeatLimit = WIDE_MAX;
-      minCoolLimit = WIDE_MIN;
-      maxCoolLimit = WIDE_MAX;
-    } else if (this.features.heating && !this.features.cooling) {
-      // HEAT-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+    if (this.features.heating) {
       minHeatLimit = minSetpointLimit ?? WIDE_MIN;
       maxHeatLimit = maxSetpointLimit ?? WIDE_MAX;
-    } else if (this.features.cooling && !this.features.heating) {
-      // COOL-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+    }
+    if (this.features.cooling) {
       minCoolLimit = minSetpointLimit ?? WIDE_MIN;
       maxCoolLimit = maxSetpointLimit ?? WIDE_MAX;
     }
-
-    // For single-mode, use HA limits for clamping; for dual-mode use wide limits
-    const effectiveMinHeatLimit = minHeatLimit;
-    const effectiveMaxHeatLimit = maxHeatLimit;
-    const effectiveMinCoolLimit = minCoolLimit;
-    const effectiveMaxCoolLimit = maxCoolLimit;
 
     // Clamp setpoints to be within the calculated limits to prevent Matter.js validation errors
     // This handles cases where HA reports setpoints outside the valid range
     const clampedHeatingSetpoint = this.clampSetpoint(
       targetHeatingTemperature,
-      effectiveMinHeatLimit,
-      effectiveMaxHeatLimit,
+      minHeatLimit,
+      maxHeatLimit,
       "heat",
     );
     const clampedCoolingSetpoint = this.clampSetpoint(
       targetCoolingTemperature,
-      effectiveMinCoolLimit,
-      effectiveMaxCoolLimit,
+      minCoolLimit,
+      maxCoolLimit,
       "cool",
     );
 
