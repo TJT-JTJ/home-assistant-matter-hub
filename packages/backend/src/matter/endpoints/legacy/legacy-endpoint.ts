@@ -46,15 +46,12 @@ export class LegacyEndpoint extends EntityEndpoint {
       );
       return;
     }
-    if (
-      registry.isAutoHumidityMappingEnabled() &&
-      registry.isHumidityEntityUsed(entityId)
-    ) {
-      logger.debug(
-        `Skipping ${entityId} - already auto-assigned as humidity to a temperature sensor`,
-      );
-      return;
-    }
+    // NOTE: We no longer skip humidity entities that have been auto-assigned
+    // to a temperature sensor. Apple Home only displays humidity data on
+    // HumiditySensorDevice endpoints (device type 0x0307), not on a
+    // TemperatureSensorDevice with an extra humidity cluster. Keeping the
+    // standalone endpoint ensures humidity is visible in all controllers.
+    // See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/133
 
     // Auto-assign related entities if not manually set and device has them
     // Order matters: Humidity first, then Battery - so battery only goes to the
