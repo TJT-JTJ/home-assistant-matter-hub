@@ -1,3 +1,4 @@
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DevicesIcon from "@mui/icons-material/Devices";
@@ -63,6 +64,15 @@ export const AppTopBar = () => {
                   sx={{ color: "inherit" }}
                 >
                   <DevicesIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Network Map">
+                <IconButton
+                  component={Link}
+                  to={navigation.networkMap}
+                  sx={{ color: "inherit" }}
+                >
+                  <AccountTreeIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Startup Order">
