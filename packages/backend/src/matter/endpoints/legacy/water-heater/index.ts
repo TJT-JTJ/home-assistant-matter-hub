@@ -51,21 +51,16 @@ export function WaterHeaterDevice(
   // Pass thermostat state at endpoint level — Matter.js reads from here during
   // validation, BEFORE our initialize() runs. Without this, limits fall back to
   // the default 0-50°C range (#145, regression from #97 fix).
+  // Only include heating attributes since water heater uses heating-only features.
   return WaterHeaterDeviceType.set({
     homeAssistantEntity,
     thermostat: {
       localTemperature: currentTemp,
       occupiedHeatingSetpoint: heatingSetpoint,
-      occupiedCoolingSetpoint: heatingSetpoint,
       minHeatSetpointLimit: minLimit,
       maxHeatSetpointLimit: maxLimit,
-      minCoolSetpointLimit: minLimit,
-      maxCoolSetpointLimit: maxLimit,
       absMinHeatSetpointLimit: minLimit,
       absMaxHeatSetpointLimit: maxLimit,
-      absMinCoolSetpointLimit: minLimit,
-      absMaxCoolSetpointLimit: maxLimit,
-      minSetpointDeadBand: 0,
     },
   });
 }

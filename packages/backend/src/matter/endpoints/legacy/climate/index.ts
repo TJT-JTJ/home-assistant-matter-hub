@@ -65,6 +65,7 @@ const ClimateDeviceType = (
   supportsHumidity: boolean,
   supportsFanMode: boolean,
   hasBattery: boolean,
+  features: { heating: boolean; cooling: boolean },
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
 
@@ -78,9 +79,9 @@ const ClimateDeviceType = (
     additionalClusters.push(ClimatePowerSourceServer);
   }
 
-  // Use ClimateThermostatServer without initial state - state will be set
-  // at the endpoint level via .set() to ensure Matter.js sees the values.
-  const thermostatServer = ClimateThermostatServer();
+  // Use feature-specific thermostat server so controllers like Alexa
+  // see only the features the device actually supports (#136).
+  const thermostatServer = ClimateThermostatServer({}, features);
 
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
@@ -214,28 +215,38 @@ export function ClimateDevice(
 
   // Pass thermostat state at the endpoint type level using the behavior ID.
   // This ensures Matter.js's internal validation sees the values.
+  // Only include attributes for the features the device actually supports.
   return ClimateDeviceType(
     supportsOnOff,
     supportsHumidity,
     supportsFanMode,
     hasBattery,
+    { heating: supportsHeating, cooling: supportsCooling },
   ).set({
     homeAssistantEntity,
-    // Set thermostat values at endpoint level - this is the key fix!
-    // Matter.js reads from this location during validation.
     thermostat: {
       localTemperature: initialState.localTemperature ?? 2100,
-      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
-      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-      minSetpointDeadBand: 0, // Allow same setpoint for heating and cooling
+      ...(supportsHeating
+        ? {
+            occupiedHeatingSetpoint:
+              initialState.occupiedHeatingSetpoint ?? 2000,
+            minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+            maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+            absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+            absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+          }
+        : {}),
+      ...(supportsCooling
+        ? {
+            occupiedCoolingSetpoint:
+              initialState.occupiedCoolingSetpoint ?? 2400,
+            minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+            maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+            absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+            absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+          }
+        : {}),
+      ...(supportsHeating && supportsCooling ? { minSetpointDeadBand: 0 } : {}),
     },
   });
 }

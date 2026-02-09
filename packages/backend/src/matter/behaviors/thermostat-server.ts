@@ -17,41 +17,56 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// NOTE: AutoMode feature IS included because it's required for the minSetpointDeadBand attribute.
-// Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
-// in post-commit without proper permissions (Matter.js issue #3105).
+// For dual-mode thermostats (heating + cooling), AutoMode feature IS included because
+// it's required for the minSetpointDeadBand attribute. For single-mode thermostats
+// (heating-only or cooling-only), only the relevant feature is enabled.
+// This ensures controllers like Alexa correctly identify thermostat capabilities.
+//
+// Matter.js issue #3105: internal #handleSystemModeChange reactor tries to write
+// thermostatRunningMode in post-commit without proper permissions.
 // WORKAROUND: We set thermostatRunningMode ourselves in initialize() and update(), so the
 // internal reactor either sees the correct value already set or the error is harmless.
 // See: https://github.com/matter-js/matter.js/issues/3105
 
-// Default state values to prevent NaN validation errors during initialization.
+// Default state values for each feature combination.
 // These MUST be set via .set() when creating the behavior class because Matter.js
 // validates setpoints before our initialize() method runs.
-const defaultState = {
+const heatingOnlyDefaults = {
   localTemperature: 2100, // 21°C
   occupiedHeatingSetpoint: 2000, // 20°C
-  occupiedCoolingSetpoint: 2400, // 24°C
-  // Wide limits (0-50°C)
   minHeatSetpointLimit: 0,
   maxHeatSetpointLimit: 5000,
-  minCoolSetpointLimit: 0,
-  maxCoolSetpointLimit: 5000,
   absMinHeatSetpointLimit: 0,
   absMaxHeatSetpointLimit: 5000,
+};
+
+const coolingOnlyDefaults = {
+  localTemperature: 2100, // 21°C
+  occupiedCoolingSetpoint: 2400, // 24°C
+  minCoolSetpointLimit: 0,
+  maxCoolSetpointLimit: 5000,
   absMinCoolSetpointLimit: 0,
   absMaxCoolSetpointLimit: 5000,
-  // Allow same setpoint for heating and cooling (HA heat_cool thermostats often
-  // only have a single temperature setpoint, not separate high/low targets)
+};
+
+// Full defaults include both heating and cooling, plus AutoMode's minSetpointDeadBand.
+// AutoMode is required to expose minSetpointDeadBand attribute, which we set to 0
+// to allow heat_cool thermostats with a single temperature setpoint.
+const fullDefaults = {
+  ...heatingOnlyDefaults,
+  ...coolingOnlyDefaults,
   minSetpointDeadBand: 0,
 };
 
-// Create the FeaturedBase with Heating, Cooling, and AutoMode features.
-// AutoMode is required to expose minSetpointDeadBand attribute, which we set to 0
-// to allow heat_cool thermostats with a single temperature setpoint.
-// NOTE: We don't include AutoMode's thermostatRunningMode to avoid Matter.js issue #3105
-// where the internal reactor tries to write without permissions.
-const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
-  defaultState,
+// Feature-specific bases for different thermostat types.
+// Controllers like Alexa use these feature flags to determine capabilities.
+// A heat-only thermostat with Cooling feature causes Alexa to expect dual setpoints
+// and refuse single-temperature commands ("not supported").
+// See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/136
+const HeatingOnlyFeaturedBase = Base.with("Heating").set(heatingOnlyDefaults);
+const CoolingOnlyFeaturedBase = Base.with("Cooling").set(coolingOnlyDefaults);
+const FullFeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
+  fullDefaults,
 );
 
 export interface ThermostatRunningState {
@@ -84,74 +99,84 @@ export interface ThermostatServerConfig {
   }>;
 }
 
-export class ThermostatServerBase extends FeaturedBase {
+export class ThermostatServerBase extends FullFeaturedBase {
   declare state: ThermostatServerBase.State;
 
   // State class only declares the config property type.
   // ALL defaults are set via .set() in the ThermostatServer function below.
   // This ensures Matter.js's internal cluster data store receives the values.
-  static override State = class State extends FeaturedBase.State {
+  static override State = class State extends FullFeaturedBase.State {
     config!: ThermostatServerConfig;
   };
+
+  /** Check if AutoMode feature is enabled (false in heating-only/cooling-only variants) */
+  private get hasAutoMode(): boolean {
+    return !!(this.features as Record<string, boolean>).autoMode;
+  }
 
   override async initialize() {
     // CRITICAL: Matter.js's internal #clampSetpointToLimits() runs during super.initialize()
     // and reads setpoint values from a path that might not see our .set() defaults.
-    // The logs show our this.state has correct values (2200) but Matter.js sees "undefined".
     //
-    // FIX: UNCONDITIONALLY force-set all values before super.initialize() to ensure
+    // FIX: Force-set all feature-appropriate values before super.initialize() to ensure
     // Matter.js's internal validation has valid values to work with.
-    // We use the current values if they're valid numbers, otherwise use sensible defaults.
 
-    const currentHeating = this.state.occupiedHeatingSetpoint;
-    const currentCooling = this.state.occupiedCoolingSetpoint;
     const currentLocal = this.state.localTemperature;
 
     logger.debug(
-      `initialize: before defaults - heating=${currentHeating}, cooling=${currentCooling}, local=${currentLocal}`,
+      `initialize: features - heating=${this.features.heating}, cooling=${this.features.cooling}, autoMode=${this.hasAutoMode}`,
     );
 
-    // ALWAYS set these values unconditionally to ensure Matter.js sees them.
-    // Use current value if valid, otherwise use default.
-    const heatingValue =
-      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
-        ? currentHeating
-        : 2000;
-    const coolingValue =
-      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
-        ? currentCooling
-        : 2400;
+    // Force-set local temperature (always available)
     const localValue =
       typeof currentLocal === "number" && !Number.isNaN(currentLocal)
         ? currentLocal
         : 2100;
-
-    // Force-set ALL thermostat values unconditionally
-    this.state.occupiedHeatingSetpoint = heatingValue;
-    this.state.occupiedCoolingSetpoint = coolingValue;
     this.state.localTemperature = localValue;
-    this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
-    this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
-    this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
-    this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
-    this.state.absMinHeatSetpointLimit =
-      this.state.absMinHeatSetpointLimit ?? 0;
-    this.state.absMaxHeatSetpointLimit =
-      this.state.absMaxHeatSetpointLimit ?? 5000;
-    this.state.absMinCoolSetpointLimit =
-      this.state.absMinCoolSetpointLimit ?? 0;
-    this.state.absMaxCoolSetpointLimit =
-      this.state.absMaxCoolSetpointLimit ?? 5000;
+
+    // Force-set heating values (only if Heating feature enabled)
+    if (this.features.heating) {
+      const currentHeating = this.state.occupiedHeatingSetpoint;
+      const heatingValue =
+        typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+          ? currentHeating
+          : 2000;
+      this.state.occupiedHeatingSetpoint = heatingValue;
+      this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
+      this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
+      this.state.absMinHeatSetpointLimit =
+        this.state.absMinHeatSetpointLimit ?? 0;
+      this.state.absMaxHeatSetpointLimit =
+        this.state.absMaxHeatSetpointLimit ?? 5000;
+    }
+
+    // Force-set cooling values (only if Cooling feature enabled)
+    if (this.features.cooling) {
+      const currentCooling = this.state.occupiedCoolingSetpoint;
+      const coolingValue =
+        typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+          ? currentCooling
+          : 2400;
+      this.state.occupiedCoolingSetpoint = coolingValue;
+      this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
+      this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
+      this.state.absMinCoolSetpointLimit =
+        this.state.absMinCoolSetpointLimit ?? 0;
+      this.state.absMaxCoolSetpointLimit =
+        this.state.absMaxCoolSetpointLimit ?? 5000;
+    }
 
     logger.debug(
-      `initialize: after force-set - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
+      `initialize: after force-set - local=${this.state.localTemperature}`,
     );
 
-    // Initialize thermostatRunningMode (required by AutoMode feature).
+    // Initialize thermostatRunningMode (required by AutoMode feature only).
     // Setting this ourselves prevents Matter.js issue #3105 where the internal
     // #handleSystemModeChange reactor tries to write thermostatRunningMode
     // without proper permissions in post-commit.
-    this.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
+    if (this.hasAutoMode) {
+      this.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
+    }
 
     // Set initial controlSequenceOfOperation based on enabled features.
     // Will be updated from HA entity's actual hvac_modes in update().
@@ -298,7 +323,7 @@ export class ThermostatServerBase extends FeaturedBase {
         entity.state,
         this.agent,
       ),
-      thermostatRunningMode: runningMode,
+      ...(this.hasAutoMode ? { thermostatRunningMode: runningMode } : {}),
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
       systemMode: systemMode,
       ...(this.features.heating
@@ -395,7 +420,9 @@ export class ThermostatServerBase extends FeaturedBase {
         );
       }
 
-      const coolingSetpoint = this.state.occupiedCoolingSetpoint;
+      const coolingSetpoint = this.features.cooling
+        ? this.state.occupiedCoolingSetpoint
+        : value;
       logger.debug(
         `heatingSetpointChanging: calling setTemperature with heat=${next.celsius(true)}, cool=${coolingSetpoint}`,
       );
@@ -457,7 +484,9 @@ export class ThermostatServerBase extends FeaturedBase {
         );
       }
 
-      const heatingSetpoint = this.state.occupiedHeatingSetpoint;
+      const heatingSetpoint = this.features.heating
+        ? this.state.occupiedHeatingSetpoint
+        : value;
       this.setTemperature(
         Temperature.celsius(heatingSetpoint / 100)!,
         next,
@@ -592,6 +621,57 @@ export namespace ThermostatServerBase {
   export type State = InstanceType<typeof ThermostatServerBase.State>;
 }
 
+// Feature-specific thermostat variants that share the same implementation
+// but advertise only the features they actually support.
+// This is critical for controllers like Alexa that use feature flags to
+// determine thermostat capabilities (single vs dual setpoint).
+// See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/136
+// biome-ignore lint/correctness/noUnusedVariables: Used via copyPrototypeMethods and in ThermostatServer factory
+class HeatingOnlyThermostatServerBase extends HeatingOnlyFeaturedBase {
+  declare state: HeatingOnlyThermostatServerBase.State;
+  static override State = class extends HeatingOnlyFeaturedBase.State {
+    config!: ThermostatServerConfig;
+  };
+}
+namespace HeatingOnlyThermostatServerBase {
+  export type State = InstanceType<
+    typeof HeatingOnlyThermostatServerBase.State
+  >;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used via copyPrototypeMethods and in ThermostatServer factory
+class CoolingOnlyThermostatServerBase extends CoolingOnlyFeaturedBase {
+  declare state: CoolingOnlyThermostatServerBase.State;
+  static override State = class extends CoolingOnlyFeaturedBase.State {
+    config!: ThermostatServerConfig;
+  };
+}
+namespace CoolingOnlyThermostatServerBase {
+  export type State = InstanceType<
+    typeof CoolingOnlyThermostatServerBase.State
+  >;
+}
+
+// Share implementation from ThermostatServerBase to feature-specific variants.
+// The implementation already uses this.features.heating/cooling guards for
+// feature-specific attribute access, so it works correctly on all variants.
+// biome-ignore lint/suspicious/noExplicitAny: Prototype manipulation requires any
+function copyPrototypeMethods(source: any, target: any) {
+  for (const name of Object.getOwnPropertyNames(source.prototype)) {
+    if (name !== "constructor") {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        source.prototype,
+        name,
+      );
+      if (descriptor) {
+        Object.defineProperty(target.prototype, name, descriptor);
+      }
+    }
+  }
+}
+copyPrototypeMethods(ThermostatServerBase, HeatingOnlyThermostatServerBase);
+copyPrototypeMethods(ThermostatServerBase, CoolingOnlyThermostatServerBase);
+
 export interface ThermostatServerFeatures {
   heating: boolean;
   cooling: boolean;
@@ -634,24 +714,50 @@ export interface ThermostatServerInitialState {
 export function ThermostatServer(
   config: ThermostatServerConfig,
   initialState: ThermostatServerInitialState = {},
+  features: ThermostatServerFeatures = { heating: true, cooling: true },
 ) {
-  // Merge provided initial state with defaults
-  // These values are passed DIRECTLY to Matter.js during registration,
-  // ensuring they are available BEFORE any validation runs.
-  const state = {
+  const supportsHeating = features.heating;
+  const supportsCooling = features.cooling;
+
+  if (supportsHeating && supportsCooling) {
+    // Full features (heating + cooling + auto mode)
+    return ThermostatServerBase.set({
+      config,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+    });
+  }
+
+  if (supportsCooling) {
+    // Cooling only - no Heating or AutoMode features
+    return CoolingOnlyThermostatServerBase.set({
+      config,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+    });
+  }
+
+  // Heating only (default) - no Cooling or AutoMode features
+  return HeatingOnlyThermostatServerBase.set({
     config,
     localTemperature: initialState.localTemperature ?? 2100,
     occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-    occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
     minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
     maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-    minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-    maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
     absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
     absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-    absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-    absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-  };
-
-  return ThermostatServerBase.set(state);
+  });
 }

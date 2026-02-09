@@ -14,6 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistan
 import {
   ThermostatServer,
   type ThermostatServerConfig,
+  type ThermostatServerFeatures,
   type ThermostatServerInitialState,
 } from "../../../../behaviors/thermostat-server.js";
 
@@ -199,6 +200,7 @@ const config: ThermostatServerConfig = {
  */
 export function ClimateThermostatServer(
   initialState: ThermostatServerInitialState = {},
+  features?: ThermostatServerFeatures,
 ) {
-  return ThermostatServer(config, initialState);
+  return ThermostatServer(config, initialState, features);
 }
