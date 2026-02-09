@@ -43,15 +43,9 @@ class RvcOperationalStateServerBase extends Base {
       entity.state,
       this.agent,
     );
-    const operationalStateList = Object.values(OperationalState)
-      .filter((id): id is number => !Number.isNaN(+id))
-      .map((id) => ({
-        operationalStateId: id,
-      }));
 
     applyPatchState(this.state, {
       operationalState,
-      operationalStateList,
       operationalError: {
         errorStateId:
           operationalState === OperationalState.Error
