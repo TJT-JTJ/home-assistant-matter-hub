@@ -99,6 +99,115 @@ export interface ThermostatServerConfig {
   }>;
 }
 
+/** Check if AutoMode feature is enabled (false in heating-only/cooling-only variants) */
+function hasAutoMode(self: { features: Record<string, boolean> }): boolean {
+  return !!self.features.autoMode;
+}
+
+/**
+ * Pre-super initialization: force-set feature-appropriate attribute values.
+ * Must run BEFORE super.initialize() because Matter.js validates setpoints during super.
+ * Extracted as standalone function so each feature-variant class can call it
+ * from its own initialize() with correct super binding.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Internal helper working across feature variants
+function thermostatPreInitialize(self: any): void {
+  const currentLocal = self.state.localTemperature;
+
+  logger.debug(
+    `initialize: features - heating=${self.features.heating}, cooling=${self.features.cooling}, autoMode=${hasAutoMode(self)}`,
+  );
+
+  // Force-set local temperature (always available)
+  const localValue =
+    typeof currentLocal === "number" && !Number.isNaN(currentLocal)
+      ? currentLocal
+      : 2100;
+  self.state.localTemperature = localValue;
+
+  // Force-set heating values (only if Heating feature enabled)
+  if (self.features.heating) {
+    const currentHeating = self.state.occupiedHeatingSetpoint;
+    const heatingValue =
+      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+        ? currentHeating
+        : 2000;
+    self.state.occupiedHeatingSetpoint = heatingValue;
+    self.state.minHeatSetpointLimit = self.state.minHeatSetpointLimit ?? 0;
+    self.state.maxHeatSetpointLimit = self.state.maxHeatSetpointLimit ?? 5000;
+    self.state.absMinHeatSetpointLimit =
+      self.state.absMinHeatSetpointLimit ?? 0;
+    self.state.absMaxHeatSetpointLimit =
+      self.state.absMaxHeatSetpointLimit ?? 5000;
+  }
+
+  // Force-set cooling values (only if Cooling feature enabled)
+  if (self.features.cooling) {
+    const currentCooling = self.state.occupiedCoolingSetpoint;
+    const coolingValue =
+      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+        ? currentCooling
+        : 2400;
+    self.state.occupiedCoolingSetpoint = coolingValue;
+    self.state.minCoolSetpointLimit = self.state.minCoolSetpointLimit ?? 0;
+    self.state.maxCoolSetpointLimit = self.state.maxCoolSetpointLimit ?? 5000;
+    self.state.absMinCoolSetpointLimit =
+      self.state.absMinCoolSetpointLimit ?? 0;
+    self.state.absMaxCoolSetpointLimit =
+      self.state.absMaxCoolSetpointLimit ?? 5000;
+  }
+
+  logger.debug(
+    `initialize: after force-set - local=${self.state.localTemperature}`,
+  );
+
+  // Initialize thermostatRunningMode (required by AutoMode feature only).
+  // Setting this ourselves prevents Matter.js issue #3105 where the internal
+  // #handleSystemModeChange reactor tries to write thermostatRunningMode
+  // without proper permissions in post-commit.
+  if (hasAutoMode(self)) {
+    self.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
+  }
+
+  // Set initial controlSequenceOfOperation based on enabled features.
+  // Will be updated from HA entity's actual hvac_modes in update().
+  self.state.controlSequenceOfOperation =
+    self.features.cooling && self.features.heating
+      ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
+      : self.features.cooling
+        ? Thermostat.ControlSequenceOfOperation.CoolingOnly
+        : Thermostat.ControlSequenceOfOperation.HeatingOnly;
+}
+
+/**
+ * Post-super initialization: load HA entity, run first update, wire up reactors.
+ * Must run AFTER super.initialize() because agent/events aren't ready before.
+ * Extracted as standalone function so each feature-variant class can call it
+ * from its own initialize() with correct super binding.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Internal helper working across feature variants
+async function thermostatPostInitialize(self: any): Promise<void> {
+  const homeAssistant = await self.agent.load(HomeAssistantEntityBehavior);
+  self.update(homeAssistant.entity);
+
+  self.reactTo(self.events.systemMode$Changed, self.systemModeChanged);
+  // Use $Changing (pre-commit) for setpoint changes to avoid access control issues
+  // The $Changed event fires in post-commit where we lose write permissions
+  if (self.features.cooling) {
+    self.reactTo(
+      self.events.occupiedCoolingSetpoint$Changing,
+      self.coolingSetpointChanging,
+    );
+  }
+  if (self.features.heating) {
+    self.reactTo(
+      self.events.occupiedHeatingSetpoint$Changing,
+      self.heatingSetpointChanging,
+    );
+  }
+  self.reactTo(homeAssistant.onChange, self.update);
+}
+
 export class ThermostatServerBase extends FullFeaturedBase {
   declare state: ThermostatServerBase.State;
 
@@ -109,107 +218,13 @@ export class ThermostatServerBase extends FullFeaturedBase {
     config!: ThermostatServerConfig;
   };
 
-  /** Check if AutoMode feature is enabled (false in heating-only/cooling-only variants) */
-  private get hasAutoMode(): boolean {
-    return !!(this.features as Record<string, boolean>).autoMode;
-  }
-
   override async initialize() {
-    // CRITICAL: Matter.js's internal #clampSetpointToLimits() runs during super.initialize()
-    // and reads setpoint values from a path that might not see our .set() defaults.
-    //
-    // FIX: Force-set all feature-appropriate values before super.initialize() to ensure
-    // Matter.js's internal validation has valid values to work with.
-
-    const currentLocal = this.state.localTemperature;
-
-    logger.debug(
-      `initialize: features - heating=${this.features.heating}, cooling=${this.features.cooling}, autoMode=${this.hasAutoMode}`,
-    );
-
-    // Force-set local temperature (always available)
-    const localValue =
-      typeof currentLocal === "number" && !Number.isNaN(currentLocal)
-        ? currentLocal
-        : 2100;
-    this.state.localTemperature = localValue;
-
-    // Force-set heating values (only if Heating feature enabled)
-    if (this.features.heating) {
-      const currentHeating = this.state.occupiedHeatingSetpoint;
-      const heatingValue =
-        typeof currentHeating === "number" && !Number.isNaN(currentHeating)
-          ? currentHeating
-          : 2000;
-      this.state.occupiedHeatingSetpoint = heatingValue;
-      this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
-      this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
-      this.state.absMinHeatSetpointLimit =
-        this.state.absMinHeatSetpointLimit ?? 0;
-      this.state.absMaxHeatSetpointLimit =
-        this.state.absMaxHeatSetpointLimit ?? 5000;
-    }
-
-    // Force-set cooling values (only if Cooling feature enabled)
-    if (this.features.cooling) {
-      const currentCooling = this.state.occupiedCoolingSetpoint;
-      const coolingValue =
-        typeof currentCooling === "number" && !Number.isNaN(currentCooling)
-          ? currentCooling
-          : 2400;
-      this.state.occupiedCoolingSetpoint = coolingValue;
-      this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
-      this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
-      this.state.absMinCoolSetpointLimit =
-        this.state.absMinCoolSetpointLimit ?? 0;
-      this.state.absMaxCoolSetpointLimit =
-        this.state.absMaxCoolSetpointLimit ?? 5000;
-    }
-
-    logger.debug(
-      `initialize: after force-set - local=${this.state.localTemperature}`,
-    );
-
-    // Initialize thermostatRunningMode (required by AutoMode feature only).
-    // Setting this ourselves prevents Matter.js issue #3105 where the internal
-    // #handleSystemModeChange reactor tries to write thermostatRunningMode
-    // without proper permissions in post-commit.
-    if (this.hasAutoMode) {
-      this.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
-    }
-
-    // Set initial controlSequenceOfOperation based on enabled features.
-    // Will be updated from HA entity's actual hvac_modes in update().
-    this.state.controlSequenceOfOperation =
-      this.features.cooling && this.features.heating
-        ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
-        : this.features.cooling
-          ? Thermostat.ControlSequenceOfOperation.CoolingOnly
-          : Thermostat.ControlSequenceOfOperation.HeatingOnly;
-
+    thermostatPreInitialize(this);
     await super.initialize();
-
-    const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
-    this.update(homeAssistant.entity);
-
-    this.reactTo(this.events.systemMode$Changed, this.systemModeChanged);
-    // Use $Changing (pre-commit) for setpoint changes to avoid access control issues
-    // The $Changed event fires in post-commit where we lose write permissions
-    if (this.features.cooling) {
-      this.reactTo(
-        this.events.occupiedCoolingSetpoint$Changing,
-        this.coolingSetpointChanging,
-      );
-    }
-    if (this.features.heating) {
-      this.reactTo(
-        this.events.occupiedHeatingSetpoint$Changing,
-        this.heatingSetpointChanging,
-      );
-    }
-    this.reactTo(homeAssistant.onChange, this.update);
+    await thermostatPostInitialize(this);
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via thermostatPostInitialize + prototype copy
   private update(entity: HomeAssistantEntityInformation) {
     if (!entity.state) {
       return;
@@ -223,23 +238,31 @@ export class ThermostatServerBase extends FullFeaturedBase {
 
     const minSetpointLimit = isAvailable
       ? config.getMinTemperature(entity.state, this.agent)?.celsius(true)
-      : (this.state.minHeatSetpointLimit ?? this.state.minCoolSetpointLimit);
+      : this.features.heating
+        ? this.state.minHeatSetpointLimit
+        : this.state.minCoolSetpointLimit;
     const maxSetpointLimit = isAvailable
       ? config.getMaxTemperature(entity.state, this.agent)?.celsius(true)
-      : (this.state.maxHeatSetpointLimit ?? this.state.maxCoolSetpointLimit);
+      : this.features.heating
+        ? this.state.maxHeatSetpointLimit
+        : this.state.maxCoolSetpointLimit;
     const currentTemperature = isAvailable
       ? config.getCurrentTemperature(entity.state, this.agent)?.celsius(true)
       : this.state.localTemperature;
-    const targetHeatingTemperature = isAvailable
-      ? (config
-          .getTargetHeatingTemperature(entity.state, this.agent)
-          ?.celsius(true) ?? this.state.occupiedHeatingSetpoint)
-      : this.state.occupiedHeatingSetpoint;
-    const targetCoolingTemperature = isAvailable
-      ? (config
-          .getTargetCoolingTemperature(entity.state, this.agent)
-          ?.celsius(true) ?? this.state.occupiedCoolingSetpoint)
-      : this.state.occupiedCoolingSetpoint;
+    const targetHeatingTemperature = this.features.heating
+      ? isAvailable
+        ? (config
+            .getTargetHeatingTemperature(entity.state, this.agent)
+            ?.celsius(true) ?? this.state.occupiedHeatingSetpoint)
+        : this.state.occupiedHeatingSetpoint
+      : undefined;
+    const targetCoolingTemperature = this.features.cooling
+      ? isAvailable
+        ? (config
+            .getTargetCoolingTemperature(entity.state, this.agent)
+            ?.celsius(true) ?? this.state.occupiedCoolingSetpoint)
+        : this.state.occupiedCoolingSetpoint
+      : undefined;
 
     const systemMode = isAvailable
       ? this.getSystemMode(entity)
@@ -323,7 +346,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
         entity.state,
         this.agent,
       ),
-      ...(this.hasAutoMode ? { thermostatRunningMode: runningMode } : {}),
+      ...(hasAutoMode(this) ? { thermostatRunningMode: runningMode } : {}),
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
       systemMode: systemMode,
       ...(this.features.heating
@@ -365,6 +388,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
    * Using $Changing instead of $Changed to ensure we have write permissions
    * when calling the Home Assistant action.
    */
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via thermostatPostInitialize + prototype copy
   private heatingSetpointChanging(
     value: number,
     _oldValue: number,
@@ -439,6 +463,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
    * Using $Changing instead of $Changed to ensure we have write permissions
    * when calling the Home Assistant action.
    */
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via thermostatPostInitialize + prototype copy
   private coolingSetpointChanging(
     value: number,
     _oldValue: number,
@@ -495,6 +520,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     });
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via setpointRaiseLower + prototype copy
   private setTemperature(
     low: Temperature,
     high: Temperature,
@@ -518,6 +544,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     homeAssistant.callAction(action);
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via thermostatPostInitialize + prototype copy
   private systemModeChanged(
     systemMode: Thermostat.SystemMode,
     _oldValue: Thermostat.SystemMode,
@@ -534,6 +561,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     });
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via update + prototype copy
   private getSystemMode(entity: HomeAssistantEntityInformation) {
     // NOTE: We intentionally allow SystemMode.Auto to be displayed without the AutoMode feature.
     // The AutoMode feature only adds thermostatRunningMode attribute and its internal reactor.
@@ -543,6 +571,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     return this.state.config.getSystemMode(entity.state, this.agent);
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via update + prototype copy
   private getRunningState(
     systemMode: SystemMode,
     runningMode: RunningMode,
@@ -592,6 +621,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     }
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via update + prototype copy
   private clampSetpoint(
     value: number | undefined,
     min: number | undefined,
@@ -632,6 +662,16 @@ class HeatingOnlyThermostatServerBase extends HeatingOnlyFeaturedBase {
   static override State = class extends HeatingOnlyFeaturedBase.State {
     config!: ThermostatServerConfig;
   };
+
+  // Each variant MUST define its own initialize() so that super.initialize()
+  // resolves to the correct parent class (HeatingOnlyFeaturedBase here).
+  // Copying initialize() via prototype manipulation would bind super to
+  // FullFeaturedBase due to JavaScript's [[HomeObject]] semantics.
+  override async initialize() {
+    thermostatPreInitialize(this);
+    await super.initialize();
+    await thermostatPostInitialize(this);
+  }
 }
 namespace HeatingOnlyThermostatServerBase {
   export type State = InstanceType<
@@ -645,6 +685,13 @@ class CoolingOnlyThermostatServerBase extends CoolingOnlyFeaturedBase {
   static override State = class extends CoolingOnlyFeaturedBase.State {
     config!: ThermostatServerConfig;
   };
+
+  // Each variant MUST define its own initialize() — see HeatingOnly comment above.
+  override async initialize() {
+    thermostatPreInitialize(this);
+    await super.initialize();
+    await thermostatPostInitialize(this);
+  }
 }
 namespace CoolingOnlyThermostatServerBase {
   export type State = InstanceType<
@@ -653,19 +700,20 @@ namespace CoolingOnlyThermostatServerBase {
 }
 
 // Share implementation from ThermostatServerBase to feature-specific variants.
-// The implementation already uses this.features.heating/cooling guards for
-// feature-specific attribute access, so it works correctly on all variants.
+// IMPORTANT: initialize() is EXCLUDED because JavaScript's [[HomeObject]] semantics
+// bind super to the class where the method was originally defined. Copying initialize()
+// would make super.initialize() always call FullFeaturedBase instead of the variant's
+// actual parent. Each variant defines its own initialize() above.
+// All other methods are safe to copy because they don't use super.
 // biome-ignore lint/suspicious/noExplicitAny: Prototype manipulation requires any
 function copyPrototypeMethods(source: any, target: any) {
   for (const name of Object.getOwnPropertyNames(source.prototype)) {
-    if (name !== "constructor") {
-      const descriptor = Object.getOwnPropertyDescriptor(
-        source.prototype,
-        name,
-      );
-      if (descriptor) {
-        Object.defineProperty(target.prototype, name, descriptor);
-      }
+    if (name === "constructor" || name === "initialize") {
+      continue;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(source.prototype, name);
+    if (descriptor) {
+      Object.defineProperty(target.prototype, name, descriptor);
     }
   }
 }
