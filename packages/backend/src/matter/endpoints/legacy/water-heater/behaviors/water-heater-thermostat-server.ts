@@ -57,6 +57,8 @@ const config: ThermostatServerConfig = {
     }
     return Thermostat.ThermostatRunningMode.Heat;
   },
+  getControlSequence: () =>
+    Thermostat.ControlSequenceOfOperation.HeatingOnly,
   setSystemMode: (systemMode) => {
     if (systemMode === Thermostat.SystemMode.Off) {
       return {

@@ -17,12 +17,11 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// NOTE: AutoMode feature intentionally NOT included.
+// NOTE: AutoMode feature IS included because it's required for the minSetpointDeadBand attribute.
 // Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
-// in post-commit without asLocalActor, causing "Permission denied: Value is read-only" errors.
-// By not including AutoMode, thermostatRunningMode is undefined and the internal reactor skips
-// the problematic write. We still support Auto systemMode - the AutoMode feature only adds
-// thermostatRunningMode attribute, not the ability to use SystemMode.Auto.
+// in post-commit without proper permissions (Matter.js issue #3105).
+// WORKAROUND: We set thermostatRunningMode ourselves in initialize() and update(), so the
+// internal reactor either sees the correct value already set or the error is harmless.
 // See: https://github.com/matter-js/matter.js/issues/3105
 
 // Default state values to prevent NaN validation errors during initialization.
@@ -75,6 +74,7 @@ export interface ThermostatServerConfig {
 
   getSystemMode: ValueGetter<SystemMode>;
   getRunningMode: ValueGetter<RunningMode>;
+  getControlSequence: ValueGetter<Thermostat.ControlSequenceOfOperation>;
 
   setSystemMode: ValueSetter<SystemMode>;
   setTargetTemperature: ValueSetter<Temperature>;
@@ -147,7 +147,14 @@ export class ThermostatServerBase extends FeaturedBase {
       `initialize: after force-set - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
     );
 
-    // Set controlSequenceOfOperation based on enabled features
+    // Initialize thermostatRunningMode (required by AutoMode feature).
+    // Setting this ourselves prevents Matter.js issue #3105 where the internal
+    // #handleSystemModeChange reactor tries to write thermostatRunningMode
+    // without proper permissions in post-commit.
+    this.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
+
+    // Set initial controlSequenceOfOperation based on enabled features.
+    // Will be updated from HA entity's actual hvac_modes in update().
     this.state.controlSequenceOfOperation =
       this.features.cooling && this.features.heating
         ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
@@ -260,13 +267,18 @@ export class ThermostatServerBase extends FeaturedBase {
       "cool",
     );
 
+    logger.debug(
+      `update: limits heat=[${minHeatLimit}, ${maxHeatLimit}], cool=[${minCoolLimit}, ${maxCoolLimit}], systemMode=${systemMode}, runningMode=${runningMode}`,
+    );
+
+    // Property order matters: applyPatchState sets properties sequentially, so if one
+    // property write triggers an error, subsequent properties won't be set.
+    // Limits are set FIRST to ensure they're applied even if mode changes trigger errors.
+    // thermostatRunningMode is set BEFORE systemMode to prevent Matter.js issue #3105
+    // (internal reactor tries to write thermostatRunningMode when systemMode changes).
     applyPatchState(this.state, {
-      localTemperature: localTemperature,
-      systemMode: systemMode,
-      thermostatRunningState: this.getRunningState(systemMode, runningMode),
       ...(this.features.heating
         ? {
-            occupiedHeatingSetpoint: clampedHeatingSetpoint,
             minHeatSetpointLimit: minHeatLimit,
             maxHeatSetpointLimit: maxHeatLimit,
             absMinHeatSetpointLimit: minHeatLimit,
@@ -275,12 +287,25 @@ export class ThermostatServerBase extends FeaturedBase {
         : {}),
       ...(this.features.cooling
         ? {
-            occupiedCoolingSetpoint: clampedCoolingSetpoint,
             minCoolSetpointLimit: minCoolLimit,
             maxCoolSetpointLimit: maxCoolLimit,
             absMinCoolSetpointLimit: minCoolLimit,
             absMaxCoolSetpointLimit: maxCoolLimit,
           }
+        : {}),
+      localTemperature: localTemperature,
+      controlSequenceOfOperation: config.getControlSequence(
+        entity.state,
+        this.agent,
+      ),
+      thermostatRunningMode: runningMode,
+      thermostatRunningState: this.getRunningState(systemMode, runningMode),
+      systemMode: systemMode,
+      ...(this.features.heating
+        ? { occupiedHeatingSetpoint: clampedHeatingSetpoint }
+        : {}),
+      ...(this.features.cooling
+        ? { occupiedCoolingSetpoint: clampedCoolingSetpoint }
         : {}),
     });
   }

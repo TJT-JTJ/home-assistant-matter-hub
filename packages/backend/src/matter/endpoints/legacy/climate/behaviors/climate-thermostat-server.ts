@@ -110,6 +110,25 @@ const config: ThermostatServerConfig = {
       hvacActionToRunningMode[action] ?? Thermostat.ThermostatRunningMode.Off
     );
   },
+  getControlSequence: (entity) => {
+    const modes = attributes(entity).hvac_modes ?? [];
+    const hasCooling = modes.some(
+      (m) => m === ClimateHvacMode.cool || m === ClimateHvacMode.heat_cool,
+    );
+    const hasHeating = modes.some(
+      (m) =>
+        m === ClimateHvacMode.heat ||
+        m === ClimateHvacMode.heat_cool ||
+        m === ClimateHvacMode.auto,
+    );
+    if (hasCooling && hasHeating) {
+      return Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+    }
+    if (hasCooling) {
+      return Thermostat.ControlSequenceOfOperation.CoolingOnly;
+    }
+    return Thermostat.ControlSequenceOfOperation.HeatingOnly;
+  },
   setSystemMode: (systemMode, agent) => {
     const homeAssistant = agent.get(HomeAssistantEntityBehavior);
     const hvacModes = attributes(homeAssistant.entity.state).hvac_modes ?? [];
