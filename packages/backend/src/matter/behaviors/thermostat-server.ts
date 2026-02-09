@@ -532,23 +532,26 @@ export class ThermostatServerBase extends FeaturedBase {
     const dry = { ...allOff, heat: true, fan: true };
     const fanOnly = { ...allOff, fan: true };
 
-    // thermostatRunningState reflects what's CURRENTLY active (relay state),
-    // not just the selected mode. Use runningMode (from hvac_action) for
-    // Heat/Cool/Auto modes to distinguish "actively heating" from "idle".
-    // Special modes (Dry, FanOnly) use systemMode since they don't have
-    // direct RunningMode equivalents (hvac_action maps fan→Off, drying→Heat).
+    // Controllers like Apple Home use thermostatRunningState for mode coloring
+    // (orange = heat, blue = cool). Using runningMode (from hvac_action) would
+    // cause "black in all modes" because idle states return allOff even in Heat
+    // mode. Instead, reflect the SELECTED systemMode so coloring always matches.
+    // Only Auto mode uses runningMode to distinguish which of heat/cool is active.
     switch (systemMode) {
+      case SystemMode.Heat:
+      case SystemMode.EmergencyHeat:
+        return heat;
+      case SystemMode.Cool:
+      case SystemMode.Precooling:
+        return cool;
+      case SystemMode.Dry:
+        return dry;
+      case SystemMode.FanOnly:
+        return fanOnly;
       case SystemMode.Off:
       case SystemMode.Sleep:
         return allOff;
-      case SystemMode.Dry:
-        // Drying uses heat + fan; report active only when runningMode indicates activity
-        return runningMode !== RunningMode.Off ? dry : allOff;
-      case SystemMode.FanOnly:
-        return fanOnly;
-      default:
-        // Heat, Cool, Auto, EmergencyHeat, Precooling:
-        // Use runningMode to determine actual activity
+      case SystemMode.Auto:
         switch (runningMode) {
           case RunningMode.Heat:
             return heat;
