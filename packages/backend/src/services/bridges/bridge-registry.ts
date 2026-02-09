@@ -50,12 +50,15 @@ export class BridgeRegistry {
    * Returns the entity_id of the battery sensor, or undefined if none found.
    */
   findBatteryEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // The battery sensor might not match the bridge filter (e.g., vacuum
+    // server bridges only include vacuum.* entities, not sensor.*).
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -105,12 +108,14 @@ export class BridgeRegistry {
    * Returns the entity_id of the humidity sensor, or undefined if none found.
    */
   findHumidityEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // Same reasoning as findBatteryEntityForDevice.
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
