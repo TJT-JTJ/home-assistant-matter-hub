@@ -66,6 +66,7 @@ const ClimateDeviceType = (
   supportsFanMode: boolean,
   hasBattery: boolean,
   features: { heating: boolean; cooling: boolean },
+  initialState: InitialThermostatState = {},
 ) => {
   const additionalClusters: ClusterBehavior.Type[] = [];
 
@@ -81,7 +82,9 @@ const ClimateDeviceType = (
 
   // Use feature-specific thermostat server so controllers like Alexa
   // see only the features the device actually supports (#136).
-  const thermostatServer = ClimateThermostatServer({}, features);
+  // Pass initialState directly so the behavior class has correct limits
+  // from the start — critical for negative temperatures (refrigerators).
+  const thermostatServer = ClimateThermostatServer(initialState, features);
 
   if (supportsFanMode) {
     return RoomAirConditionerDevice.with(
@@ -222,6 +225,7 @@ export function ClimateDevice(
     supportsFanMode,
     hasBattery,
     { heating: supportsHeating, cooling: supportsCooling },
+    initialState,
   ).set({
     homeAssistantEntity,
     thermostat: {

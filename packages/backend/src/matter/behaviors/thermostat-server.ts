@@ -126,35 +126,41 @@ function thermostatPreInitialize(self: any): void {
   self.state.localTemperature = localValue;
 
   // Force-set heating values (only if Heating feature enabled)
+  // IMPORTANT: Set limits BEFORE setpoints! Matter.js may validate setpoints
+  // against abs limits during property writes. For negative temperatures
+  // (e.g. refrigerators at -18°C), the default absMin of 0 would reject the setpoint.
   if (self.features.heating) {
+    self.state.absMinHeatSetpointLimit =
+      self.state.absMinHeatSetpointLimit ?? 0;
+    self.state.absMaxHeatSetpointLimit =
+      self.state.absMaxHeatSetpointLimit ?? 5000;
+    self.state.minHeatSetpointLimit = self.state.minHeatSetpointLimit ?? 0;
+    self.state.maxHeatSetpointLimit = self.state.maxHeatSetpointLimit ?? 5000;
+
     const currentHeating = self.state.occupiedHeatingSetpoint;
     const heatingValue =
       typeof currentHeating === "number" && !Number.isNaN(currentHeating)
         ? currentHeating
         : 2000;
     self.state.occupiedHeatingSetpoint = heatingValue;
-    self.state.minHeatSetpointLimit = self.state.minHeatSetpointLimit ?? 0;
-    self.state.maxHeatSetpointLimit = self.state.maxHeatSetpointLimit ?? 5000;
-    self.state.absMinHeatSetpointLimit =
-      self.state.absMinHeatSetpointLimit ?? 0;
-    self.state.absMaxHeatSetpointLimit =
-      self.state.absMaxHeatSetpointLimit ?? 5000;
   }
 
   // Force-set cooling values (only if Cooling feature enabled)
+  // Same ordering: limits first, then setpoints.
   if (self.features.cooling) {
+    self.state.absMinCoolSetpointLimit =
+      self.state.absMinCoolSetpointLimit ?? 0;
+    self.state.absMaxCoolSetpointLimit =
+      self.state.absMaxCoolSetpointLimit ?? 5000;
+    self.state.minCoolSetpointLimit = self.state.minCoolSetpointLimit ?? 0;
+    self.state.maxCoolSetpointLimit = self.state.maxCoolSetpointLimit ?? 5000;
+
     const currentCooling = self.state.occupiedCoolingSetpoint;
     const coolingValue =
       typeof currentCooling === "number" && !Number.isNaN(currentCooling)
         ? currentCooling
         : 2400;
     self.state.occupiedCoolingSetpoint = coolingValue;
-    self.state.minCoolSetpointLimit = self.state.minCoolSetpointLimit ?? 0;
-    self.state.maxCoolSetpointLimit = self.state.maxCoolSetpointLimit ?? 5000;
-    self.state.absMinCoolSetpointLimit =
-      self.state.absMinCoolSetpointLimit ?? 0;
-    self.state.absMaxCoolSetpointLimit =
-      self.state.absMaxCoolSetpointLimit ?? 5000;
   }
 
   logger.debug(
@@ -769,19 +775,21 @@ export function ThermostatServer(
 
   if (supportsHeating && supportsCooling) {
     // Full features (heating + cooling + auto mode)
+    // IMPORTANT: abs limits → regular limits → setpoints to prevent
+    // validation failures for negative temperatures (e.g. refrigerators).
     return ThermostatServerBase.set({
       config,
-      localTemperature: initialState.localTemperature ?? 2100,
-      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
-      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
       absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
       absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
       absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
       absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
     });
   }
 
@@ -789,23 +797,23 @@ export function ThermostatServer(
     // Cooling only - no Heating or AutoMode features
     return CoolingOnlyThermostatServerBase.set({
       config,
-      localTemperature: initialState.localTemperature ?? 2100,
-      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
-      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
       absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
       absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
     });
   }
 
   // Heating only (default) - no Cooling or AutoMode features
   return HeatingOnlyThermostatServerBase.set({
     config,
-    localTemperature: initialState.localTemperature ?? 2100,
-    occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-    minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-    maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
     absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
     absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+    minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+    maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+    localTemperature: initialState.localTemperature ?? 2100,
+    occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
   });
 }
