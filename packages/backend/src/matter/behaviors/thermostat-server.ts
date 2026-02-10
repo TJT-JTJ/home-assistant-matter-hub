@@ -31,6 +31,20 @@ import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 // Default state values for each feature combination.
 // These MUST be set via .set() when creating the behavior class because Matter.js
 // validates setpoints before our initialize() method runs.
+//
+// thermostatRunningState (optional attribute) MUST be initialized here so
+// controllers discover and subscribe to it from the start. Without this,
+// Apple Home cannot distinguish "Heating to 26" (active) from "Heat to 26" (idle).
+const runningStateAllOff = {
+  heat: false,
+  cool: false,
+  fan: false,
+  heatStage2: false,
+  coolStage2: false,
+  fanStage2: false,
+  fanStage3: false,
+};
+
 const heatingOnlyDefaults = {
   localTemperature: 2100, // 21°C
   occupiedHeatingSetpoint: 2000, // 20°C
@@ -38,6 +52,7 @@ const heatingOnlyDefaults = {
   maxHeatSetpointLimit: 5000,
   absMinHeatSetpointLimit: 0,
   absMaxHeatSetpointLimit: 5000,
+  thermostatRunningState: runningStateAllOff,
 };
 
 const coolingOnlyDefaults = {
@@ -47,6 +62,7 @@ const coolingOnlyDefaults = {
   maxCoolSetpointLimit: 5000,
   absMinCoolSetpointLimit: 0,
   absMaxCoolSetpointLimit: 5000,
+  thermostatRunningState: runningStateAllOff,
 };
 
 // Full defaults include both heating and cooling, plus AutoMode's minSetpointDeadBand.
@@ -167,10 +183,21 @@ function thermostatPreInitialize(self: any): void {
     `initialize: after force-set - local=${self.state.localTemperature}`,
   );
 
+  // Initialize thermostatRunningState (optional attribute) so controllers
+  // subscribe to it from the start. This is the bitmap that indicates active
+  // heating/cooling — used by Apple Home for "Heating to" vs "Heat to" display.
+  // NOTE: thermostatRunningMode is also available for AutoMode devices, but
+  // Matter.js's internal #handleSystemModeChange reactor overrides it for
+  // non-Auto modes to match systemMode, so we cannot use it for active/idle
+  // indication. thermostatRunningState is fully in our control.
+  self.state.thermostatRunningState = runningStateAllOff;
+
   // Initialize thermostatRunningMode (required by AutoMode feature only).
   // Setting this ourselves prevents Matter.js issue #3105 where the internal
   // #handleSystemModeChange reactor tries to write thermostatRunningMode
   // without proper permissions in post-commit.
+  // NOTE: For non-Auto modes (Heat, Cool, Off), the internal reactor always
+  // overrides this to match systemMode. Only for Auto mode is our value preserved.
   if (hasAutoMode(self)) {
     self.state.thermostatRunningMode = Thermostat.ThermostatRunningMode.Off;
   }
