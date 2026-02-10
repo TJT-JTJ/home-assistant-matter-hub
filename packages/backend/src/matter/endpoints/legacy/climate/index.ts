@@ -229,27 +229,29 @@ export function ClimateDevice(
   ).set({
     homeAssistantEntity,
     thermostat: {
-      localTemperature: initialState.localTemperature ?? 2100,
+      // IMPORTANT: abs limits → regular limits → setpoints to prevent
+      // validation failures for negative temperatures (e.g. refrigerators).
       ...(supportsHeating
         ? {
-            occupiedHeatingSetpoint:
-              initialState.occupiedHeatingSetpoint ?? 2000,
-            minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-            maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
             absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
             absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+            minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+            maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+            occupiedHeatingSetpoint:
+              initialState.occupiedHeatingSetpoint ?? 2000,
           }
         : {}),
       ...(supportsCooling
         ? {
-            occupiedCoolingSetpoint:
-              initialState.occupiedCoolingSetpoint ?? 2400,
-            minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-            maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
             absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
             absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+            minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+            maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+            occupiedCoolingSetpoint:
+              initialState.occupiedCoolingSetpoint ?? 2400,
           }
         : {}),
+      localTemperature: initialState.localTemperature ?? 2100,
       ...(supportsHeating && supportsCooling ? { minSetpointDeadBand: 0 } : {}),
     },
   });
